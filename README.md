@@ -33,7 +33,7 @@
 
 ### Hazır Sürümler
 
-[Releases](https://github.com/voidterm/voidterm/releases) sayfasından işletim sisteminize uygun kurulum dosyasını indirin:
+[Releases](https://github.com/bqrayvzdgn/VoidTerm/releases) sayfasından işletim sisteminize uygun kurulum dosyasını indirin:
 
 | Platform | Format |
 |----------|--------|
@@ -45,7 +45,7 @@
 
 ```bash
 # Repoyu klonlayın
-git clone https://github.com/voidterm/voidterm.git
+git clone https://github.com/bqrayvzdgn/VoidTerm.git
 cd voidterm
 
 # Bağımlılıkları yükleyin
@@ -198,7 +198,7 @@ window.electronAPI.onPtyData(id, callback)
 
 ## 📄 Lisans
 
-Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.
+Bu proje [MIT Lisansı]() altında lisanslanmıştır.
 
 ## 🤝 Katkıda Bulunma
 
@@ -212,11 +212,10 @@ Katkılarınızı bekliyoruz! Lütfen bir Pull Request göndermeden önce:
 
 ## 📞 İletişim
 
-- **Issues**: [GitHub Issues](https://github.com/voidterm/voidterm/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/voidterm/voidterm/discussions)
+- **Issues**: [GitHub Issues](https://github.com/bqrayvzdgn/VoidTerm/issues)
 
 ---
 
 <p align="center">
-  Made with ❤️ by VoidTerm Contributors
+  Made with by Bqrayvzdgn
 </p>
