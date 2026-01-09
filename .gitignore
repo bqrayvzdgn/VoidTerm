@@ -21,6 +21,9 @@ Thumbs.db
 .env
 .env.local
 
+# AI
+CLAUDE.md
+
 # Electron
 *.exe
 *.dmg
