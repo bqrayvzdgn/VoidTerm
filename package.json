@@ -3,17 +3,17 @@
   "version": "1.0.0",
   "description": "A modern, cross-platform terminal emulator",
   "author": {
-    "name": "VoidTerm Contributors",
-    "email": "voidterm@example.com"
+    "name": "Buğrahan Yavuzdoğan",
+    "email": "bqrayvzdgn@gmail.com"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/voidterm/voidterm"
+    "url": "https://github.com/bqrayvzdgn/VoidTerm"
   },
-  "homepage": "https://github.com/voidterm/voidterm#readme",
+  "homepage": "https://github.com/bqrayvzdgn/VoidTerm",
   "bugs": {
-    "url": "https://github.com/voidterm/voidterm/issues"
+    "url": "https://github.com/bqrayvzdgn/VoidTerm/issues"
   },
   "keywords": [
     "terminal",
