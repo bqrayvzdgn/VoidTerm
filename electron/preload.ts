@@ -1,0 +1,133 @@
+import { contextBridge, ipcRenderer } from 'electron'
+import os from 'os'
+import path from 'path'
+
+export interface PtyOptions {
+  shell?: string
+  cwd?: string
+  env?: Record<string, string>
+}
+
+const electronAPI = {
+  // Window controls
+  windowMinimize: () => ipcRenderer.send('window-minimize'),
+  windowMaximize: () => ipcRenderer.send('window-maximize'),
+  windowClose: () => ipcRenderer.send('window-close'),
+
+  // System paths
+  homedir: () => os.homedir(),
+  pathJoin: (...args: string[]) => path.join(...args),
+
+  // PTY operations
+  ptyCreate: (options: PtyOptions): Promise<string> =>
+    ipcRenderer.invoke('pty-create', options),
+  ptyWrite: (id: string, data: string) =>
+    ipcRenderer.send('pty-write', { id, data }),
+  ptyResize: (id: string, cols: number, rows: number) =>
+    ipcRenderer.send('pty-resize', { id, cols, rows }),
+  ptyKill: (id: string) =>
+    ipcRenderer.send('pty-kill', id),
+
+  // PTY event listeners
+  onPtyData: (callback: (id: string, data: string) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, { id, data }: { id: string; data: string }) => {
+      callback(id, data)
+    }
+    ipcRenderer.on('pty-data', handler)
+    return () => ipcRenderer.removeListener('pty-data', handler)
+  },
+  onPtyExit: (callback: (id: string, exitCode: number) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, { id, exitCode }: { id: string; exitCode: number }) => {
+      callback(id, exitCode)
+    }
+    ipcRenderer.on('pty-exit', handler)
+    return () => ipcRenderer.removeListener('pty-exit', handler)
+  },
+
+  // Menu event listeners
+  onNewTab: (callback: () => void) => {
+    ipcRenderer.on('new-tab', callback)
+    return () => ipcRenderer.removeListener('new-tab', callback)
+  },
+  onCloseTab: (callback: () => void) => {
+    ipcRenderer.on('close-tab', callback)
+    return () => ipcRenderer.removeListener('close-tab', callback)
+  },
+  onOpenSettings: (callback: () => void) => {
+    ipcRenderer.on('open-settings', callback)
+    return () => ipcRenderer.removeListener('open-settings', callback)
+  },
+  onSplitVertical: (callback: () => void) => {
+    ipcRenderer.on('split-vertical', callback)
+    return () => ipcRenderer.removeListener('split-vertical', callback)
+  },
+  onSplitHorizontal: (callback: () => void) => {
+    ipcRenderer.on('split-horizontal', callback)
+    return () => ipcRenderer.removeListener('split-horizontal', callback)
+  },
+
+  // Window state
+  onWindowMaximized: (callback: (isMaximized: boolean) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, isMaximized: boolean) => {
+      callback(isMaximized)
+    }
+    ipcRenderer.on('window-maximized', handler)
+    return () => ipcRenderer.removeListener('window-maximized', handler)
+  },
+
+  // Window appearance
+  setOpacity: (opacity: number) => ipcRenderer.send('set-opacity', opacity),
+  setBackgroundBlur: (enabled: boolean) => ipcRenderer.send('set-background-blur', enabled),
+
+  // Platform info
+  platform: process.platform,
+
+  // Version info for About section
+  versions: {
+    electron: process.versions.electron,
+    node: process.versions.node,
+    chrome: process.versions.chrome
+  },
+
+  // External links
+  openExternal: (url: string) => ipcRenderer.send('open-external', url),
+
+  // Config operations
+  config: {
+    // Get entire config
+    get: () => ipcRenderer.invoke('config-get'),
+    getPath: () => ipcRenderer.invoke('config-get-path'),
+
+    // Settings
+    getSettings: () => ipcRenderer.invoke('config-get-settings'),
+    updateSettings: (updates: Record<string, unknown>) => ipcRenderer.invoke('config-update-settings', updates),
+    resetSettings: () => ipcRenderer.invoke('config-reset-settings'),
+
+    // Profiles
+    getProfiles: () => ipcRenderer.invoke('config-get-profiles'),
+    addProfile: (profile: Record<string, unknown>) => ipcRenderer.invoke('config-add-profile', profile),
+    updateProfile: (id: string, updates: Record<string, unknown>) => ipcRenderer.invoke('config-update-profile', { id, updates }),
+    removeProfile: (id: string) => ipcRenderer.invoke('config-remove-profile', id),
+
+    // Workspaces
+    getWorkspaces: () => ipcRenderer.invoke('config-get-workspaces'),
+    addWorkspace: (workspace: Record<string, unknown>) => ipcRenderer.invoke('config-add-workspace', workspace),
+    updateWorkspace: (id: string, updates: Record<string, unknown>) => ipcRenderer.invoke('config-update-workspace', { id, updates }),
+    removeWorkspace: (id: string) => ipcRenderer.invoke('config-remove-workspace', id),
+
+    // Import/Export
+    export: () => ipcRenderer.invoke('config-export'),
+    import: (jsonString: string) => ipcRenderer.invoke('config-import', jsonString),
+
+    // Reset
+    reset: () => ipcRenderer.invoke('config-reset')
+  }
+}
+
+contextBridge.exposeInMainWorld('electronAPI', electronAPI)
+
+declare global {
+  interface Window {
+    electronAPI: typeof electronAPI
+  }
+}
