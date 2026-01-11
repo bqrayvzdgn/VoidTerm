@@ -1,7 +1,6 @@
 {
   "name": "voidterm",
   "version": "1.0.0",
-  "type": "module",
   "description": "A modern, cross-platform terminal emulator",
   "author": {
     "name": "Buğrahan Yavuzdoğan",
