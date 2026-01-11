@@ -29,7 +29,7 @@
 
 ### Temel Özellikler
 - **⚡ Hızlı Performans** - WebGL tabanlı render engine ile yüksek performanslı terminal deneyimi
-- **🎨 Zengin Tema Desteği** - 6 yerleşik tema + özel tema oluşturma desteği
+- **🎨 Zengin Tema Desteği** - 11 yerleşik tema + özel tema oluşturma desteği
 - **📑 Sekme ve Panel Yönetimi** - Çoklu sekmeler ve dikey/yatay bölünmüş paneller
 - **🔧 Özelleştirilebilir Profiller** - Farklı shell'ler için ayrı profil yapılandırmaları
 - **💼 Workspace Desteği** - Çalışma alanlarınızı gruplandırın ve yönetin
@@ -215,6 +215,11 @@ VoidTerm aşağıdaki yerleşik temalarla birlikte gelir:
 - **Tokyo Night** - Tokyo gece manzarasından ilham alan tema
 - **Nord** - Arktik, mavi tonlu tema
 - **GitHub Dark** - GitHub'ın karanlık teması
+- **Windows Terminal** - Windows Terminal varsayılan teması
+- **Gruvbox Dark** - Retro, sıcak tonlu tema
+- **Solarized Dark** - Göz yormayan, düşük kontrastlı tema
+- **Monokai** - Sublime Text'ten ilham alan klasik tema
+- **Material** - Google Material Design teması
 
 ### Özel Tema Oluşturma
 
