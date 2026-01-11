@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 release/
+*.tsbuildinfo
 
 # IDE
 .vscode/
@@ -21,8 +22,11 @@ Thumbs.db
 .env
 .env.local
 
-# AI
-CLAUDE.md
+# Testing
+coverage/
+playwright-report/
+test-results/
+e2escreenshots/
 
 # Electron
 *.exe
