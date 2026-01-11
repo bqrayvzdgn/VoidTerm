@@ -148,7 +148,17 @@ export const tr = {
       resetTitle: 'Sıfırla',
       resetDescription: 'Tüm ayarları varsayılan değerlere döndürün.',
       resetButton: 'Varsayılana Sıfırla',
-      resetConfirm: 'Tüm ayarlar varsayılana sıfırlanacak. Devam etmek istiyor musunuz?'
+      resetConfirm: 'Tüm ayarlar varsayılana sıfırlanacak. Devam etmek istiyor musunuz?',
+      autoBackupsTitle: 'Otomatik Yedekler',
+      autoBackupsDescription: 'Sistem otomatik olarak son 5 yedeği saklar. Bir yedeği geri yüklemek için tıklayın.',
+      noBackups: 'Henüz otomatik yedek yok',
+      restoreBackup: 'Geri Yükle',
+      deleteBackup: 'Sil',
+      restoreConfirm: 'Bu yedeği geri yüklemek istiyor musunuz? Mevcut ayarlar kaydedilecek.',
+      restoreSuccess: 'Yedek başarıyla geri yüklendi!',
+      restoreError: 'Yedek geri yüklenemedi',
+      createBackup: 'Yedek Oluştur',
+      backupCreated: 'Yedek oluşturuldu'
     },
     
     about: {
@@ -280,6 +290,14 @@ export const tr = {
     errorReport: 'VoidTerm Hata Raporu'
   },
   
+  broadcast: {
+    confirmTitle: 'Broadcast Modunu Etkinleştir?',
+    confirmMessage: 'Yazdığınız her şey bu sekmedeki tüm terminallere gönderilecek. Bu özellik dikkatli kullanılmalıdır.',
+    enable: 'Etkinleştir',
+    cancel: 'İptal',
+    warning: 'Uyarı: Komutlar tüm terminallerde çalışacak!'
+  },
+
   toast: {
     settingsExported: 'Ayarlar dışa aktarıldı',
     settingsImported: 'Ayarlar içe aktarıldı',

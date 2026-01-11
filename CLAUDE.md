@@ -63,9 +63,12 @@ VoidTerm is an Electron-based terminal emulator built with React, xterm.js, and 
 
 ### State Management (Zustand stores in `src/store/`)
 
-- `terminalStore.ts` - Tabs, panes, and terminal state. Panes form a tree structure supporting recursive horizontal/vertical splits
+- `terminalStore.ts` - Tabs, panes, tab groups, and terminal state. Panes form a tree structure supporting recursive horizontal/vertical splits. Includes closed tab history for reopen functionality
 - `settingsStore.ts` - Settings and shell profiles loaded from electron-store config
 - `workspaceStore.ts` - Workspace management (groups of tabs) loaded from electron-store config
+- `snippetStore.ts` - Command snippets with usage tracking and optional keyboard shortcuts
+- `customThemeStore.ts` - User-defined custom terminal themes
+- `toastStore.ts` - Toast notification queue management
 
 ### Configuration Storage
 
@@ -83,12 +86,19 @@ Renderer creates terminals via `window.electronAPI.ptyCreate()`, receives data v
 ### Key Types (`src/types/index.ts`)
 
 - `Pane` - Tree node with `type: 'terminal' | 'split'`, `direction`, `children`, and `ratio` for split proportions
-- `Profile` - Shell configuration (shell path, args, working directory, environment)
+- `Profile` - Shell configuration (shell path, args, working directory, environment, startup command)
 - `Theme` - 16-color terminal theme with cursor and selection colors
+- `SSHConnection` - SSH connection config (host, port, auth method, optional jump host for tunneling)
+- `Snippet` - Saved command with name, description, category, and optional shortcut
+- `TabGroup` - Tab grouping with name, color, and collapse state
 
 ### Themes
 
-Defined in `src/themes/index.ts`. Available: catppuccin-mocha (default), dracula, one-dark, tokyo-night, nord, github-dark.
+Defined in `src/themes/index.ts`. Available: catppuccin-mocha (default), dracula, one-dark, tokyo-night, nord, github-dark. Users can also create custom themes stored in `customThemeStore`.
+
+### Internationalization (`src/i18n/`)
+
+Simple Zustand-based i18n with Turkish (`tr`) and English (`en`) locales. Language preference is stored in localStorage. Use the `useTranslation` hook to access translations.
 
 ## Code Style
 
@@ -134,9 +144,17 @@ import '@/styles/main.css'
 
 - `Ctrl+T` / `Cmd+T` - New tab
 - `Ctrl+W` / `Cmd+W` - Close tab
+- `Ctrl+Shift+W` - Close pane
 - `Ctrl+Tab` - Next tab
 - `Ctrl+Shift+Tab` - Previous tab
 - `Ctrl+Shift+D` - Split vertical
 - `Ctrl+Shift+E` - Split horizontal
 - `Ctrl+Shift+B` - Toggle workspace sidebar
+- `Ctrl+Shift+P` - Command palette
+- `Ctrl+Shift+S` - SSH manager
+- `Ctrl+F` - Toggle search
+- `Ctrl+L` - Clear terminal
+- `Ctrl+Alt+Arrow` - Focus pane in direction
 - `Ctrl+,` / `Cmd+,` - Settings
+
+Shortcuts are customizable via settings and stored in `Settings.shortcuts`.

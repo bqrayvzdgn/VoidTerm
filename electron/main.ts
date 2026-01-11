@@ -1,8 +1,11 @@
 import { app, BrowserWindow, ipcMain, Menu, shell, globalShortcut, screen } from 'electron'
 import path from 'path'
 import { PtyManager } from './pty-manager'
-import { configManager, Profile, Settings, Workspace } from './config-manager'
+import { configManager, Profile, Settings, Workspace, BackupInfo } from './config-manager'
 import { updater } from './auto-updater'
+import { createLogger } from './logger'
+
+const logger = createLogger('Main')
 
 let mainWindow: BrowserWindow | null = null
 let ptyManager: PtyManager
@@ -59,6 +62,28 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null
+  })
+
+  // Cleanup PTY processes when renderer crashes or is destroyed
+  mainWindow.webContents.on('render-process-gone', (_, details) => {
+    logger.warn(`Renderer process gone: ${details.reason}`)
+    if (ptyManager) {
+      ptyManager.cleanupOrphaned()
+    }
+  })
+
+  mainWindow.webContents.on('crashed', () => {
+    logger.warn('Renderer crashed, cleaning up PTY processes')
+    if (ptyManager) {
+      ptyManager.cleanupOrphaned()
+    }
+  })
+
+  mainWindow.webContents.on('destroyed', () => {
+    logger.info('WebContents destroyed, cleaning up PTY processes')
+    if (ptyManager) {
+      ptyManager.cleanupOrphaned()
+    }
   })
 
   // Send maximize state changes to renderer
@@ -257,6 +282,16 @@ function setupPtyHandlers() {
     ptyManager.kill(id)
   })
 
+  // Get active PTY count (useful for debugging)
+  ipcMain.handle('pty-get-count', () => {
+    return ptyManager.getCount()
+  })
+
+  // Get list of active PTY IDs
+  ipcMain.handle('pty-get-active-ids', () => {
+    return ptyManager.getActiveIds()
+  })
+
   ptyManager.onData((id, data) => {
     mainWindow?.webContents.send('pty-data', { id, data })
   })
@@ -349,6 +384,27 @@ function setupConfigHandlers() {
 
   ipcMain.handle('config-clear-session', () => {
     configManager.clearSession()
+  })
+
+  // Backup operations
+  ipcMain.handle('config-backup-create', (): string => {
+    return configManager.createBackup()
+  })
+
+  ipcMain.handle('config-backup-list', (): BackupInfo[] => {
+    return configManager.listBackups()
+  })
+
+  ipcMain.handle('config-backup-restore', (_, filename: string): boolean => {
+    return configManager.restoreBackup(filename)
+  })
+
+  ipcMain.handle('config-backup-delete', (_, filename: string): boolean => {
+    return configManager.deleteBackup(filename)
+  })
+
+  ipcMain.handle('config-validate', (): boolean => {
+    return configManager.validateConfig()
   })
 }
 

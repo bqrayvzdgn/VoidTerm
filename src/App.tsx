@@ -3,6 +3,7 @@ import { TabBar } from './components/TabBar/TabBar'
 import { WorkspaceSidebar } from './components/WorkspaceSidebar/WorkspaceSidebar'
 import { SplitPane } from './components/SplitPane/SplitPane'
 import { CreateDialog } from './components/CreateDialog/CreateDialog'
+import { BroadcastConfirmDialog } from './components/BroadcastConfirmDialog/BroadcastConfirmDialog'
 import { ToastContainer } from './components/Toast/Toast'
 import { useTerminalStore } from './store/terminalStore'
 import { useWorkspaceStore } from './store/workspaceStore'
@@ -27,6 +28,7 @@ const App: React.FC = () => {
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [createDialog, setCreateDialog] = useState<{ open: boolean; profileId?: string }>({ open: false })
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const [broadcastConfirmOpen, setBroadcastConfirmOpen] = useState(false)
 
   // Stores
   const { tabs, activeTabId, panes, setActiveTab, broadcastMode, toggleBroadcastMode } = useTerminalStore()
@@ -90,6 +92,26 @@ const App: React.FC = () => {
     setCommandPaletteOpen(prev => !prev)
   }, [])
 
+  // Broadcast mode handlers
+  const handleToggleBroadcast = useCallback(() => {
+    if (broadcastMode) {
+      // If already ON, turn OFF directly without confirmation
+      toggleBroadcastMode()
+    } else {
+      // If OFF, show confirmation dialog before turning ON
+      setBroadcastConfirmOpen(true)
+    }
+  }, [broadcastMode, toggleBroadcastMode])
+
+  const handleBroadcastConfirm = useCallback(() => {
+    toggleBroadcastMode()
+    setBroadcastConfirmOpen(false)
+  }, [toggleBroadcastMode])
+
+  const handleBroadcastCancel = useCallback(() => {
+    setBroadcastConfirmOpen(false)
+  }, [])
+
   // Tab title change handler (disabled - keeps profile names)
   const handleTerminalTitleChange = useCallback((_terminalId: string, _title: string) => {
     // Tab titles are set from profile name and won't change
@@ -108,13 +130,13 @@ const App: React.FC = () => {
     onNavigatePane: handleNavigatePane,
     onClosePane: handleClosePane,
     onCommandPalette: toggleCommandPalette,
-    onToggleBroadcast: toggleBroadcastMode,
+    onToggleBroadcast: handleToggleBroadcast,
     onReopenClosedTab: handleReopenClosedTab,
     onToggleMaximize: handleToggleMaximize
   }), [
     openCreateDialog, activeTabId, handleCloseTab, handleSplit, toggleSidebar,
     handleNextTab, handlePrevTab, handleNavigatePane, handleClosePane,
-    toggleCommandPalette, toggleBroadcastMode, handleReopenClosedTab, handleToggleMaximize
+    toggleCommandPalette, handleToggleBroadcast, handleReopenClosedTab, handleToggleMaximize
   ])
 
   useKeyboardShortcuts(keyboardHandlers)
@@ -262,6 +284,12 @@ const App: React.FC = () => {
           />
         </Suspense>
       )}
+
+      <BroadcastConfirmDialog
+        open={broadcastConfirmOpen}
+        onConfirm={handleBroadcastConfirm}
+        onCancel={handleBroadcastCancel}
+      />
 
       <ToastContainer />
     </div>

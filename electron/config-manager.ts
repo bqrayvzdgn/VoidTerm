@@ -1,6 +1,10 @@
 import Store from 'electron-store'
 import { app } from 'electron'
 import path from 'path'
+import fs from 'fs'
+import { createLogger } from './logger'
+
+const logger = createLogger('ConfigManager')
 
 // Config schema types
 export interface Profile {
@@ -71,6 +75,13 @@ export interface AppConfig {
   workspaces: Workspace[]
   session?: Session
   version: number
+}
+
+export interface BackupInfo {
+  filename: string
+  timestamp: number
+  date: string
+  size: number
 }
 
 // Default configuration
@@ -203,6 +214,10 @@ const DEFAULT_CONFIG: AppConfig = {
   version: 1
 }
 
+// Backup configuration
+const MAX_BACKUPS = 5
+const BACKUP_PREFIX = 'config.backup.'
+
 // Create store instance
 const store = new Store<AppConfig>({
   name: 'config',
@@ -219,6 +234,11 @@ const store = new Store<AppConfig>({
     }
   }
 })
+
+// Get the config directory
+function getConfigDir(): string {
+  return path.dirname(store.path)
+}
 
 // Config Manager class
 export class ConfigManager {
@@ -331,6 +351,169 @@ export class ConfigManager {
 
   clearSession(): void {
     store.delete('session')
+  }
+
+  // Backup methods
+
+  /**
+   * Create a backup of the current config
+   * Returns the backup filename
+   */
+  createBackup(): string {
+    const timestamp = Date.now()
+    const filename = `${BACKUP_PREFIX}${timestamp}.json`
+    const backupPath = path.join(getConfigDir(), filename)
+
+    try {
+      const config = this.getConfig()
+      fs.writeFileSync(backupPath, JSON.stringify(config, null, 2), 'utf-8')
+
+      // Clean up old backups (keep only MAX_BACKUPS)
+      this.cleanupOldBackups()
+
+      logger.info(`Backup created: ${filename}`)
+      return filename
+    } catch (error) {
+      logger.error('Failed to create backup:', error)
+      throw error
+    }
+  }
+
+  /**
+   * List all available backups sorted by timestamp (newest first)
+   */
+  listBackups(): BackupInfo[] {
+    const configDir = getConfigDir()
+
+    try {
+      const files = fs.readdirSync(configDir)
+      const backups: BackupInfo[] = []
+
+      for (const file of files) {
+        if (file.startsWith(BACKUP_PREFIX) && file.endsWith('.json')) {
+          const filePath = path.join(configDir, file)
+          const stats = fs.statSync(filePath)
+
+          // Extract timestamp from filename
+          const timestampStr = file.replace(BACKUP_PREFIX, '').replace('.json', '')
+          const timestamp = parseInt(timestampStr, 10)
+
+          if (!isNaN(timestamp)) {
+            backups.push({
+              filename: file,
+              timestamp,
+              date: new Date(timestamp).toISOString(),
+              size: stats.size
+            })
+          }
+        }
+      }
+
+      // Sort by timestamp descending (newest first)
+      return backups.sort((a, b) => b.timestamp - a.timestamp)
+    } catch (error) {
+      logger.error('Failed to list backups:', error)
+      return []
+    }
+  }
+
+  /**
+   * Restore config from a backup file
+   */
+  restoreBackup(filename: string): boolean {
+    const backupPath = path.join(getConfigDir(), filename)
+
+    try {
+      if (!fs.existsSync(backupPath)) {
+        logger.error('Backup file not found:', filename)
+        return false
+      }
+
+      // Create a backup of current config before restoring
+      try {
+        this.createBackup()
+      } catch {
+        // Continue even if backup fails
+      }
+
+      const backupContent = fs.readFileSync(backupPath, 'utf-8')
+      const backupConfig = JSON.parse(backupContent) as AppConfig
+
+      // Validate and restore
+      if (backupConfig.settings) {
+        store.set('settings', { ...DEFAULT_SETTINGS, ...backupConfig.settings })
+      }
+      if (backupConfig.profiles && Array.isArray(backupConfig.profiles)) {
+        store.set('profiles', backupConfig.profiles)
+      }
+      if (backupConfig.workspaces && Array.isArray(backupConfig.workspaces)) {
+        store.set('workspaces', backupConfig.workspaces)
+      }
+
+      logger.info(`Config restored from: ${filename}`)
+      return true
+    } catch (error) {
+      logger.error('Failed to restore backup:', error)
+      return false
+    }
+  }
+
+  /**
+   * Delete a specific backup
+   */
+  deleteBackup(filename: string): boolean {
+    const backupPath = path.join(getConfigDir(), filename)
+
+    try {
+      if (fs.existsSync(backupPath)) {
+        fs.unlinkSync(backupPath)
+        logger.debug(`Backup deleted: ${filename}`)
+        return true
+      }
+      return false
+    } catch (error) {
+      logger.error('Failed to delete backup:', error)
+      return false
+    }
+  }
+
+  /**
+   * Clean up old backups, keeping only the most recent MAX_BACKUPS
+   */
+  private cleanupOldBackups(): void {
+    const backups = this.listBackups()
+
+    if (backups.length > MAX_BACKUPS) {
+      const toDelete = backups.slice(MAX_BACKUPS)
+      for (const backup of toDelete) {
+        this.deleteBackup(backup.filename)
+      }
+    }
+  }
+
+  /**
+   * Validate config integrity
+   * Returns true if config is valid, false if corrupted
+   */
+  validateConfig(): boolean {
+    try {
+      const config = this.getConfig()
+
+      // Check required fields exist
+      if (!config.settings || typeof config.settings !== 'object') return false
+      if (!config.profiles || !Array.isArray(config.profiles)) return false
+      if (!config.workspaces || !Array.isArray(config.workspaces)) return false
+
+      // Check settings has required fields
+      const requiredSettingsFields = ['theme', 'fontFamily', 'fontSize', 'cursorStyle']
+      for (const field of requiredSettingsFields) {
+        if (!(field in config.settings)) return false
+      }
+
+      return true
+    } catch {
+      return false
+    }
   }
 
   // Export config as JSON string

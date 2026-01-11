@@ -1,9 +1,16 @@
-import React, { memo } from 'react'
+import React, { memo, useState, useEffect, useCallback } from 'react'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useToastStore } from '../../../store/toastStore'
 import { useTranslation } from '../../../i18n'
 import type { Profile, KeyboardShortcuts, Settings as SettingsType } from '../../../types'
 import { DEFAULT_SETTINGS } from '../../../types'
+
+interface BackupInfo {
+  filename: string
+  timestamp: number
+  date: string
+  size: number
+}
 
 /**
  * Yedekleme ve geri yükleme ayarları bölümü.
@@ -11,8 +18,81 @@ import { DEFAULT_SETTINGS } from '../../../types'
  */
 export const BackupSettings: React.FC = memo(() => {
   const { t } = useTranslation()
-  const { settings, profiles, updateSettings, addProfile, updateProfile } = useSettingsStore()
+  const { settings, profiles, updateSettings, addProfile, updateProfile, loadFromConfig } = useSettingsStore()
   const toast = useToastStore()
+  const [backups, setBackups] = useState<BackupInfo[]>([])
+  const [loadingBackups, setLoadingBackups] = useState(true)
+
+  // Load backups on mount
+  const loadBackups = useCallback(async () => {
+    try {
+      setLoadingBackups(true)
+      const backupList = await window.electronAPI.config.backup.list()
+      setBackups(backupList)
+    } catch (error) {
+      console.error('Failed to load backups:', error)
+    } finally {
+      setLoadingBackups(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadBackups()
+  }, [loadBackups])
+
+  // Create a backup manually
+  const handleCreateBackup = async () => {
+    try {
+      await window.electronAPI.config.backup.create()
+      toast.success(t.settings.backup.backupCreated)
+      loadBackups()
+    } catch (error) {
+      console.error('Failed to create backup:', error)
+      toast.error(t.settings.backup.restoreError)
+    }
+  }
+
+  // Restore a backup
+  const handleRestoreBackup = async (filename: string) => {
+    if (!confirm(t.settings.backup.restoreConfirm)) return
+
+    try {
+      const success = await window.electronAPI.config.backup.restore(filename)
+      if (success) {
+        toast.success(t.settings.backup.restoreSuccess)
+        // Reload settings from config
+        await loadFromConfig()
+        loadBackups()
+      } else {
+        toast.error(t.settings.backup.restoreError)
+      }
+    } catch (error) {
+      console.error('Failed to restore backup:', error)
+      toast.error(t.settings.backup.restoreError)
+    }
+  }
+
+  // Delete a backup
+  const handleDeleteBackup = async (filename: string) => {
+    try {
+      await window.electronAPI.config.backup.delete(filename)
+      loadBackups()
+    } catch (error) {
+      console.error('Failed to delete backup:', error)
+    }
+  }
+
+  // Format date for display
+  const formatBackupDate = (timestamp: number) => {
+    const date = new Date(timestamp)
+    return date.toLocaleString()
+  }
+
+  // Format file size for display
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    return `${(bytes / 1024).toFixed(1)} KB`
+  }
 
   /**
    * Tüm ayarları JSON olarak dışa aktarır
@@ -301,6 +381,57 @@ export const BackupSettings: React.FC = memo(() => {
             </svg>
             {t.settings.backup.resetButton}
           </button>
+        </div>
+
+        {/* Otomatik Yedekler */}
+        <div className="backup-section">
+          <h4 className="settings-subheading">{t.settings.backup.autoBackupsTitle}</h4>
+          <p className="settings-description">{t.settings.backup.autoBackupsDescription}</p>
+
+          <button className="btn btn-secondary" onClick={handleCreateBackup} style={{ marginBottom: '12px' }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M7 3v8M3 7h8" strokeLinecap="round" />
+            </svg>
+            {t.settings.backup.createBackup}
+          </button>
+
+          {loadingBackups ? (
+            <div className="backup-loading">Loading...</div>
+          ) : backups.length === 0 ? (
+            <div className="backup-empty">{t.settings.backup.noBackups}</div>
+          ) : (
+            <div className="backup-list">
+              {backups.map((backup) => (
+                <div key={backup.filename} className="backup-item">
+                  <div className="backup-item-info">
+                    <span className="backup-item-date">{formatBackupDate(backup.timestamp)}</span>
+                    <span className="backup-item-size">{formatSize(backup.size)}</span>
+                  </div>
+                  <div className="backup-item-actions">
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={() => handleRestoreBackup(backup.filename)}
+                      title={t.settings.backup.restoreBackup}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M2 7a5 5 0 1 1 1 3M2 12V7h5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      {t.settings.backup.restoreBackup}
+                    </button>
+                    <button
+                      className="btn btn-sm btn-danger"
+                      onClick={() => handleDeleteBackup(backup.filename)}
+                      title={t.settings.backup.deleteBackup}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M3 4h8M5 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M6 7v4M8 7v4M4 4l.5 7.5a1 1 0 0 0 1 .5h3a1 1 0 0 0 1-.5L10 4" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

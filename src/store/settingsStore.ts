@@ -4,6 +4,9 @@ import type { Settings, Profile, Theme } from '../types'
 import { DEFAULT_SETTINGS } from '../types'
 import { themes } from '../themes'
 import { useCustomThemeStore } from './customThemeStore'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('SettingsStore')
 
 interface SettingsStore {
   settings: Settings
@@ -52,7 +55,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
         isLoaded: true
       })
     } catch (error) {
-      console.error('Failed to load config:', error)
+      logger.error('Failed to load config:', error)
       set({ isLoaded: true })
     }
   },
@@ -66,7 +69,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
       }
       set({ settings: newSettings, currentTheme: theme || themes['catppuccin-mocha'] })
     } catch (error) {
-      console.error('Failed to update settings:', error)
+      logger.error('Failed to update settings:', error)
     }
   },
 
@@ -76,7 +79,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
       const theme = themes[settings.theme] || themes['catppuccin-mocha']
       set({ settings, currentTheme: theme })
     } catch (error) {
-      console.error('Failed to reset settings:', error)
+      logger.error('Failed to reset settings:', error)
     }
   },
 
@@ -102,7 +105,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
       const profiles = await window.electronAPI.config.addProfile(profile)
       set({ profiles })
     } catch (error) {
-      console.error('Failed to add profile:', error)
+      logger.error('Failed to add profile:', error)
     }
   },
 
@@ -111,7 +114,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
       const profiles = await window.electronAPI.config.updateProfile(id, updates)
       set({ profiles })
     } catch (error) {
-      console.error('Failed to update profile:', error)
+      logger.error('Failed to update profile:', error)
     }
   },
 
@@ -120,7 +123,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
       const profiles = await window.electronAPI.config.removeProfile(id)
       set({ profiles })
     } catch (error) {
-      console.error('Failed to remove profile:', error)
+      logger.error('Failed to remove profile:', error)
     }
   },
 

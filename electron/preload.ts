@@ -27,6 +27,10 @@ const electronAPI = {
     ipcRenderer.send('pty-resize', { id, cols, rows }),
   ptyKill: (id: string) =>
     ipcRenderer.send('pty-kill', id),
+  ptyGetCount: (): Promise<number> =>
+    ipcRenderer.invoke('pty-get-count'),
+  ptyGetActiveIds: (): Promise<string[]> =>
+    ipcRenderer.invoke('pty-get-active-ids'),
 
   // PTY event listeners
   onPtyData: (callback: (id: string, data: string) => void) => {
@@ -203,9 +207,21 @@ const electronAPI = {
 
     // Session
     getSession: () => ipcRenderer.invoke('config-get-session'),
-    saveSession: (session: { tabs: Array<{ id: string; profileId: string; workspaceId?: string; title: string }>; activeTabId: string | null }) => 
+    saveSession: (session: { tabs: Array<{ id: string; profileId: string; workspaceId?: string; title: string }>; activeTabId: string | null }) =>
       ipcRenderer.invoke('config-save-session', session),
-    clearSession: () => ipcRenderer.invoke('config-clear-session')
+    clearSession: () => ipcRenderer.invoke('config-clear-session'),
+
+    // Backup operations
+    backup: {
+      create: (): Promise<string> => ipcRenderer.invoke('config-backup-create'),
+      list: (): Promise<Array<{ filename: string; timestamp: number; date: string; size: number }>> =>
+        ipcRenderer.invoke('config-backup-list'),
+      restore: (filename: string): Promise<boolean> =>
+        ipcRenderer.invoke('config-backup-restore', filename),
+      delete: (filename: string): Promise<boolean> =>
+        ipcRenderer.invoke('config-backup-delete', filename)
+    },
+    validate: (): Promise<boolean> => ipcRenderer.invoke('config-validate')
   }
 }
 

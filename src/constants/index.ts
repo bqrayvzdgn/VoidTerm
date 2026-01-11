@@ -7,6 +7,7 @@ export const TERMINAL_STARTUP_DELAY = 300
 export const SSH_COMMAND_DELAY = 500
 export const COPY_FEEDBACK_DURATION = 1500
 export const SEARCH_FOCUS_DELAY = 0
+export const RESIZE_DEBOUNCE_DELAY = 150
 
 // Tab limitleri
 export const MAX_CLOSED_TABS = 10
