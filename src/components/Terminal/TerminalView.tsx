@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { SearchAddon } from '@xterm/addon-search'
 import { WebLinksAddon } from '@xterm/addon-web-links'
+import { LigaturesAddon } from '@xterm/addon-ligatures'
 import { useSettingsStore } from '../../store/settingsStore'
 import '@xterm/xterm/css/xterm.css'
 
@@ -15,6 +16,8 @@ interface TerminalViewProps {
   onClosePane?: () => void
   onNextTab?: () => void
   onPrevTab?: () => void
+  broadcastMode?: boolean
+  onBroadcastInput?: (data: string) => void
 }
 
 export interface TerminalViewHandle {
@@ -32,7 +35,9 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
   onNavigatePane,
   onClosePane,
   onNextTab,
-  onPrevTab
+  onPrevTab,
+  broadcastMode,
+  onBroadcastInput
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
@@ -42,8 +47,21 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
   
   const [showSearch, setShowSearch] = useState(false)
   const [searchText, setSearchText] = useState('')
+  const [searchMatchInfo, setSearchMatchInfo] = useState<{ current: number; total: number } | null>(null)
   const [zoomLevel, setZoomLevel] = useState(0) // -5 to +10, each step is 2px
+  const [showCopyFeedback, setShowCopyFeedback] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const copyFeedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Show copy feedback for 1.5 seconds
+  const triggerCopyFeedback = useCallback(() => {
+    // Clear any existing timeout
+    if (copyFeedbackTimeoutRef.current) {
+      clearTimeout(copyFeedbackTimeoutRef.current)
+    }
+    setShowCopyFeedback(true)
+    copyFeedbackTimeoutRef.current = setTimeout(() => setShowCopyFeedback(false), 1500)
+  }, [])
 
   // Expose methods to parent components
   useImperativeHandle(ref, () => ({
@@ -94,18 +112,48 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
     if (e.key === 'Escape') {
       setShowSearch(false)
       setSearchText('')
+      setSearchMatchInfo(null)
       searchAddonRef.current?.clearDecorations()
       terminalRef.current?.focus()
     } else if (e.key === 'Enter') {
       if (searchAddonRef.current && searchText) {
         if (e.shiftKey) {
           searchAddonRef.current.findPrevious(searchText, { caseSensitive: false })
+          setSearchMatchInfo(prev => prev && prev.total > 0 
+            ? { ...prev, current: prev.current > 1 ? prev.current - 1 : prev.total }
+            : prev)
         } else {
           searchAddonRef.current.findNext(searchText, { caseSensitive: false })
+          setSearchMatchInfo(prev => prev && prev.total > 0 
+            ? { ...prev, current: prev.current < prev.total ? prev.current + 1 : 1 }
+            : prev)
         }
       }
     }
   }, [searchText])
+
+  // Count matches in terminal buffer
+  const countSearchMatches = useCallback((text: string): number => {
+    if (!terminalRef.current || !text) return 0
+    
+    const terminal = terminalRef.current
+    const buffer = terminal.buffer.active
+    let count = 0
+    const searchLower = text.toLowerCase()
+    
+    for (let i = 0; i < buffer.length; i++) {
+      const line = buffer.getLine(i)
+      if (line) {
+        const lineText = line.translateToString().toLowerCase()
+        let pos = 0
+        while ((pos = lineText.indexOf(searchLower, pos)) !== -1) {
+          count++
+          pos += searchLower.length
+        }
+      }
+    }
+    return count
+  }, [])
 
   // Handle search text change
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,12 +161,15 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
     setSearchText(text)
     if (searchAddonRef.current) {
       if (text) {
-        searchAddonRef.current.findNext(text, { caseSensitive: false })
+        const found = searchAddonRef.current.findNext(text, { caseSensitive: false })
+        const total = countSearchMatches(text)
+        setSearchMatchInfo(found ? { current: 1, total } : { current: 0, total })
       } else {
         searchAddonRef.current.clearDecorations()
+        setSearchMatchInfo(null)
       }
     }
-  }, [])
+  }, [countSearchMatches])
 
   // Toggle search bar
   const toggleSearch = useCallback(() => {
@@ -129,6 +180,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       } else {
         // Closing search, clear and focus terminal
         setSearchText('')
+        setSearchMatchInfo(null)
         searchAddonRef.current?.clearDecorations()
         terminalRef.current?.focus()
       }
@@ -194,6 +246,14 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       terminal.loadAddon(webglAddon)
     } catch (e) {
       console.warn('WebGL addon failed to load, falling back to canvas renderer')
+    }
+
+    // Try to load Ligatures addon for programming font support
+    try {
+      const ligaturesAddon = new LigaturesAddon()
+      terminal.loadAddon(ligaturesAddon)
+    } catch (e) {
+      console.warn('Ligatures addon failed to load')
     }
 
     fitAddon.fit()
@@ -324,6 +384,10 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
     // Handle terminal input
     terminal.onData((data) => {
       window.electronAPI.ptyWrite(ptyId, data)
+      // If broadcast mode is enabled, also send to other terminals
+      if (broadcastMode && onBroadcastInput) {
+        onBroadcastInput(data)
+      }
     })
 
     // Handle title changes
@@ -337,6 +401,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
         const selection = terminal.getSelection()
         if (selection) {
           navigator.clipboard.writeText(selection)
+          triggerCopyFeedback()
         }
       }
     })
@@ -372,7 +437,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       resizeObserver.disconnect()
       terminal.dispose()
     }
-  }, [ptyId, onTitleChange, handleResize])
+  }, [ptyId, onTitleChange, handleResize, triggerCopyFeedback])
 
   // Focus terminal when it becomes active
   useEffect(() => {
@@ -442,6 +507,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       const selection = terminalRef.current?.getSelection()
       if (selection) {
         navigator.clipboard.writeText(selection)
+        triggerCopyFeedback()
       }
     })
 
@@ -462,7 +528,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       removePasteListener?.()
       removeClearListener?.()
     }
-  }, [ptyId])
+  }, [ptyId, triggerCopyFeedback])
 
   return (
     <div
@@ -487,9 +553,21 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
             placeholder="Search..."
             className="terminal-search-input"
           />
+          {searchMatchInfo && (
+            <span className="terminal-search-count">
+              {searchMatchInfo.total > 0 
+                ? `${searchMatchInfo.current}/${searchMatchInfo.total}`
+                : 'No results'}
+            </span>
+          )}
           <button
             className="terminal-search-btn"
-            onClick={() => searchAddonRef.current?.findPrevious(searchText, { caseSensitive: false })}
+            onClick={() => {
+              searchAddonRef.current?.findPrevious(searchText, { caseSensitive: false })
+              setSearchMatchInfo(prev => prev && prev.total > 0 
+                ? { ...prev, current: prev.current > 1 ? prev.current - 1 : prev.total }
+                : prev)
+            }}
             title="Previous (Shift+Enter)"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -498,7 +576,12 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
           </button>
           <button
             className="terminal-search-btn"
-            onClick={() => searchAddonRef.current?.findNext(searchText, { caseSensitive: false })}
+            onClick={() => {
+              searchAddonRef.current?.findNext(searchText, { caseSensitive: false })
+              setSearchMatchInfo(prev => prev && prev.total > 0 
+                ? { ...prev, current: prev.current < prev.total ? prev.current + 1 : 1 }
+                : prev)
+            }}
             title="Next (Enter)"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -523,6 +606,11 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
         <div className="terminal-zoom-indicator">
           {zoomLevel > 0 ? '+' : ''}{zoomLevel * 2}px ({Math.round((settings.fontSize + zoomLevel * 2) / settings.fontSize * 100)}%)
         </div>
+      )}
+
+      {/* Copy Feedback */}
+      {showCopyFeedback && (
+        <div className="terminal-copy-feedback">Copied!</div>
       )}
       
       {/* Terminal Container */}

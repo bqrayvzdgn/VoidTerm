@@ -1,10 +1,13 @@
-import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, shell, globalShortcut, screen } from 'electron'
 import path from 'path'
 import { PtyManager } from './pty-manager'
 import { configManager, Profile, Settings, Workspace } from './config-manager'
 
 let mainWindow: BrowserWindow | null = null
 let ptyManager: PtyManager
+let isQuakeMode = false
+let quakeWindowBounds: { x: number; y: number; width: number; height: number } | null = null
+let normalWindowBounds: { x: number; y: number; width: number; height: number } | null = null
 
 const isDev = !app.isPackaged
 
@@ -106,6 +109,13 @@ function createWindow() {
     shell.openExternal(url)
   })
 
+  // Set window title
+  ipcMain.on('set-window-title', (_, title: string) => {
+    if (mainWindow) {
+      mainWindow.setTitle(title)
+    }
+  })
+
   // Terminal context menu
   ipcMain.on('show-terminal-context-menu', (_, options: { hasSelection: boolean; x: number; y: number }) => {
     const template: Electron.MenuItemConstructorOptions[] = [
@@ -135,6 +145,94 @@ function createWindow() {
 
     const menu = Menu.buildFromTemplate(template)
     menu.popup({ window: mainWindow!, x: options.x, y: options.y })
+  })
+
+  // Quake mode toggle
+  ipcMain.on('toggle-quake-mode', () => {
+    toggleQuakeMode()
+  })
+
+  ipcMain.on('set-quake-mode', (_, enabled: boolean) => {
+    if (enabled && !isQuakeMode) {
+      enableQuakeMode()
+    } else if (!enabled && isQuakeMode) {
+      disableQuakeMode()
+    }
+  })
+}
+
+function toggleQuakeMode() {
+  if (!mainWindow) return
+
+  if (isQuakeMode) {
+    disableQuakeMode()
+  } else {
+    enableQuakeMode()
+  }
+}
+
+function enableQuakeMode() {
+  if (!mainWindow) return
+
+  // Save current window bounds
+  normalWindowBounds = mainWindow.getBounds()
+
+  // Get the primary display
+  const primaryDisplay = screen.getPrimaryDisplay()
+  const { width: screenWidth } = primaryDisplay.workAreaSize
+
+  // Set quake mode window bounds (top of screen, full width, 40% height)
+  const quakeHeight = Math.round(primaryDisplay.workAreaSize.height * 0.4)
+  quakeWindowBounds = {
+    x: 0,
+    y: 0,
+    width: screenWidth,
+    height: quakeHeight
+  }
+
+  mainWindow.setBounds(quakeWindowBounds)
+  mainWindow.setAlwaysOnTop(true)
+  isQuakeMode = true
+
+  mainWindow.webContents.send('quake-mode-changed', true)
+}
+
+function disableQuakeMode() {
+  if (!mainWindow) return
+
+  // Restore normal window bounds
+  if (normalWindowBounds) {
+    mainWindow.setBounds(normalWindowBounds)
+  }
+
+  mainWindow.setAlwaysOnTop(false)
+  isQuakeMode = false
+
+  mainWindow.webContents.send('quake-mode-changed', false)
+}
+
+function setupGlobalShortcuts() {
+  // F12 to toggle quake mode (show/hide terminal)
+  globalShortcut.register('F12', () => {
+    if (!mainWindow) return
+
+    if (mainWindow.isVisible() && mainWindow.isFocused()) {
+      mainWindow.hide()
+    } else {
+      if (!mainWindow.isVisible()) {
+        mainWindow.show()
+      }
+      mainWindow.focus()
+      if (isQuakeMode) {
+        // Re-apply quake bounds in case display changed
+        enableQuakeMode()
+      }
+    }
+  })
+
+  // Ctrl+` as alternative toggle
+  globalShortcut.register('Ctrl+`', () => {
+    toggleQuakeMode()
   })
 }
 
@@ -321,12 +419,18 @@ app.whenReady().then(() => {
   createMenu()
   setupPtyHandlers()
   setupConfigHandlers()
+  setupGlobalShortcuts()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }
   })
+})
+
+app.on('will-quit', () => {
+  // Unregister all shortcuts
+  globalShortcut.unregisterAll()
 })
 
 app.on('window-all-closed', () => {

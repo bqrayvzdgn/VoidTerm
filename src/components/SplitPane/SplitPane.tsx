@@ -12,6 +12,8 @@ interface SplitPaneProps {
   onClosePane?: () => void
   onNextTab?: () => void
   onPrevTab?: () => void
+  broadcastMode?: boolean
+  onBroadcastInput?: (data: string) => void
 }
 
 export const SplitPane: React.FC<SplitPaneProps> = ({
@@ -23,7 +25,9 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
   onNavigatePane,
   onClosePane,
   onNextTab,
-  onPrevTab
+  onPrevTab,
+  broadcastMode,
+  onBroadcastInput
 }) => {
   const [ratio, setRatio] = useState(pane.ratio || 0.5)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -87,9 +91,17 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
 
     return (
       <div
-        className={`terminal-wrapper ${isActive ? 'active' : ''}`}
+        className={`terminal-wrapper ${isActive ? 'active' : ''} ${broadcastMode ? 'broadcast' : ''}`}
         onClick={() => pane.terminalId && handleTerminalClick(pane.terminalId)}
       >
+        {broadcastMode && (
+          <div className="terminal-broadcast-indicator">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            <span>BROADCAST</span>
+          </div>
+        )}
         <TerminalView
           ptyId={ptyId}
           isActive={isActive}
@@ -98,6 +110,8 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
           onClosePane={onClosePane}
           onNextTab={onNextTab}
           onPrevTab={onPrevTab}
+          broadcastMode={broadcastMode}
+          onBroadcastInput={onBroadcastInput}
         />
       </div>
     )
@@ -127,6 +141,8 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
             onClosePane={onClosePane}
             onNextTab={onNextTab}
             onPrevTab={onPrevTab}
+            broadcastMode={broadcastMode}
+            onBroadcastInput={onBroadcastInput}
           />
         </div>
         <div
@@ -149,6 +165,8 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
             onClosePane={onClosePane}
             onNextTab={onNextTab}
             onPrevTab={onPrevTab}
+            broadcastMode={broadcastMode}
+            onBroadcastInput={onBroadcastInput}
           />
         </div>
       </div>

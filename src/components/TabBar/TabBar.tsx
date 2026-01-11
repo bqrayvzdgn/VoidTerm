@@ -188,6 +188,13 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
               key={tab.id}
               className={`tab ${tab.isActive ? 'active' : ''} ${draggedTabId === tab.id ? 'dragging' : ''} ${dragOverTabId === tab.id ? 'drag-over' : ''}`}
               onClick={() => setActiveTab(tab.id)}
+              onMouseDown={(e) => {
+                // Middle click to close tab
+                if (e.button === 1) {
+                  e.preventDefault()
+                  onCloseTab(tab.id)
+                }
+              }}
               onContextMenu={(e) => handleTabContextMenu(e, tab.id)}
               draggable
               onDragStart={(e) => {

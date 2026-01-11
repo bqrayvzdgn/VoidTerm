@@ -9,7 +9,7 @@ interface Command {
   shortcut?: string
   icon?: string
   action: () => void
-  category: 'terminal' | 'view' | 'settings' | 'profile'
+  category: 'terminal' | 'view' | 'settings' | 'profile' | 'window'
 }
 
 interface CommandPaletteProps {
@@ -24,6 +24,7 @@ interface CommandPaletteProps {
   onOpenSettings: () => void
   onNextTab: () => void
   onPrevTab: () => void
+  onOpenSSHManager?: () => void
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -37,7 +38,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onToggleSidebar,
   onOpenSettings,
   onNextTab,
-  onPrevTab
+  onPrevTab,
+  onOpenSSHManager
 }) => {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -109,9 +111,26 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       id: 'toggle-sidebar',
       label: 'Toggle Sidebar',
       description: 'Show or hide the sidebar',
-      shortcut: 'Ctrl+Shift+B',
+      shortcut: 'Ctrl+Shift+S',
       action: () => onToggleSidebar(),
       category: 'view'
+    },
+    // Window commands
+    {
+      id: 'toggle-quake-mode',
+      label: 'Toggle Quake Mode',
+      description: 'Toggle dropdown terminal mode',
+      shortcut: 'Ctrl+`',
+      action: () => window.electronAPI?.toggleQuakeMode?.(),
+      category: 'window'
+    },
+    {
+      id: 'toggle-visibility',
+      label: 'Hide/Show Window',
+      description: 'Toggle window visibility',
+      shortcut: 'F12',
+      action: () => {}, // Handled by global shortcut
+      category: 'window'
     },
     // Settings commands
     {
@@ -120,6 +139,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       description: 'Open the settings panel',
       shortcut: 'Ctrl+,',
       action: () => onOpenSettings(),
+      category: 'settings'
+    },
+    {
+      id: 'open-ssh-manager',
+      label: 'SSH Manager',
+      description: 'Manage SSH connections',
+      action: () => onOpenSSHManager?.(),
       category: 'settings'
     },
     // Profile commands
