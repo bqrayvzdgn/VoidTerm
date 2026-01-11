@@ -4,6 +4,8 @@ import type { SSHConnection, Pane } from '../types'
 import { useTerminalStore } from '../store/terminalStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useWorkspaceStore } from '../store/workspaceStore'
+import { buildSSHCommand } from '../utils/validation'
+import { SSH_COMMAND_DELAY } from '../constants'
 
 interface UseSSHManagerProps {
   setPtyIds: React.Dispatch<React.SetStateAction<Map<string, string>>>
@@ -18,19 +20,18 @@ export const useSSHManager = ({ setPtyIds, setActivePaneTerminalId }: UseSSHMana
   const { activeWorkspaceId } = useWorkspaceStore()
 
   const handleSSHConnect = useCallback(async (connection: SSHConnection) => {
-    // Create SSH connection command
-    let sshCommand = `ssh ${connection.username}@${connection.host}`
+    // Build and validate SSH command
+    const sshCommand = buildSSHCommand({
+      host: connection.host,
+      username: connection.username,
+      port: connection.port,
+      privateKeyPath: connection.authMethod === 'key' ? connection.privateKeyPath : undefined,
+      jumpHost: connection.jumpHost
+    })
 
-    if (connection.port !== 22) {
-      sshCommand += ` -p ${connection.port}`
-    }
-
-    if (connection.authMethod === 'key' && connection.privateKeyPath) {
-      sshCommand += ` -i "${connection.privateKeyPath}"`
-    }
-
-    if (connection.jumpHost) {
-      sshCommand += ` -J ${connection.jumpHost}`
+    if (!sshCommand) {
+      console.error('Invalid SSH connection parameters')
+      return
     }
 
     // Find or create SSH profile
@@ -69,7 +70,7 @@ export const useSSHManager = ({ setPtyIds, setActivePaneTerminalId }: UseSSHMana
       // Execute SSH command after shell is ready
       setTimeout(() => {
         window.electronAPI.ptyWrite(ptyId, sshCommand + '\r')
-      }, 500)
+      }, SSH_COMMAND_DELAY)
 
     } catch (error) {
       console.error('Failed to create SSH terminal:', error)

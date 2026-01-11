@@ -1,0 +1,18 @@
+/**
+ * VoidTerm - Main Stylesheet Index
+ * 
+ * Bu dosya tüm stil dosyalarını organize eder.
+ * CSS modüler yapıda düzenlenmiştir:
+ * 
+ * 1. Base - Variables, reset, layout
+ * 2. Components - Bileşen stilleri (global.css içinde)
+ * 3. Utilities - Yardımcı sınıflar
+ */
+
+/* Base Styles */
+@import './base/variables.css';
+@import './base/reset.css';
+@import './base/layout.css';
+
+/* Component Styles (global.css'den kalan) */
+@import './global.css';

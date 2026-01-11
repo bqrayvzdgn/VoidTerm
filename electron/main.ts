@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Menu, shell, globalShortcut, screen } from
 import path from 'path'
 import { PtyManager } from './pty-manager'
 import { configManager, Profile, Settings, Workspace } from './config-manager'
+import { updater } from './auto-updater'
 
 let mainWindow: BrowserWindow | null = null
 let ptyManager: PtyManager
@@ -420,6 +421,17 @@ app.whenReady().then(() => {
   setupPtyHandlers()
   setupConfigHandlers()
   setupGlobalShortcuts()
+
+  // Setup auto-updater (only in production)
+  if (!isDev && mainWindow) {
+    updater.setMainWindow(mainWindow)
+    updater.setupIpcHandlers()
+    
+    // Check for updates after a short delay
+    setTimeout(() => {
+      updater.checkForUpdates()
+    }, 5000)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

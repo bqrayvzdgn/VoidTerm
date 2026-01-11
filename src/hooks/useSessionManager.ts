@@ -1,10 +1,23 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useTerminalStore } from '../store/terminalStore'
 import { useSettingsStore, useIsConfigLoaded, useSettingsActions } from '../store/settingsStore'
 import { useWorkspaceStore, useIsWorkspacesLoaded, useWorkspaceActions } from '../store/workspaceStore'
 
 interface UseSessionManagerProps {
-  handleCreateTab: (profileId?: string, workspaceId?: string) => Promise<void>
+  handleCreateTab: (profileId?: string, workspaceId?: string | null) => Promise<void>
+}
+
+// Module-level flags to prevent double initialization in StrictMode
+let isInitialized = false
+let sessionRestored = false
+
+// Reset flags on module reload (HMR)
+const hot = (import.meta as { hot?: { dispose: (cb: () => void) => void } }).hot
+if (hot) {
+  hot.dispose(() => {
+    isInitialized = false
+    sessionRestored = false
+  })
 }
 
 export const useSessionManager = ({ handleCreateTab }: UseSessionManagerProps) => {
@@ -17,13 +30,10 @@ export const useSessionManager = ({ handleCreateTab }: UseSessionManagerProps) =
   const { loadFromConfig: loadSettingsConfig } = useSettingsActions()
   const { loadFromConfig: loadWorkspacesConfig } = useWorkspaceActions()
 
-  const isInitialized = useRef(false)
-  const sessionRestored = useRef(false)
-
   // Load config on startup
   useEffect(() => {
-    if (isInitialized.current) return
-    isInitialized.current = true
+    if (isInitialized) return
+    isInitialized = true
 
     Promise.all([
       loadSettingsConfig(),
@@ -33,30 +43,32 @@ export const useSessionManager = ({ handleCreateTab }: UseSessionManagerProps) =
 
   // Restore session after config is loaded
   useEffect(() => {
-    if (!isConfigLoaded || sessionRestored.current || profiles.length === 0) return
-    sessionRestored.current = true
+    if (!isConfigLoaded || sessionRestored || profiles.length === 0) return
+    sessionRestored = true
 
     const restoreSession = async () => {
-      let tabCreated = false
-
       try {
         const session = await window.electronAPI.config.getSession()
-        if (session) {
-          // Restore active workspace first
-          if (session.activeWorkspaceId) {
-            setActiveWorkspace(session.activeWorkspaceId)
-          }
-
+        
+        if (session && session.tabs.length > 0) {
           // Only restore tabs that belong to a workspace
-          if (session.tabs.length > 0) {
-            const workspaceTabs = session.tabs.filter(tab => tab.workspaceId)
+          const workspaceTabs = session.tabs.filter(tab => tab.workspaceId)
+          
+          if (workspaceTabs.length > 0) {
+            // Restore workspace tabs
             for (const savedTab of workspaceTabs) {
               try {
                 await handleCreateTab(savedTab.profileId, savedTab.workspaceId)
-                tabCreated = true
               } catch (error) {
                 console.error('Failed to restore tab:', error)
               }
+            }
+            
+            // Set active workspace from session or use first tab's workspace
+            if (session.activeWorkspaceId) {
+              setActiveWorkspace(session.activeWorkspaceId)
+            } else if (workspaceTabs[0].workspaceId) {
+              setActiveWorkspace(workspaceTabs[0].workspaceId)
             }
           }
         }
@@ -64,13 +76,11 @@ export const useSessionManager = ({ handleCreateTab }: UseSessionManagerProps) =
         console.error('Failed to restore session:', error)
       }
 
-      // If no workspace tabs, create a default unassigned tab
-      if (!tabCreated) {
-        try {
-          await handleCreateTab()
-        } catch (error) {
-          console.error('Failed to create default tab:', error)
-        }
+      // Always create one default unassigned tab for the main area
+      try {
+        await handleCreateTab(undefined, null) // null = force unassigned
+      } catch (error) {
+        console.error('Failed to create default tab:', error)
       }
     }
     restoreSession()

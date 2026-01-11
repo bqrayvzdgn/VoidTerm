@@ -58,6 +58,25 @@ export interface Tab {
   ptyId?: string
   isActive: boolean
   workspaceId?: string
+  groupId?: string
+}
+
+export interface TabGroup {
+  id: string
+  name: string
+  color: string
+  isCollapsed: boolean
+}
+
+export interface Snippet {
+  id: string
+  name: string
+  command: string
+  description?: string
+  category?: string
+  shortcut?: string  // Örn: "Ctrl+Shift+1"
+  createdAt: number
+  usageCount: number
 }
 
 export interface Pane {
@@ -87,12 +106,23 @@ export interface Workspace {
 export interface KeyboardShortcuts {
   newTab: string
   closeTab: string
+  closePane: string
   splitVertical: string
   splitHorizontal: string
   toggleSidebar: string
   openSettings: string
   nextTab: string
   prevTab: string
+  focusLeft: string
+  focusRight: string
+  focusUp: string
+  focusDown: string
+  toggleSearch: string
+  clearTerminal: string
+  copyText: string
+  pasteText: string
+  openCommandPalette: string
+  openSSHManager: string
 }
 
 export interface Settings {
@@ -123,12 +153,23 @@ export interface Settings {
 export const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
   newTab: 'Ctrl+T',
   closeTab: 'Ctrl+W',
+  closePane: 'Ctrl+Shift+W',
   splitVertical: 'Ctrl+Shift+D',
   splitHorizontal: 'Ctrl+Shift+E',
   toggleSidebar: 'Ctrl+Shift+B',
   openSettings: 'Ctrl+,',
   nextTab: 'Ctrl+Tab',
-  prevTab: 'Ctrl+Shift+Tab'
+  prevTab: 'Ctrl+Shift+Tab',
+  focusLeft: 'Ctrl+Alt+Left',
+  focusRight: 'Ctrl+Alt+Right',
+  focusUp: 'Ctrl+Alt+Up',
+  focusDown: 'Ctrl+Alt+Down',
+  toggleSearch: 'Ctrl+F',
+  clearTerminal: 'Ctrl+L',
+  copyText: 'Ctrl+Shift+C',
+  pasteText: 'Ctrl+Shift+V',
+  openCommandPalette: 'Ctrl+Shift+P',
+  openSSHManager: 'Ctrl+Shift+S'
 }
 
 export const DEFAULT_SETTINGS: Settings = {

@@ -4,6 +4,7 @@ import { useTerminalStore } from '../store/terminalStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useWorkspaceStore } from '../store/workspaceStore'
 import { collectTerminalIds, splitPaneAtTerminal, findNextPane, removePaneAtTerminal } from '../utils/pane'
+import { TERMINAL_STARTUP_DELAY } from '../constants'
 
 export const useTerminalManager = () => {
   const [ptyIds, setPtyIds] = useState<Map<string, string>>(new Map())
@@ -37,7 +38,7 @@ export const useTerminalManager = () => {
       if (profile.startupCommand) {
         setTimeout(() => {
           window.electronAPI.ptyWrite(ptyId, profile.startupCommand + '\r')
-        }, 300)
+        }, TERMINAL_STARTUP_DELAY)
       }
 
       return { terminalId, ptyId }
@@ -48,7 +49,8 @@ export const useTerminalManager = () => {
   }, [profiles])
 
   // Create a new tab with terminal
-  const handleCreateTab = useCallback(async (profileId?: string, workspaceId?: string) => {
+  // workspaceId: undefined = use active workspace, null = force no workspace, string = specific workspace
+  const handleCreateTab = useCallback(async (profileId?: string, workspaceId?: string | null) => {
     const profileIdToUse = profileId || settings.defaultProfile
     const profile = profiles.find(p => p.id === profileIdToUse) || profiles[0]
     if (!profile) {
@@ -56,7 +58,8 @@ export const useTerminalManager = () => {
       return
     }
 
-    const tabWorkspaceId = workspaceId !== undefined ? workspaceId : (activeWorkspaceId || undefined)
+    // null = explicitly unassigned, undefined = use active workspace
+    const tabWorkspaceId = workspaceId === null ? undefined : (workspaceId ?? activeWorkspaceId ?? undefined)
     const tabId = addTab(profileIdToUse, profile.name, tabWorkspaceId)
 
     try {
@@ -69,11 +72,12 @@ export const useTerminalManager = () => {
       })
 
       setActivePaneTerminalId(terminalId)
+      setActiveTab(tabId)
     } catch (error) {
       console.error('Failed to create tab:', error)
       removeTab(tabId)
     }
-  }, [addTab, createTerminal, settings.defaultProfile, profiles, setPane, activeWorkspaceId, removeTab])
+  }, [addTab, createTerminal, settings.defaultProfile, profiles, setPane, activeWorkspaceId, removeTab, setActiveTab])
 
   // Close a tab and cleanup
   const handleCloseTab = useCallback((tabId: string) => {

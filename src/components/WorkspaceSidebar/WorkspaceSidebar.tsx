@@ -157,14 +157,15 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
 
   return (
     <>
-      <div className="workspace-sidebar">
+      <aside className="workspace-sidebar" role="complementary" aria-label="Workspace Explorer">
         {/* Header */}
         <div className="workspace-sidebar-header">
-          <span className="workspace-sidebar-title">Explorer</span>
+          <span className="workspace-sidebar-title" id="sidebar-title">Explorer</span>
           <button
             className="workspace-sidebar-add"
             onClick={() => onNewTab()}
             title="New"
+            aria-label="Create new terminal"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -173,7 +174,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         </div>
 
         {/* Tree View */}
-        <div className="workspace-tree">
+        <nav className="workspace-tree" role="tree" aria-labelledby="sidebar-title">
           {/* Workspaces with their terminals */}
           {workspaces.map((workspace) => {
             const isActive = workspace.id === activeWorkspaceId
@@ -181,11 +182,20 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             const workspaceTabs = tabs.filter(t => t.workspaceId === workspace.id)
 
             return (
-              <div key={workspace.id} className="workspace-tree-section">
+              <div key={workspace.id} className="workspace-tree-section" role="treeitem" aria-expanded={isExpanded}>
                 <div
                   className={`workspace-tree-section-header clickable ${isActive ? 'active' : ''}`}
                   onClick={() => handleWorkspaceClick(workspace.id)}
                   onContextMenu={(e) => handleContextMenu(e, 'workspace', workspace.id)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Workspace: ${workspace.name}, ${workspaceTabs.length} terminals`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleWorkspaceClick(workspace.id)
+                    }
+                  }}
                 >
                   <button
                     className="workspace-tree-expand"
@@ -239,7 +249,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                   </button>
                 </div>
                 {isExpanded && (
-                  <div className="workspace-tree-children">
+                  <div className="workspace-tree-children" role="group">
                     {workspaceTabs.map((tab) => {
                       const profile = getProfile(tab.profileId)
                       return (
@@ -248,6 +258,16 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                           className={`terminal-tree-item ${tab.id === activeTabId ? 'active' : ''}`}
                           onClick={() => handleTerminalClick(tab.id)}
                           onContextMenu={(e) => handleContextMenu(e, 'terminal', tab.id)}
+                          role="treeitem"
+                          tabIndex={0}
+                          aria-selected={tab.id === activeTabId}
+                          aria-label={`Terminal: ${tab.title}`}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              handleTerminalClick(tab.id)
+                            }
+                          }}
                         >
                           <span className="terminal-tree-icon-wrapper">
                             <TerminalIcon icon={profile.icon} size={18} />
@@ -361,7 +381,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
               Press Ctrl+T to create a workspace or terminal
             </div>
           )}
-        </div>
+        </nav>
 
         {/* Footer */}
         <div className="workspace-sidebar-footer">
@@ -373,7 +393,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             <span>Settings</span>
           </button>
         </div>
-      </div>
+      </aside>
 
       {/* Context Menu */}
       {contextMenu && createPortal(

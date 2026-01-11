@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import { v4 as uuidv4 } from 'uuid'
 import type { Workspace } from '../types'
+import { WORKSPACE_COLORS, WORKSPACE_ICONS } from '../constants'
 
 interface WorkspaceStore {
   workspaces: Workspace[]
@@ -17,21 +18,6 @@ interface WorkspaceStore {
   getActiveWorkspace: () => Workspace | undefined
 }
 
-// Extended color palette for unlimited workspaces
-const WORKSPACE_COLORS = [
-  '#89b4fa', '#f38ba8', '#a6e3a1', '#f9e2af',
-  '#cba6f7', '#94e2d5', '#fab387', '#89dceb',
-  '#74c7ec', '#eba0ac', '#b4befe', '#f5c2e7',
-  '#f2cdcd', '#cdd6f4', '#bac2de', '#a6adc8'
-]
-
-// Extended icon set for unlimited workspaces
-const WORKSPACE_ICONS = [
-  '⚡', '🚀', '💻', '🔧', '📁', '🎯', '⭐', '🔥',
-  '💡', '🌐', '📦', '🛠️', '🎨', '📊', '🔒', '🌟',
-  '💎', '🎮', '📱', '🖥️', '⚙️', '🔌', '📡', '🧪'
-]
-
 export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
   workspaces: [],
   activeWorkspaceId: null,
@@ -40,6 +26,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
   loadFromConfig: async () => {
     try {
       const workspaces = await window.electronAPI.config.getWorkspaces()
+      console.log('[WorkspaceStore] Loaded workspaces:', workspaces)
       set({
         workspaces,
         isLoaded: true

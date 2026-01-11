@@ -1,8 +1,20 @@
 import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import { v4 as uuidv4 } from 'uuid'
-import type { Tab, Pane, TerminalState } from '../types'
+import type { Tab, Pane, TerminalState, TabGroup } from '../types'
 import { collectTerminalIds } from '../utils/pane'
+
+// Varsayılan grup renkleri
+const GROUP_COLORS = [
+  '#ef4444', // red
+  '#f97316', // orange
+  '#eab308', // yellow
+  '#22c55e', // green
+  '#06b6d4', // cyan
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+]
 
 // Closed tab info for reopening
 interface ClosedTab {
@@ -19,6 +31,7 @@ interface TerminalStore {
   panes: Map<string, Pane>
   broadcastMode: boolean
   closedTabs: ClosedTab[]
+  tabGroups: TabGroup[]
 
   // Tab actions
   addTab: (profileId?: string, title?: string, workspaceId?: string) => string
@@ -39,6 +52,14 @@ interface TerminalStore {
 
   // Broadcast actions
   toggleBroadcastMode: () => void
+
+  // Tab Group actions
+  createTabGroup: (name?: string, tabIds?: string[]) => string
+  removeTabGroup: (groupId: string) => void
+  updateTabGroup: (groupId: string, updates: Partial<TabGroup>) => void
+  addTabToGroup: (tabId: string, groupId: string) => void
+  removeTabFromGroup: (tabId: string) => void
+  toggleGroupCollapse: (groupId: string) => void
 }
 
 const MAX_CLOSED_TABS = 10 // Keep last 10 closed tabs
@@ -50,6 +71,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   panes: new Map(),
   broadcastMode: false,
   closedTabs: [],
+  tabGroups: [],
 
   addTab: (profileId = 'default', title?: string, workspaceId?: string) => {
     const tabId = uuidv4()
@@ -206,6 +228,70 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     const [closedTab, ...rest] = state.closedTabs
     set({ closedTabs: rest })
     return closedTab
+  },
+
+  // Tab Group Actions
+  createTabGroup: (name?: string, tabIds?: string[]) => {
+    const groupId = uuidv4()
+    const state = get()
+    const colorIndex = state.tabGroups.length % GROUP_COLORS.length
+    
+    const group: TabGroup = {
+      id: groupId,
+      name: name || `Group ${state.tabGroups.length + 1}`,
+      color: GROUP_COLORS[colorIndex],
+      isCollapsed: false
+    }
+
+    set((s) => ({
+      tabGroups: [...s.tabGroups, group],
+      tabs: s.tabs.map(t => 
+        tabIds?.includes(t.id) ? { ...t, groupId } : t
+      )
+    }))
+
+    return groupId
+  },
+
+  removeTabGroup: (groupId: string) => {
+    set((state) => ({
+      tabGroups: state.tabGroups.filter(g => g.id !== groupId),
+      tabs: state.tabs.map(t => 
+        t.groupId === groupId ? { ...t, groupId: undefined } : t
+      )
+    }))
+  },
+
+  updateTabGroup: (groupId: string, updates: Partial<TabGroup>) => {
+    set((state) => ({
+      tabGroups: state.tabGroups.map(g => 
+        g.id === groupId ? { ...g, ...updates } : g
+      )
+    }))
+  },
+
+  addTabToGroup: (tabId: string, groupId: string) => {
+    set((state) => ({
+      tabs: state.tabs.map(t => 
+        t.id === tabId ? { ...t, groupId } : t
+      )
+    }))
+  },
+
+  removeTabFromGroup: (tabId: string) => {
+    set((state) => ({
+      tabs: state.tabs.map(t => 
+        t.id === tabId ? { ...t, groupId: undefined } : t
+      )
+    }))
+  },
+
+  toggleGroupCollapse: (groupId: string) => {
+    set((state) => ({
+      tabGroups: state.tabGroups.map(g => 
+        g.id === groupId ? { ...g, isCollapsed: !g.isCollapsed } : g
+      )
+    }))
   }
 }))
 
@@ -215,6 +301,7 @@ export const useActiveTabId = () => useTerminalStore((state) => state.activeTabI
 export const useTerminalPanes = () => useTerminalStore(useShallow((state) => state.panes))
 export const useBroadcastMode = () => useTerminalStore((state) => state.broadcastMode)
 export const useClosedTabs = () => useTerminalStore(useShallow((state) => state.closedTabs))
+export const useTabGroups = () => useTerminalStore(useShallow((state) => state.tabGroups))
 export const useTerminalActions = () => useTerminalStore(useShallow((state) => ({
   addTab: state.addTab,
   removeTab: state.removeTab,
@@ -227,5 +314,11 @@ export const useTerminalActions = () => useTerminalStore(useShallow((state) => (
   updateTerminalTitle: state.updateTerminalTitle,
   setPane: state.setPane,
   toggleBroadcastMode: state.toggleBroadcastMode,
-  popClosedTab: state.popClosedTab
+  popClosedTab: state.popClosedTab,
+  createTabGroup: state.createTabGroup,
+  removeTabGroup: state.removeTabGroup,
+  updateTabGroup: state.updateTabGroup,
+  addTabToGroup: state.addTabToGroup,
+  removeTabFromGroup: state.removeTabFromGroup,
+  toggleGroupCollapse: state.toggleGroupCollapse
 })))

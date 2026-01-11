@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import type { Settings, Profile, Theme } from '../types'
 import { DEFAULT_SETTINGS } from '../types'
 import { themes } from '../themes'
+import { useCustomThemeStore } from './customThemeStore'
 
 interface SettingsStore {
   settings: Settings
@@ -37,12 +38,17 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
         window.electronAPI.config.getProfiles()
       ])
 
-      const theme = themes[settings.theme] || themes['catppuccin-mocha']
+      // Check built-in themes first, then custom themes
+      let theme: Theme | undefined = themes[settings.theme]
+      if (!theme) {
+        theme = useCustomThemeStore.getState().getTheme(settings.theme)
+      }
+      const resolvedTheme: Theme = theme || themes['catppuccin-mocha']
 
       set({
         settings,
         profiles,
-        currentTheme: theme,
+        currentTheme: resolvedTheme,
         isLoaded: true
       })
     } catch (error) {
@@ -54,8 +60,11 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
   updateSettings: async (updates) => {
     try {
       const newSettings = await window.electronAPI.config.updateSettings(updates)
-      const theme = themes[newSettings.theme] || themes['catppuccin-mocha']
-      set({ settings: newSettings, currentTheme: theme })
+      let theme: Theme | undefined = themes[newSettings.theme]
+      if (!theme) {
+        theme = useCustomThemeStore.getState().getTheme(newSettings.theme)
+      }
+      set({ settings: newSettings, currentTheme: theme || themes['catppuccin-mocha'] })
     } catch (error) {
       console.error('Failed to update settings:', error)
     }
@@ -72,7 +81,14 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
   },
 
   setTheme: (themeName) => {
-    const theme = themes[themeName]
+    // Check built-in themes first
+    let theme: Theme | undefined = themes[themeName]
+    
+    // If not found, check custom themes
+    if (!theme) {
+      theme = useCustomThemeStore.getState().getTheme(themeName)
+    }
+    
     if (theme) {
       set({ currentTheme: theme })
       get().updateSettings({ theme: themeName })

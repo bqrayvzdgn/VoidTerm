@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import { useSettingsStore } from '../../store/settingsStore'
 import { TerminalIcon } from '../Icons/TerminalIcons'
 
@@ -27,7 +27,7 @@ interface CommandPaletteProps {
   onOpenSSHManager?: () => void
 }
 
-export const CommandPalette: React.FC<CommandPaletteProps> = ({
+export const CommandPalette: React.FC<CommandPaletteProps> = memo(({
   isOpen,
   onClose,
   onNewTab,
@@ -280,4 +280,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       </div>
     </>
   )
-}
+})
+
+CommandPalette.displayName = 'CommandPalette'
