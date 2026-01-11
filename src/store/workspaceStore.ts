@@ -17,13 +17,20 @@ interface WorkspaceStore {
   getActiveWorkspace: () => Workspace | undefined
 }
 
+// Extended color palette for unlimited workspaces
 const WORKSPACE_COLORS = [
   '#89b4fa', '#f38ba8', '#a6e3a1', '#f9e2af',
-  '#cba6f7', '#94e2d5', '#fab387', '#89dceb'
+  '#cba6f7', '#94e2d5', '#fab387', '#89dceb',
+  '#74c7ec', '#eba0ac', '#b4befe', '#f5c2e7',
+  '#f2cdcd', '#cdd6f4', '#bac2de', '#a6adc8'
 ]
 
-// Nice workspace icons - mix of symbols and emoji
-const WORKSPACE_ICONS = ['⚡', '🚀', '💻', '🔧', '📁', '🎯', '⭐', '🔥', '💡', '🌐', '📦', '🛠️']
+// Extended icon set for unlimited workspaces
+const WORKSPACE_ICONS = [
+  '⚡', '🚀', '💻', '🔧', '📁', '🎯', '⭐', '🔥',
+  '💡', '🌐', '📦', '🛠️', '🎨', '📊', '🔒', '🌟',
+  '💎', '🎮', '📱', '🖥️', '⚙️', '🔌', '📡', '🧪'
+]
 
 export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
   workspaces: [],
