@@ -15,6 +15,7 @@ interface TerminalStore {
   setActiveTab: (tabId: string) => void
   updateTabTitle: (tabId: string, title: string) => void
   updateTab: (tabId: string, updates: Partial<Tab>) => void
+  reorderTabs: (fromIndex: number, toIndex: number) => void
 
   // Terminal actions
   addTerminal: (tabId: string, profileId: string, ptyId: string) => string
@@ -98,6 +99,15 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     }))
   },
 
+  reorderTabs: (fromIndex, toIndex) => {
+    set((state) => {
+      const newTabs = [...state.tabs]
+      const [movedTab] = newTabs.splice(fromIndex, 1)
+      newTabs.splice(toIndex, 0, movedTab)
+      return { tabs: newTabs }
+    })
+  },
+
   addTerminal: (tabId, profileId, ptyId) => {
     const terminalId = uuidv4()
     const terminal: TerminalState = {
@@ -173,6 +183,7 @@ export const useTerminalActions = () => useTerminalStore(useShallow((state) => (
   setActiveTab: state.setActiveTab,
   updateTabTitle: state.updateTabTitle,
   updateTab: state.updateTab,
+  reorderTabs: state.reorderTabs,
   addTerminal: state.addTerminal,
   removeTerminal: state.removeTerminal,
   updateTerminalTitle: state.updateTerminalTitle,

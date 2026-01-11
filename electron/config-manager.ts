@@ -52,10 +52,23 @@ export interface Workspace {
   isActive: boolean
 }
 
+export interface SessionTab {
+  id: string
+  profileId: string
+  workspaceId?: string
+  title: string
+}
+
+export interface Session {
+  tabs: SessionTab[]
+  activeTabId: string | null
+}
+
 export interface AppConfig {
   settings: Settings
   profiles: Profile[]
   workspaces: Workspace[]
+  session?: Session
   version: number
 }
 
@@ -304,6 +317,19 @@ export class ConfigManager {
   // Get config file path (for showing to user)
   getConfigPath(): string {
     return store.path
+  }
+
+  // Session management
+  getSession(): Session | undefined {
+    return store.get('session')
+  }
+
+  saveSession(session: Session): void {
+    store.set('session', session)
+  }
+
+  clearSession(): void {
+    store.delete('session')
   }
 
   // Export config as JSON string

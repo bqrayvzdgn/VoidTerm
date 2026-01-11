@@ -8,6 +8,10 @@ interface SplitPaneProps {
   onTerminalFocus?: (terminalId: string) => void
   ptyIds: Map<string, string>
   activeTerminalId?: string | null
+  onNavigatePane?: (direction: 'up' | 'down' | 'left' | 'right') => void
+  onClosePane?: () => void
+  onNextTab?: () => void
+  onPrevTab?: () => void
 }
 
 export const SplitPane: React.FC<SplitPaneProps> = ({
@@ -15,7 +19,11 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
   onTerminalTitleChange,
   onTerminalFocus,
   ptyIds,
-  activeTerminalId
+  activeTerminalId,
+  onNavigatePane,
+  onClosePane,
+  onNextTab,
+  onPrevTab
 }) => {
   const [ratio, setRatio] = useState(pane.ratio || 0.5)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -84,7 +92,12 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
       >
         <TerminalView
           ptyId={ptyId}
+          isActive={isActive}
           onTitleChange={(title) => pane.terminalId && onTerminalTitleChange?.(pane.terminalId, title)}
+          onNavigatePane={onNavigatePane}
+          onClosePane={onClosePane}
+          onNextTab={onNextTab}
+          onPrevTab={onPrevTab}
         />
       </div>
     )
@@ -110,6 +123,10 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
             onTerminalFocus={onTerminalFocus}
             ptyIds={ptyIds}
             activeTerminalId={activeTerminalId}
+            onNavigatePane={onNavigatePane}
+            onClosePane={onClosePane}
+            onNextTab={onNextTab}
+            onPrevTab={onPrevTab}
           />
         </div>
         <div
@@ -128,6 +145,10 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
             onTerminalFocus={onTerminalFocus}
             ptyIds={ptyIds}
             activeTerminalId={activeTerminalId}
+            onNavigatePane={onNavigatePane}
+            onClosePane={onClosePane}
+            onNextTab={onNextTab}
+            onPrevTab={onPrevTab}
           />
         </div>
       </div>

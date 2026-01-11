@@ -7,6 +7,11 @@ interface KeyboardShortcutHandlers {
   onSplitHorizontal: () => void
   onToggleSidebar: () => void
   onOpenSettings: () => void
+  onNextTab?: () => void
+  onPrevTab?: () => void
+  onNavigatePane?: (direction: 'up' | 'down' | 'left' | 'right') => void
+  onClosePane?: () => void
+  onCommandPalette?: () => void
 }
 
 export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
@@ -24,6 +29,18 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
         } else if (e.key === 'B' || e.key === 'b') {
           e.preventDefault()
           handlers.onToggleSidebar()
+        } else if (e.key === 'W' || e.key === 'w') {
+          // Ctrl+Shift+W - Close active pane
+          e.preventDefault()
+          handlers.onClosePane?.()
+        } else if (e.key === 'P' || e.key === 'p') {
+          // Ctrl+Shift+P - Command palette
+          e.preventDefault()
+          handlers.onCommandPalette?.()
+        } else if (e.key === 'Tab') {
+          // Ctrl+Shift+Tab - Previous tab
+          e.preventDefault()
+          handlers.onPrevTab?.()
         }
       } else if (isCtrl) {
         if (e.key === 't') {
@@ -35,6 +52,25 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
         } else if (e.key === ',') {
           e.preventDefault()
           handlers.onOpenSettings()
+        } else if (e.key === 'Tab') {
+          // Ctrl+Tab - Next tab
+          e.preventDefault()
+          handlers.onNextTab?.()
+        }
+      } else if (e.altKey) {
+        // Alt+Arrow - Navigate between panes
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          handlers.onNavigatePane?.('up')
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          handlers.onNavigatePane?.('down')
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault()
+          handlers.onNavigatePane?.('left')
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault()
+          handlers.onNavigatePane?.('right')
         }
       }
     }
