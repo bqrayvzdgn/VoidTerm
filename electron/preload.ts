@@ -65,6 +65,14 @@ const electronAPI = {
     ipcRenderer.on('split-horizontal', callback)
     return () => ipcRenderer.removeListener('split-horizontal', callback)
   },
+  onNextTab: (callback: () => void) => {
+    ipcRenderer.on('next-tab', callback)
+    return () => ipcRenderer.removeListener('next-tab', callback)
+  },
+  onPrevTab: (callback: () => void) => {
+    ipcRenderer.on('prev-tab', callback)
+    return () => ipcRenderer.removeListener('prev-tab', callback)
+  },
 
   // Window state
   onWindowMaximized: (callback: (isMaximized: boolean) => void) => {
@@ -91,6 +99,22 @@ const electronAPI = {
 
   // External links
   openExternal: (url: string) => ipcRenderer.send('open-external', url),
+
+  // Terminal context menu
+  showTerminalContextMenu: (options: { hasSelection: boolean; x: number; y: number }) =>
+    ipcRenderer.send('show-terminal-context-menu', options),
+  onTerminalCopy: (callback: () => void) => {
+    ipcRenderer.on('terminal-copy', callback)
+    return () => ipcRenderer.removeListener('terminal-copy', callback)
+  },
+  onTerminalPaste: (callback: () => void) => {
+    ipcRenderer.on('terminal-paste', callback)
+    return () => ipcRenderer.removeListener('terminal-paste', callback)
+  },
+  onTerminalClear: (callback: () => void) => {
+    ipcRenderer.on('terminal-clear', callback)
+    return () => ipcRenderer.removeListener('terminal-clear', callback)
+  },
 
   // Config operations
   config: {
@@ -120,7 +144,13 @@ const electronAPI = {
     import: (jsonString: string) => ipcRenderer.invoke('config-import', jsonString),
 
     // Reset
-    reset: () => ipcRenderer.invoke('config-reset')
+    reset: () => ipcRenderer.invoke('config-reset'),
+
+    // Session
+    getSession: () => ipcRenderer.invoke('config-get-session'),
+    saveSession: (session: { tabs: Array<{ id: string; profileId: string; workspaceId?: string; title: string }>; activeTabId: string | null }) => 
+      ipcRenderer.invoke('config-save-session', session),
+    clearSession: () => ipcRenderer.invoke('config-clear-session')
   }
 }
 

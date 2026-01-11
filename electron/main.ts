@@ -41,6 +41,18 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
 
+  // Capture Ctrl+Tab before Chromium handles it
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.control && input.key === 'Tab') {
+      event.preventDefault()
+      if (input.shift) {
+        mainWindow?.webContents.send('prev-tab')
+      } else {
+        mainWindow?.webContents.send('next-tab')
+      }
+    }
+  })
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })
@@ -92,6 +104,37 @@ function createWindow() {
   // External links
   ipcMain.on('open-external', (_, url: string) => {
     shell.openExternal(url)
+  })
+
+  // Terminal context menu
+  ipcMain.on('show-terminal-context-menu', (_, options: { hasSelection: boolean; x: number; y: number }) => {
+    const template: Electron.MenuItemConstructorOptions[] = [
+      {
+        label: 'Copy',
+        accelerator: 'CmdOrCtrl+Shift+C',
+        enabled: options.hasSelection,
+        click: () => mainWindow?.webContents.send('terminal-copy')
+      },
+      {
+        label: 'Paste',
+        accelerator: 'CmdOrCtrl+Shift+V',
+        click: () => mainWindow?.webContents.send('terminal-paste')
+      },
+      { type: 'separator' },
+      {
+        label: 'Clear Terminal',
+        click: () => mainWindow?.webContents.send('terminal-clear')
+      },
+      { type: 'separator' },
+      {
+        label: 'Select All',
+        accelerator: 'CmdOrCtrl+Shift+A',
+        click: () => mainWindow?.webContents.send('terminal-select-all')
+      }
+    ]
+
+    const menu = Menu.buildFromTemplate(template)
+    menu.popup({ window: mainWindow!, x: options.x, y: options.y })
   })
 }
 
@@ -194,6 +237,19 @@ function setupConfigHandlers() {
   // Reset entire config
   ipcMain.handle('config-reset', () => {
     return configManager.resetConfig()
+  })
+
+  // Session management
+  ipcMain.handle('config-get-session', () => {
+    return configManager.getSession()
+  })
+
+  ipcMain.handle('config-save-session', (_, session: { tabs: Array<{ id: string; profileId: string; workspaceId?: string; title: string }>; activeTabId: string | null }) => {
+    configManager.saveSession(session)
+  })
+
+  ipcMain.handle('config-clear-session', () => {
+    configManager.clearSession()
   })
 }
 

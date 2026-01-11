@@ -1,5 +1,17 @@
 import type { Settings, Profile, Workspace, AppConfig } from './index'
 
+export interface SessionTab {
+  id: string
+  profileId: string
+  workspaceId?: string
+  title: string
+}
+
+export interface Session {
+  tabs: SessionTab[]
+  activeTabId: string | null
+}
+
 export interface PtyOptions {
   shell?: string
   cwd?: string
@@ -27,6 +39,10 @@ export interface ConfigAPI {
   export: () => Promise<string>
   import: (jsonString: string) => Promise<AppConfig>
   reset: () => Promise<AppConfig>
+
+  getSession: () => Promise<Session | undefined>
+  saveSession: (session: Session) => Promise<void>
+  clearSession: () => Promise<void>
 }
 
 export interface ElectronAPI {
@@ -55,6 +71,8 @@ export interface ElectronAPI {
   onOpenSettings: (callback: () => void) => () => void
   onSplitVertical: (callback: () => void) => () => void
   onSplitHorizontal: (callback: () => void) => () => void
+  onNextTab: (callback: () => void) => () => void
+  onPrevTab: (callback: () => void) => () => void
 
   // Window state
   onWindowMaximized: (callback: (isMaximized: boolean) => void) => () => void
@@ -75,6 +93,12 @@ export interface ElectronAPI {
 
   // External links
   openExternal: (url: string) => void
+
+  // Terminal context menu
+  showTerminalContextMenu: (options: { hasSelection: boolean; x: number; y: number }) => void
+  onTerminalCopy: (callback: () => void) => () => void
+  onTerminalPaste: (callback: () => void) => () => void
+  onTerminalClear: (callback: () => void) => () => void
 
   // Config operations
   config: ConfigAPI

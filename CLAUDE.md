@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build and Development Commands
 
+Requires Node.js 18+.
+
 ```bash
 # Development (runs Vite + Electron concurrently)
 npm run dev
@@ -16,6 +18,9 @@ npm run build:linux        # Linux build
 
 # Build electron main process only
 npm run build:electron     # Compiles electron/*.ts to dist/electron/
+
+# Generate app icons from assets/source-icon.png
+npm run generate-icons
 ```
 
 ## Architecture Overview
@@ -33,6 +38,7 @@ VoidTerm is an Electron-based terminal emulator built with React, xterm.js, and 
 **Renderer Process** (`src/`)
 - React app using Vite for bundling
 - xterm.js with WebGL addon for terminal rendering
+- Path alias: `@/*` maps to `src/*`
 
 ### State Management (Zustand stores in `src/store/`)
 
@@ -67,6 +73,9 @@ Defined in `src/themes/index.ts`. Available: catppuccin-mocha (default), dracula
 
 - `Ctrl+T` / `Cmd+T` - New tab
 - `Ctrl+W` / `Cmd+W` - Close tab
+- `Ctrl+Tab` - Next tab
+- `Ctrl+Shift+Tab` - Previous tab
 - `Ctrl+Shift+D` - Split vertical
 - `Ctrl+Shift+E` - Split horizontal
+- `Ctrl+Shift+B` - Toggle workspace sidebar
 - `Ctrl+,` / `Cmd+,` - Settings

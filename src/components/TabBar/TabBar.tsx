@@ -14,13 +14,15 @@ interface TabBarProps {
 }
 
 export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTab, onToggleSidebar, sidebarExpanded }) => {
-  const { tabs, setActiveTab, updateTab } = useTerminalStore()
+  const { tabs, setActiveTab, updateTab, reorderTabs } = useTerminalStore()
   const { profiles } = useSettingsStore()
   const { workspaces, activeWorkspaceId, setActiveWorkspace, addWorkspace } = useWorkspaceStore()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [workspaceDropdownOpen, setWorkspaceDropdownOpen] = useState(false)
   const [isMaximized, setIsMaximized] = useState(false)
   const [tabContextMenu, setTabContextMenu] = useState<{ x: number; y: number; tabId: string } | null>(null)
+  const [draggedTabId, setDraggedTabId] = useState<string | null>(null)
+  const [dragOverTabId, setDragOverTabId] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const workspaceDropdownRef = useRef<HTMLDivElement>(null)
   const tabsContainerRef = useRef<HTMLDivElement>(null)
@@ -180,12 +182,44 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
           .filter(tab => activeWorkspaceId ? tab.workspaceId === activeWorkspaceId : !tab.workspaceId)
           .map((tab) => {
           const profile = getProfile(tab.profileId)
+          
           return (
             <button
               key={tab.id}
-              className={`tab ${tab.isActive ? 'active' : ''}`}
+              className={`tab ${tab.isActive ? 'active' : ''} ${draggedTabId === tab.id ? 'dragging' : ''} ${dragOverTabId === tab.id ? 'drag-over' : ''}`}
               onClick={() => setActiveTab(tab.id)}
               onContextMenu={(e) => handleTabContextMenu(e, tab.id)}
+              draggable
+              onDragStart={(e) => {
+                setDraggedTabId(tab.id)
+                e.dataTransfer.effectAllowed = 'move'
+                e.dataTransfer.setData('text/plain', tab.id)
+              }}
+              onDragEnd={() => {
+                setDraggedTabId(null)
+                setDragOverTabId(null)
+              }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                if (draggedTabId && draggedTabId !== tab.id) {
+                  setDragOverTabId(tab.id)
+                }
+              }}
+              onDragLeave={() => {
+                setDragOverTabId(null)
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                if (draggedTabId && draggedTabId !== tab.id) {
+                  const fromIndex = tabs.findIndex(t => t.id === draggedTabId)
+                  const toIndex = tabs.findIndex(t => t.id === tab.id)
+                  if (fromIndex !== -1 && toIndex !== -1) {
+                    reorderTabs(fromIndex, toIndex)
+                  }
+                }
+                setDraggedTabId(null)
+                setDragOverTabId(null)
+              }}
             >
               <span className="tab-icon-wrapper">
                 <TerminalIcon icon={profile.icon || 'PS'} size={16} />
@@ -313,8 +347,8 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
             {workspaces.length === 0 && (
               <button
                 className="context-menu-item"
-                onClick={() => {
-                  const id = addWorkspace()
+                onClick={async () => {
+                  const id = await addWorkspace()
                   handleMoveToWorkspace(id)
                 }}
               >

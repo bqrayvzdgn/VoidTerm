@@ -4,11 +4,12 @@ import { WorkspaceSidebar } from './components/WorkspaceSidebar/WorkspaceSidebar
 import { SplitPane } from './components/SplitPane/SplitPane'
 import { Settings } from './components/Settings/Settings'
 import { CreateDialog } from './components/CreateDialog/CreateDialog'
+import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { useTerminalStore } from './store/terminalStore'
 import { useSettingsStore, useIsConfigLoaded, useSettingsActions } from './store/settingsStore'
 import { useWorkspaceStore, useIsWorkspacesLoaded, useWorkspaceActions } from './store/workspaceStore'
 import { useKeyboardShortcuts, useMenuEvents, useWindowState } from './hooks'
-import { collectTerminalIds, splitPaneAtTerminal } from './utils/pane'
+import { collectTerminalIds, splitPaneAtTerminal, findNextPane, removePaneAtTerminal } from './utils/pane'
 import { v4 as uuidv4 } from 'uuid'
 
 const App: React.FC = () => {
@@ -16,6 +17,7 @@ const App: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [createDialog, setCreateDialog] = useState<{ open: boolean; profileId?: string }>({ open: false })
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
 
   // Terminal State
   const [ptyIds, setPtyIds] = useState<Map<string, string>>(new Map())
@@ -172,6 +174,108 @@ const App: React.FC = () => {
     setSidebarExpanded(prev => !prev)
   }, [])
 
+  // Tab navigation handlers
+  const handleNextTab = useCallback(() => {
+    const workspaceTabs = tabs.filter(tab =>
+      activeWorkspaceId ? tab.workspaceId === activeWorkspaceId : !tab.workspaceId
+    )
+    if (workspaceTabs.length <= 1) return
+    
+    const currentIndex = workspaceTabs.findIndex(t => t.id === activeTabId)
+    const nextIndex = (currentIndex + 1) % workspaceTabs.length
+    const nextTab = workspaceTabs[nextIndex]
+    
+    setActiveTab(nextTab.id)
+    const pane = panes.get(nextTab.id)
+    if (pane) {
+      const terminalIds = collectTerminalIds(pane)
+      if (terminalIds.length > 0) {
+        setActivePaneTerminalId(terminalIds[0])
+      }
+    }
+  }, [tabs, activeWorkspaceId, activeTabId, setActiveTab, panes])
+
+  const handlePrevTab = useCallback(() => {
+    const workspaceTabs = tabs.filter(tab =>
+      activeWorkspaceId ? tab.workspaceId === activeWorkspaceId : !tab.workspaceId
+    )
+    if (workspaceTabs.length <= 1) return
+    
+    const currentIndex = workspaceTabs.findIndex(t => t.id === activeTabId)
+    const prevIndex = (currentIndex - 1 + workspaceTabs.length) % workspaceTabs.length
+    const prevTab = workspaceTabs[prevIndex]
+    
+    setActiveTab(prevTab.id)
+    const pane = panes.get(prevTab.id)
+    if (pane) {
+      const terminalIds = collectTerminalIds(pane)
+      if (terminalIds.length > 0) {
+        setActivePaneTerminalId(terminalIds[0])
+      }
+    }
+  }, [tabs, activeWorkspaceId, activeTabId, setActiveTab, panes])
+
+  // Pane navigation handler
+  const handleNavigatePane = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
+    if (!activeTabId || !activePaneTerminalId) return
+    
+    const currentPane = panes.get(activeTabId)
+    if (!currentPane) return
+    
+    const nextTerminalId = findNextPane(currentPane, activePaneTerminalId, direction)
+    if (nextTerminalId) {
+      setActivePaneTerminalId(nextTerminalId)
+    }
+  }, [activeTabId, activePaneTerminalId, panes])
+
+  // Close active pane handler
+  const handleClosePane = useCallback(() => {
+    if (!activeTabId || !activePaneTerminalId) return
+    
+    const currentPane = panes.get(activeTabId)
+    if (!currentPane) return
+    
+    const terminalIds = collectTerminalIds(currentPane)
+    
+    // If only one terminal, close the whole tab
+    if (terminalIds.length <= 1) {
+      handleCloseTab(activeTabId)
+      return
+    }
+    
+    // Kill the PTY for the closing terminal
+    const ptyId = ptyIds.get(activePaneTerminalId)
+    if (ptyId) {
+      try {
+        window.electronAPI.ptyKill(ptyId)
+      } catch (error) {
+        console.error('Failed to kill PTY:', error)
+      }
+      setPtyIds(prev => {
+        const newMap = new Map(prev)
+        newMap.delete(activePaneTerminalId)
+        return newMap
+      })
+    }
+    
+    // Remove the pane from the tree
+    const newPane = removePaneAtTerminal(currentPane, activePaneTerminalId)
+    if (newPane) {
+      setPane(activeTabId, newPane)
+      
+      // Set focus to a remaining terminal
+      const remainingTerminals = collectTerminalIds(newPane)
+      if (remainingTerminals.length > 0) {
+        setActivePaneTerminalId(remainingTerminals[0])
+      }
+    }
+  }, [activeTabId, activePaneTerminalId, panes, ptyIds, handleCloseTab, setPane])
+
+  // Command palette toggle
+  const toggleCommandPalette = useCallback(() => {
+    setCommandPaletteOpen(prev => !prev)
+  }, [])
+
   // Keyboard shortcut handlers
   const keyboardHandlers = useMemo(() => ({
     onNewTab: () => openCreateDialog(),
@@ -179,8 +283,13 @@ const App: React.FC = () => {
     onSplitVertical: () => handleSplit('vertical'),
     onSplitHorizontal: () => handleSplit('horizontal'),
     onToggleSidebar: toggleSidebar,
-    onOpenSettings: () => setSettingsOpen(true)
-  }), [openCreateDialog, activeTabId, handleCloseTab, handleSplit, toggleSidebar])
+    onOpenSettings: () => setSettingsOpen(true),
+    onNextTab: handleNextTab,
+    onPrevTab: handlePrevTab,
+    onNavigatePane: handleNavigatePane,
+    onClosePane: handleClosePane,
+    onCommandPalette: toggleCommandPalette
+  }), [openCreateDialog, activeTabId, handleCloseTab, handleSplit, toggleSidebar, handleNextTab, handlePrevTab, handleNavigatePane, handleClosePane, toggleCommandPalette])
 
   useKeyboardShortcuts(keyboardHandlers)
 
@@ -190,12 +299,14 @@ const App: React.FC = () => {
     onCloseTab: () => activeTabId && handleCloseTab(activeTabId),
     onOpenSettings: () => setSettingsOpen(true),
     onSplitVertical: () => handleSplit('vertical'),
-    onSplitHorizontal: () => handleSplit('horizontal')
-  }), [openCreateDialog, activeTabId, handleCloseTab, handleSplit])
+    onSplitHorizontal: () => handleSplit('horizontal'),
+    onNextTab: handleNextTab,
+    onPrevTab: handlePrevTab
+  }), [openCreateDialog, activeTabId, handleCloseTab, handleSplit, handleNextTab, handlePrevTab])
 
   useMenuEvents(menuHandlers)
 
-  // Load config from electron-store on startup
+  // Load config and restore session on startup
   useEffect(() => {
     if (isInitialized.current) return
     isInitialized.current = true
@@ -205,9 +316,46 @@ const App: React.FC = () => {
         loadSettingsConfig(),
         loadWorkspacesConfig()
       ])
+
+      // Restore session
+      try {
+        const session = await window.electronAPI.config.getSession()
+        if (session && session.tabs.length > 0) {
+          // Restore tabs from session
+          for (const savedTab of session.tabs) {
+            try {
+              await handleCreateTab(savedTab.profileId)
+            } catch (error) {
+              console.error('Failed to restore tab:', error)
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to restore session:', error)
+      }
     }
     loadConfig()
-  }, [loadSettingsConfig, loadWorkspacesConfig])
+  }, [loadSettingsConfig, loadWorkspacesConfig, handleCreateTab])
+
+  // Save session before window closes
+  useEffect(() => {
+    const saveSession = () => {
+      const sessionTabs = tabs.map(tab => ({
+        id: tab.id,
+        profileId: tab.profileId,
+        workspaceId: tab.workspaceId,
+        title: tab.title
+      }))
+      
+      window.electronAPI.config.saveSession({
+        tabs: sessionTabs,
+        activeTabId
+      })
+    }
+
+    window.addEventListener('beforeunload', saveSession)
+    return () => window.removeEventListener('beforeunload', saveSession)
+  }, [tabs, activeTabId])
 
   // Switch to first tab when workspace changes
   useEffect(() => {
@@ -303,6 +451,10 @@ const App: React.FC = () => {
               onTerminalFocus={handleTerminalFocus}
               ptyIds={ptyIds}
               activeTerminalId={activePaneTerminalId}
+              onNavigatePane={handleNavigatePane}
+              onClosePane={handleClosePane}
+              onNextTab={handleNextTab}
+              onPrevTab={handlePrevTab}
             />
           ) : (
             <div className="terminal-placeholder">
@@ -325,6 +477,20 @@ const App: React.FC = () => {
         onClose={closeCreateDialog}
         onCreateWorkspace={handleCreateWorkspace}
         onCreateTerminal={() => handleCreateTab(createDialog.profileId)}
+      />
+
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onNewTab={handleCreateTab}
+        onSplitVertical={() => handleSplit('vertical')}
+        onSplitHorizontal={() => handleSplit('horizontal')}
+        onCloseTab={() => activeTabId && handleCloseTab(activeTabId)}
+        onClosePane={handleClosePane}
+        onToggleSidebar={toggleSidebar}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onNextTab={handleNextTab}
+        onPrevTab={handlePrevTab}
       />
     </div>
   )
