@@ -185,13 +185,20 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
           const profile = getProfile(tab.profileId)
           
           return (
-            <button
+            <div
               key={tab.id}
+              role="button"
+              tabIndex={0}
               className={`tab ${tab.isActive ? 'active' : ''} ${draggedTabId === tab.id ? 'dragging' : ''} ${dragOverTabId === tab.id ? 'drag-over' : ''}`}
               style={{
                 borderBottom: profile.color ? `2px solid ${profile.color}` : undefined
               }}
               onClick={() => setActiveTab(tab.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  setActiveTab(tab.id)
+                }
+              }}
               onMouseDown={(e) => {
                 // Middle click to close tab
                 if (e.button === 1) {
@@ -238,16 +245,24 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
               <span className="tab-title">
                 {tab.title}
               </span>
-              <button
+              <span
+                role="button"
+                tabIndex={0}
                 className="tab-close"
                 onClick={(e) => handleCloseTab(e, tab.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.stopPropagation()
+                    onCloseTab(tab.id)
+                  }
+                }}
                 title="Close tab"
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                   <path d="M9.5 3.5L8.5 2.5L6 5L3.5 2.5L2.5 3.5L5 6L2.5 8.5L3.5 9.5L6 7L8.5 9.5L9.5 8.5L7 6L9.5 3.5Z" />
                 </svg>
-              </button>
-            </button>
+              </span>
+            </div>
           )
         })}
       </div>
