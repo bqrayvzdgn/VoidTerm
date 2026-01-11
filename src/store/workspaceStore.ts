@@ -22,7 +22,8 @@ const WORKSPACE_COLORS = [
   '#cba6f7', '#94e2d5', '#fab387', '#89dceb'
 ]
 
-const WORKSPACE_ICONS = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8']
+// Nice workspace icons - mix of symbols and emoji
+const WORKSPACE_ICONS = ['⚡', '🚀', '💻', '🔧', '📁', '🎯', '⭐', '🔥', '💡', '🌐', '📦', '🛠️']
 
 export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
   workspaces: [],
