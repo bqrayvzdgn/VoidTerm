@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useWorkspaceStore } from '../../store/workspaceStore'
 import { useTerminalStore } from '../../store/terminalStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -375,7 +376,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       </div>
 
       {/* Context Menu */}
-      {contextMenu && (
+      {contextMenu && createPortal(
         <>
           <div
             className="context-menu-overlay"
@@ -439,6 +440,36 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                   <span>Rename</span>
                 </button>
                 <div className="context-menu-divider" />
+                <div className="context-menu-header">Move to Workspace</div>
+                <button
+                  className="context-menu-item"
+                  onClick={() => {
+                    updateTab(contextMenu.id, { workspaceId: undefined })
+                    setContextMenu(null)
+                  }}
+                >
+                  <span className="context-menu-icon none">—</span>
+                  <span>No Workspace</span>
+                </button>
+                {workspaces.map((workspace) => (
+                  <button
+                    key={workspace.id}
+                    className="context-menu-item"
+                    onClick={() => {
+                      updateTab(contextMenu.id, { workspaceId: workspace.id })
+                      setContextMenu(null)
+                    }}
+                  >
+                    <span
+                      className="context-menu-icon"
+                      style={{ backgroundColor: workspace.color }}
+                    >
+                      {workspace.icon}
+                    </span>
+                    <span>{workspace.name}</span>
+                  </button>
+                ))}
+                <div className="context-menu-divider" />
               </>
             )}
             <button
@@ -451,7 +482,8 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
               <span>Delete</span>
             </button>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </>
   )

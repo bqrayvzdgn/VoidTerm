@@ -30,7 +30,7 @@ const App: React.FC = () => {
   // Stores
   const { tabs, activeTabId, addTab, removeTab, panes, setPane, setActiveTab, broadcastMode, toggleBroadcastMode, popClosedTab } = useTerminalStore()
   const { settings, profiles, currentTheme } = useSettingsStore()
-  const { addWorkspace, activeWorkspaceId } = useWorkspaceStore()
+  const { addWorkspace, activeWorkspaceId, setActiveWorkspace } = useWorkspaceStore()
 
   // Config loading state
   const isConfigLoaded = useIsConfigLoaded()
@@ -145,14 +145,16 @@ const App: React.FC = () => {
   }, [profiles, addTab, activeWorkspaceId, setPane])
 
   // Tab handlers
-  const handleCreateTab = useCallback(async (profileId?: string) => {
+  const handleCreateTab = useCallback(async (profileId?: string, workspaceId?: string) => {
     const profileIdToUse = profileId || settings.defaultProfile
     const profile = profiles.find(p => p.id === profileIdToUse) || profiles[0]
     if (!profile) {
       console.error('No profile found for id:', profileIdToUse)
       return
     }
-    const tabId = addTab(profileIdToUse, profile.name, activeWorkspaceId || undefined)
+    // Use provided workspaceId, or fall back to activeWorkspaceId
+    const tabWorkspaceId = workspaceId !== undefined ? workspaceId : (activeWorkspaceId || undefined)
+    const tabId = addTab(profileIdToUse, profile.name, tabWorkspaceId)
 
     try {
       const { terminalId } = await createTerminal(profileIdToUse)
@@ -422,50 +424,75 @@ const App: React.FC = () => {
     ])
   }, [loadSettingsConfig, loadWorkspacesConfig])
 
-  // Restore session after config is loaded
+  // Restore session (only workspace tabs) after config is loaded
   const sessionRestored = useRef(false)
   useEffect(() => {
     if (!isConfigLoaded || sessionRestored.current || profiles.length === 0) return
     sessionRestored.current = true
 
     const restoreSession = async () => {
+      let tabCreated = false
+      
       try {
         const session = await window.electronAPI.config.getSession()
-        if (session && session.tabs.length > 0) {
-          for (const savedTab of session.tabs) {
-            try {
-              await handleCreateTab(savedTab.profileId)
-            } catch (error) {
-              console.error('Failed to restore tab:', error)
+        if (session) {
+          // Restore active workspace first
+          if (session.activeWorkspaceId) {
+            setActiveWorkspace(session.activeWorkspaceId)
+          }
+          
+          // Only restore tabs that belong to a workspace
+          if (session.tabs.length > 0) {
+            const workspaceTabs = session.tabs.filter(tab => tab.workspaceId)
+            for (const savedTab of workspaceTabs) {
+              try {
+                await handleCreateTab(savedTab.profileId, savedTab.workspaceId)
+                tabCreated = true
+              } catch (error) {
+                console.error('Failed to restore tab:', error)
+              }
             }
           }
         }
       } catch (error) {
         console.error('Failed to restore session:', error)
       }
+      
+      // If no workspace tabs, create a default unassigned tab
+      if (!tabCreated) {
+        try {
+          await handleCreateTab()
+        } catch (error) {
+          console.error('Failed to create default tab:', error)
+        }
+      }
     }
     restoreSession()
-  }, [isConfigLoaded, profiles.length, handleCreateTab])
+  }, [isConfigLoaded, profiles.length, handleCreateTab, setActiveWorkspace])
 
   // Save session before window closes
   useEffect(() => {
     const saveSession = () => {
-      const sessionTabs = tabs.map(tab => ({
-        id: tab.id,
-        profileId: tab.profileId,
-        workspaceId: tab.workspaceId,
-        title: tab.title
-      }))
+      // Only save tabs that belong to a workspace
+      const sessionTabs = tabs
+        .filter(tab => tab.workspaceId)
+        .map(tab => ({
+          id: tab.id,
+          profileId: tab.profileId,
+          workspaceId: tab.workspaceId,
+          title: tab.title
+        }))
       
       window.electronAPI.config.saveSession({
         tabs: sessionTabs,
-        activeTabId
+        activeTabId,
+        activeWorkspaceId: activeWorkspaceId || undefined
       })
     }
 
     window.addEventListener('beforeunload', saveSession)
     return () => window.removeEventListener('beforeunload', saveSession)
-  }, [tabs, activeTabId])
+  }, [tabs, activeTabId, activeWorkspaceId])
 
   // Switch to first tab when workspace changes
   useEffect(() => {

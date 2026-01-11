@@ -252,8 +252,8 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
     try {
       const ligaturesAddon = new LigaturesAddon()
       terminal.loadAddon(ligaturesAddon)
-    } catch (e) {
-      console.warn('Ligatures addon failed to load')
+    } catch {
+      // Ligatures addon requires specific font support, silently ignore if unavailable
     }
 
     fitAddon.fit()

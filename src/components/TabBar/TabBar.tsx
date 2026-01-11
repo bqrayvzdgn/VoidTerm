@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useTerminalStore } from '../../store/terminalStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useWorkspaceStore } from '../../store/workspaceStore'
@@ -57,7 +58,6 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
 
   const handleMoveToWorkspace = (workspaceId: string | undefined) => {
     if (tabContextMenu) {
-      console.log('Moving tab', tabContextMenu.tabId, 'to workspace', workspaceId)
       updateTab(tabContextMenu.tabId, { workspaceId })
       setTabContextMenu(null)
     }
@@ -339,8 +339,8 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
         </button>
       </div>
 
-      {/* Tab Context Menu */}
-      {tabContextMenu && (
+      {/* Tab Context Menu - rendered via portal to avoid z-index issues */}
+      {tabContextMenu && createPortal(
         <>
           <div className="context-menu-overlay" onClick={() => setTabContextMenu(null)} />
           <div
@@ -371,7 +371,8 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
               </button>
             ))}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   )
