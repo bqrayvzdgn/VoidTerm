@@ -34,6 +34,30 @@ const App: React.FC = () => {
   const { tabs, activeTabId, panes, setActiveTab, broadcastMode, toggleBroadcastMode } = useTerminalStore()
   const { addWorkspace, activeWorkspaceId } = useWorkspaceStore()
 
+  // When workspace changes, ensure active tab belongs to that workspace
+  useEffect(() => {
+    // Skip if no active tab (already cleared)
+    if (!activeTabId) return
+
+    const activeTab = tabs.find(t => t.id === activeTabId)
+
+    // Check if active tab belongs to current workspace view
+    const tabBelongsToView = activeTab && (activeWorkspaceId
+      ? activeTab.workspaceId === activeWorkspaceId
+      : !activeTab.workspaceId)
+
+    if (!tabBelongsToView) {
+      // Find a tab that belongs to the current workspace view
+      const validTab = tabs.find(t =>
+        activeWorkspaceId ? t.workspaceId === activeWorkspaceId : !t.workspaceId
+      )
+      if (validTab) {
+        setActiveTab(validTab.id)
+      }
+      // If no valid tab, don't change - let the UI show empty state
+    }
+  }, [activeWorkspaceId, tabs, activeTabId, setActiveTab])
+
   // Custom Hooks
   const { isMaximized } = useWindowState()
   useThemeManager()
@@ -180,7 +204,12 @@ const App: React.FC = () => {
     }
   }, [tabs, activeTabId])
 
-  const activePane = activeTabId ? panes.get(activeTabId) : null
+  // Only show terminal if active tab belongs to current workspace view
+  const activeTab = tabs.find(t => t.id === activeTabId)
+  const activeTabBelongsToView = activeTab && (activeWorkspaceId
+    ? activeTab.workspaceId === activeWorkspaceId
+    : !activeTab.workspaceId)
+  const activePane = activeTabBelongsToView ? panes.get(activeTabId) : null
 
   // Show loading state while config is being loaded
   if (!isConfigLoaded || !isWorkspacesLoaded) {
@@ -253,7 +282,7 @@ const App: React.FC = () => {
         open={createDialog.open}
         onClose={closeCreateDialog}
         onCreateWorkspace={handleCreateWorkspace}
-        onCreateTerminal={() => handleCreateTab(createDialog.profileId)}
+        onCreateTerminal={(profileId) => handleCreateTab(profileId)}
       />
 
       {commandPaletteOpen && (
