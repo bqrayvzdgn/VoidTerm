@@ -179,7 +179,7 @@ npm run generate-icons
 
 | Kısayol | İşlev |
 |---------|-------|
-| `Ctrl+Alt+↑/↓/←/→` | Paneller arası geçiş |
+| `Alt+↑/↓/←/→` | Paneller arası geçiş |
 | `Ctrl+Shift+M` | Paneli maksimize et/küçült |
 
 ### Terminal İşlemleri
@@ -200,8 +200,8 @@ npm run generate-icons
 |---------|-------|
 | `Ctrl+,` / `Cmd+,` | Ayarlar |
 | `Ctrl+Shift+P` | Komut paleti |
-| `Ctrl+Shift+S` | SSH yöneticisi |
-| `Ctrl+B` | Workspace sidebar aç/kapat |
+| `Ctrl+Shift+S` | Workspace sidebar aç/kapat |
+| `Ctrl+Shift+B` | Broadcast modu |
 
 > **Not:** Tüm klavye kısayolları Ayarlar > Kısayollar bölümünden özelleştirilebilir.
 
