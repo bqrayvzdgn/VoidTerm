@@ -42,6 +42,33 @@ export class ErrorBoundary extends Component<Props, State> {
     })
   }
 
+  handleResetConfig = async () => {
+    try {
+      if (window.electronAPI?.config?.reset) {
+        await window.electronAPI.config.reset()
+      }
+      window.location.reload()
+    } catch (e) {
+      console.error('Failed to reset config:', e)
+      window.location.reload()
+    }
+  }
+
+  handleCopyError = () => {
+    const errorText = `
+VoidTerm Error Report
+=====================
+Error: ${this.state.error?.message}
+Stack: ${this.state.error?.stack}
+Component Stack: ${this.state.errorInfo?.componentStack}
+Timestamp: ${new Date().toISOString()}
+    `.trim()
+
+    navigator.clipboard.writeText(errorText).then(() => {
+      alert('Error details copied to clipboard')
+    }).catch(console.error)
+  }
+
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
@@ -82,9 +109,23 @@ export class ErrorBoundary extends Component<Props, State> {
                 Try Again
               </button>
             </div>
-            {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
+            <div className="error-boundary-secondary-actions">
+              <button
+                className="error-boundary-btn-link"
+                onClick={this.handleResetConfig}
+              >
+                Reset Configuration
+              </button>
+              <button
+                className="error-boundary-btn-link"
+                onClick={this.handleCopyError}
+              >
+                Copy Error Details
+              </button>
+            </div>
+            {this.state.errorInfo && (
               <details className="error-boundary-details">
-                <summary>Error Details</summary>
+                <summary>Error Details (for debugging)</summary>
                 <pre>{this.state.error?.stack}</pre>
                 <pre>{this.state.errorInfo.componentStack}</pre>
               </details>

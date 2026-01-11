@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { TabBar } from './components/TabBar/TabBar'
 import { WorkspaceSidebar } from './components/WorkspaceSidebar/WorkspaceSidebar'
 import { SplitPane } from './components/SplitPane/SplitPane'
@@ -6,13 +6,17 @@ import { Settings } from './components/Settings/Settings'
 import { CreateDialog } from './components/CreateDialog/CreateDialog'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { SSHManager } from './components/SSHManager/SSHManager'
-import type { SSHConnection } from './types'
 import { useTerminalStore } from './store/terminalStore'
-import { useSettingsStore, useIsConfigLoaded, useSettingsActions } from './store/settingsStore'
-import { useWorkspaceStore, useIsWorkspacesLoaded, useWorkspaceActions } from './store/workspaceStore'
-import { useKeyboardShortcuts, useMenuEvents, useWindowState } from './hooks'
-import { collectTerminalIds, splitPaneAtTerminal, findNextPane, removePaneAtTerminal } from './utils/pane'
-import { v4 as uuidv4 } from 'uuid'
+import { useWorkspaceStore } from './store/workspaceStore'
+import {
+  useKeyboardShortcuts,
+  useMenuEvents,
+  useWindowState,
+  useTerminalManager,
+  useSessionManager,
+  useThemeManager,
+  useSSHManager
+} from './hooks'
 
 const App: React.FC = () => {
   // UI State
@@ -20,61 +24,43 @@ const App: React.FC = () => {
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [createDialog, setCreateDialog] = useState<{ open: boolean; profileId?: string }>({ open: false })
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
-  const [sshManagerOpen, setSSHManagerOpen] = useState(false)
-
-  // Terminal State
-  const [ptyIds, setPtyIds] = useState<Map<string, string>>(new Map())
-  const [activePaneTerminalId, setActivePaneTerminalId] = useState<string | null>(null)
-  const [maximizedPaneId, setMaximizedPaneId] = useState<string | null>(null)
 
   // Stores
-  const { tabs, activeTabId, addTab, removeTab, panes, setPane, setActiveTab, broadcastMode, toggleBroadcastMode, popClosedTab } = useTerminalStore()
-  const { settings, profiles, currentTheme } = useSettingsStore()
-  const { addWorkspace, activeWorkspaceId, setActiveWorkspace } = useWorkspaceStore()
-
-  // Config loading state
-  const isConfigLoaded = useIsConfigLoaded()
-  const isWorkspacesLoaded = useIsWorkspacesLoaded()
-  const { loadFromConfig: loadSettingsConfig } = useSettingsActions()
-  const { loadFromConfig: loadWorkspacesConfig } = useWorkspaceActions()
+  const { tabs, activeTabId, panes, setActiveTab, broadcastMode, toggleBroadcastMode } = useTerminalStore()
+  const { addWorkspace, activeWorkspaceId } = useWorkspaceStore()
 
   // Custom Hooks
   const { isMaximized } = useWindowState()
-  const isInitialized = useRef(false)
+  useThemeManager()
 
-  // Create a new terminal
-  const createTerminal = useCallback(async (profileId: string) => {
-    const profile = profiles.find(p => p.id === profileId) || profiles[0]
+  // Terminal Manager
+  const {
+    ptyIds,
+    activePaneTerminalId,
+    maximizedPaneId,
+    handleCreateTab,
+    handleCloseTab,
+    handleSplit,
+    handleNavigatePane,
+    handleClosePane,
+    handleTerminalFocus,
+    handleBroadcastInput,
+    handleNextTab,
+    handlePrevTab,
+    handleReopenClosedTab,
+    handleToggleMaximize,
+    setActivePaneTerminalId,
+    setPtyIds
+  } = useTerminalManager()
 
-    try {
-      const ptyId = await window.electronAPI.ptyCreate({
-        shell: profile.shell,
-        cwd: profile.cwd,
-        env: profile.env
-      })
+  // Session Manager
+  const { isConfigLoaded, isWorkspacesLoaded } = useSessionManager({ handleCreateTab })
 
-      const terminalId = uuidv4()
-
-      setPtyIds(prev => {
-        const newMap = new Map(prev)
-        newMap.set(terminalId, ptyId)
-        return newMap
-      })
-
-      // Execute startup command if defined
-      if (profile.startupCommand) {
-        // Wait a bit for shell to initialize, then send the command
-        setTimeout(() => {
-          window.electronAPI.ptyWrite(ptyId, profile.startupCommand + '\r')
-        }, 300)
-      }
-
-      return { terminalId, ptyId }
-    } catch (error) {
-      console.error('Failed to create terminal:', error)
-      throw new Error(`Failed to create terminal: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
-  }, [profiles])
+  // SSH Manager
+  const { sshManagerOpen, setSSHManagerOpen, handleSSHConnect } = useSSHManager({
+    setPtyIds,
+    setActivePaneTerminalId
+  })
 
   // Dialog handlers
   const openCreateDialog = useCallback((profileId?: string) => {
@@ -85,300 +71,26 @@ const App: React.FC = () => {
     setCreateDialog({ open: false })
   }, [])
 
-  // SSH connection handler
-  const handleSSHConnect = useCallback(async (connection: SSHConnection) => {
-    // Create SSH connection command
-    let sshCommand = `ssh ${connection.username}@${connection.host}`
-    
-    if (connection.port !== 22) {
-      sshCommand += ` -p ${connection.port}`
-    }
-    
-    if (connection.authMethod === 'key' && connection.privateKeyPath) {
-      sshCommand += ` -i "${connection.privateKeyPath}"`
-    }
-    
-    if (connection.jumpHost) {
-      sshCommand += ` -J ${connection.jumpHost}`
-    }
-
-    // Find or create SSH profile
-    let sshProfile = profiles.find(p => p.shell.toLowerCase().includes('ssh'))
-    if (!sshProfile) {
-      sshProfile = profiles[0] // Use default profile
-    }
-
-    // Create a new tab with SSH profile
-    const tabId = addTab(sshProfile?.id || 'default', `SSH: ${connection.name}`, activeWorkspaceId || undefined)
-
-    try {
-      const ptyId = await window.electronAPI.ptyCreate({
-        shell: sshProfile?.shell || 'cmd.exe',
-        cwd: sshProfile?.cwd,
-        env: sshProfile?.env
-      })
-
-      const terminalId = uuidv4()
-
-      setPtyIds(prev => {
-        const newMap = new Map(prev)
-        newMap.set(terminalId, ptyId)
-        return newMap
-      })
-
-      setPane(tabId, {
-        id: uuidv4(),
-        type: 'terminal',
-        terminalId
-      })
-
-      setActivePaneTerminalId(terminalId)
-
-      // Execute SSH command after shell is ready
-      setTimeout(() => {
-        window.electronAPI.ptyWrite(ptyId, sshCommand + '\r')
-      }, 500)
-
-    } catch (error) {
-      console.error('Failed to create SSH terminal:', error)
-    }
-  }, [profiles, addTab, activeWorkspaceId, setPane])
-
-  // Tab handlers
-  const handleCreateTab = useCallback(async (profileId?: string, workspaceId?: string) => {
-    const profileIdToUse = profileId || settings.defaultProfile
-    const profile = profiles.find(p => p.id === profileIdToUse) || profiles[0]
-    if (!profile) {
-      console.error('No profile found for id:', profileIdToUse)
-      return
-    }
-    // Use provided workspaceId, or fall back to activeWorkspaceId
-    const tabWorkspaceId = workspaceId !== undefined ? workspaceId : (activeWorkspaceId || undefined)
-    const tabId = addTab(profileIdToUse, profile.name, tabWorkspaceId)
-
-    try {
-      const { terminalId } = await createTerminal(profileIdToUse)
-
-      setPane(tabId, {
-        id: uuidv4(),
-        type: 'terminal',
-        terminalId
-      })
-
-      setActivePaneTerminalId(terminalId)
-    } catch (error) {
-      console.error('Failed to create tab:', error)
-      removeTab(tabId)
-    }
-
-    closeCreateDialog()
-  }, [addTab, createTerminal, settings.defaultProfile, profiles, setPane, activeWorkspaceId, closeCreateDialog, removeTab])
-
-  const handleCloseTab = useCallback((tabId: string) => {
-    const pane = panes.get(tabId)
-    if (pane) {
-      collectTerminalIds(pane).forEach(terminalId => {
-        const ptyId = ptyIds.get(terminalId)
-        if (ptyId) {
-          try {
-            window.electronAPI.ptyKill(ptyId)
-          } catch (error) {
-            console.error('Failed to kill PTY:', error)
-          }
-          setPtyIds(prev => {
-            const newMap = new Map(prev)
-            newMap.delete(terminalId)
-            return newMap
-          })
-        }
-      })
-    }
-    removeTab(tabId)
-  }, [panes, ptyIds, removeTab])
-
-  // Split handler
-  const handleSplit = useCallback(async (direction: 'horizontal' | 'vertical') => {
-    if (!activeTabId || !activePaneTerminalId) return
-
-    const currentPane = panes.get(activeTabId)
-    if (!currentPane) return
-
-    try {
-      const { terminalId: newTerminalId } = await createTerminal(settings.defaultProfile)
-      const newPane = splitPaneAtTerminal(currentPane, activePaneTerminalId, direction, newTerminalId)
-
-      if (newPane) {
-        setPane(activeTabId, newPane)
-        setActivePaneTerminalId(newTerminalId)
-      }
-    } catch (error) {
-      console.error('Failed to split pane:', error)
-    }
-  }, [activeTabId, activePaneTerminalId, panes, createTerminal, settings.defaultProfile, setPane])
-
   // Workspace handler
   const handleCreateWorkspace = useCallback((name: string) => {
     addWorkspace(name)
     closeCreateDialog()
   }, [addWorkspace, closeCreateDialog])
 
-  // Terminal handlers
-  const handleTerminalFocus = useCallback((terminalId: string) => {
-    setActivePaneTerminalId(terminalId)
-  }, [])
-
-  // Disabled: Terminal title changes are ignored to keep profile names as tab titles
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleTerminalTitleChange = useCallback((_terminalId: string, _title: string) => {
-    // Tab titles are set from profile name and won't change
-    // This prevents commands/paths from overwriting the tab name
-  }, [])
-
   // Sidebar handler
   const toggleSidebar = useCallback(() => {
     setSidebarExpanded(prev => !prev)
   }, [])
-
-  // Tab navigation handlers
-  const handleNextTab = useCallback(() => {
-    const workspaceTabs = tabs.filter(tab =>
-      activeWorkspaceId ? tab.workspaceId === activeWorkspaceId : !tab.workspaceId
-    )
-    if (workspaceTabs.length <= 1) return
-    
-    const currentIndex = workspaceTabs.findIndex(t => t.id === activeTabId)
-    const nextIndex = (currentIndex + 1) % workspaceTabs.length
-    const nextTab = workspaceTabs[nextIndex]
-    
-    setActiveTab(nextTab.id)
-    const pane = panes.get(nextTab.id)
-    if (pane) {
-      const terminalIds = collectTerminalIds(pane)
-      if (terminalIds.length > 0) {
-        setActivePaneTerminalId(terminalIds[0])
-      }
-    }
-  }, [tabs, activeWorkspaceId, activeTabId, setActiveTab, panes])
-
-  const handlePrevTab = useCallback(() => {
-    const workspaceTabs = tabs.filter(tab =>
-      activeWorkspaceId ? tab.workspaceId === activeWorkspaceId : !tab.workspaceId
-    )
-    if (workspaceTabs.length <= 1) return
-    
-    const currentIndex = workspaceTabs.findIndex(t => t.id === activeTabId)
-    const prevIndex = (currentIndex - 1 + workspaceTabs.length) % workspaceTabs.length
-    const prevTab = workspaceTabs[prevIndex]
-    
-    setActiveTab(prevTab.id)
-    const pane = panes.get(prevTab.id)
-    if (pane) {
-      const terminalIds = collectTerminalIds(pane)
-      if (terminalIds.length > 0) {
-        setActivePaneTerminalId(terminalIds[0])
-      }
-    }
-  }, [tabs, activeWorkspaceId, activeTabId, setActiveTab, panes])
-
-  // Pane navigation handler
-  const handleNavigatePane = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
-    if (!activeTabId || !activePaneTerminalId) return
-    
-    const currentPane = panes.get(activeTabId)
-    if (!currentPane) return
-    
-    const nextTerminalId = findNextPane(currentPane, activePaneTerminalId, direction)
-    if (nextTerminalId) {
-      setActivePaneTerminalId(nextTerminalId)
-    }
-  }, [activeTabId, activePaneTerminalId, panes])
-
-  // Close active pane handler
-  const handleClosePane = useCallback(() => {
-    if (!activeTabId || !activePaneTerminalId) return
-    
-    const currentPane = panes.get(activeTabId)
-    if (!currentPane) return
-    
-    const terminalIds = collectTerminalIds(currentPane)
-    
-    // If only one terminal, close the whole tab
-    if (terminalIds.length <= 1) {
-      handleCloseTab(activeTabId)
-      return
-    }
-    
-    // Kill the PTY for the closing terminal
-    const ptyId = ptyIds.get(activePaneTerminalId)
-    if (ptyId) {
-      try {
-        window.electronAPI.ptyKill(ptyId)
-      } catch (error) {
-        console.error('Failed to kill PTY:', error)
-      }
-      setPtyIds(prev => {
-        const newMap = new Map(prev)
-        newMap.delete(activePaneTerminalId)
-        return newMap
-      })
-    }
-    
-    // Remove the pane from the tree
-    const newPane = removePaneAtTerminal(currentPane, activePaneTerminalId)
-    if (newPane) {
-      setPane(activeTabId, newPane)
-      
-      // Set focus to a remaining terminal
-      const remainingTerminals = collectTerminalIds(newPane)
-      if (remainingTerminals.length > 0) {
-        setActivePaneTerminalId(remainingTerminals[0])
-      }
-    }
-  }, [activeTabId, activePaneTerminalId, panes, ptyIds, handleCloseTab, setPane])
 
   // Command palette toggle
   const toggleCommandPalette = useCallback(() => {
     setCommandPaletteOpen(prev => !prev)
   }, [])
 
-  // Reopen last closed tab
-  const handleReopenClosedTab = useCallback(async () => {
-    const closedTab = popClosedTab()
-    if (!closedTab) return
-
-    // Create new tab with same profile and workspace
-    await handleCreateTab(closedTab.profileId)
-  }, [popClosedTab, handleCreateTab])
-
-  // Toggle maximize pane
-  const handleToggleMaximize = useCallback(() => {
-    if (maximizedPaneId) {
-      setMaximizedPaneId(null)
-    } else if (activePaneTerminalId) {
-      setMaximizedPaneId(activePaneTerminalId)
-    }
-  }, [maximizedPaneId, activePaneTerminalId])
-
-  // Broadcast input to all other terminals in current tab
-  const handleBroadcastInput = useCallback((data: string) => {
-    if (!activeTabId || !activePaneTerminalId) return
-    
-    const currentPane = panes.get(activeTabId)
-    if (!currentPane) return
-    
-    // Get all terminal IDs from current pane
-    const terminalIds = collectTerminalIds(currentPane)
-    
-    // Write to all terminals except the source
-    terminalIds.forEach(terminalId => {
-      if (terminalId !== activePaneTerminalId) {
-        const ptyId = ptyIds.get(terminalId)
-        if (ptyId) {
-          window.electronAPI.ptyWrite(ptyId, data)
-        }
-      }
-    })
-  }, [activeTabId, activePaneTerminalId, panes, ptyIds])
+  // Tab title change handler (disabled - keeps profile names)
+  const handleTerminalTitleChange = useCallback((_terminalId: string, _title: string) => {
+    // Tab titles are set from profile name and won't change
+  }, [])
 
   // Keyboard shortcut handlers
   const keyboardHandlers = useMemo(() => ({
@@ -396,7 +108,11 @@ const App: React.FC = () => {
     onToggleBroadcast: toggleBroadcastMode,
     onReopenClosedTab: handleReopenClosedTab,
     onToggleMaximize: handleToggleMaximize
-  }), [openCreateDialog, activeTabId, handleCloseTab, handleSplit, toggleSidebar, handleNextTab, handlePrevTab, handleNavigatePane, handleClosePane, toggleCommandPalette, toggleBroadcastMode, handleReopenClosedTab, handleToggleMaximize])
+  }), [
+    openCreateDialog, activeTabId, handleCloseTab, handleSplit, toggleSidebar,
+    handleNextTab, handlePrevTab, handleNavigatePane, handleClosePane,
+    toggleCommandPalette, toggleBroadcastMode, handleReopenClosedTab, handleToggleMaximize
+  ])
 
   useKeyboardShortcuts(keyboardHandlers)
 
@@ -413,104 +129,21 @@ const App: React.FC = () => {
 
   useMenuEvents(menuHandlers)
 
-  // Load config on startup
-  useEffect(() => {
-    if (isInitialized.current) return
-    isInitialized.current = true
-
-    Promise.all([
-      loadSettingsConfig(),
-      loadWorkspacesConfig()
-    ])
-  }, [loadSettingsConfig, loadWorkspacesConfig])
-
-  // Restore session (only workspace tabs) after config is loaded
-  const sessionRestored = useRef(false)
-  useEffect(() => {
-    if (!isConfigLoaded || sessionRestored.current || profiles.length === 0) return
-    sessionRestored.current = true
-
-    const restoreSession = async () => {
-      let tabCreated = false
-      
-      try {
-        const session = await window.electronAPI.config.getSession()
-        if (session) {
-          // Restore active workspace first
-          if (session.activeWorkspaceId) {
-            setActiveWorkspace(session.activeWorkspaceId)
-          }
-          
-          // Only restore tabs that belong to a workspace
-          if (session.tabs.length > 0) {
-            const workspaceTabs = session.tabs.filter(tab => tab.workspaceId)
-            for (const savedTab of workspaceTabs) {
-              try {
-                await handleCreateTab(savedTab.profileId, savedTab.workspaceId)
-                tabCreated = true
-              } catch (error) {
-                console.error('Failed to restore tab:', error)
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Failed to restore session:', error)
-      }
-      
-      // If no workspace tabs, create a default unassigned tab
-      if (!tabCreated) {
-        try {
-          await handleCreateTab()
-        } catch (error) {
-          console.error('Failed to create default tab:', error)
-        }
-      }
-    }
-    restoreSession()
-  }, [isConfigLoaded, profiles.length, handleCreateTab, setActiveWorkspace])
-
-  // Save session before window closes
-  useEffect(() => {
-    const saveSession = () => {
-      // Only save tabs that belong to a workspace
-      const sessionTabs = tabs
-        .filter(tab => tab.workspaceId)
-        .map(tab => ({
-          id: tab.id,
-          profileId: tab.profileId,
-          workspaceId: tab.workspaceId,
-          title: tab.title
-        }))
-      
-      window.electronAPI.config.saveSession({
-        tabs: sessionTabs,
-        activeTabId,
-        activeWorkspaceId: activeWorkspaceId || undefined
-      })
-    }
-
-    window.addEventListener('beforeunload', saveSession)
-    return () => window.removeEventListener('beforeunload', saveSession)
-  }, [tabs, activeTabId, activeWorkspaceId])
-
   // Switch to first tab when workspace changes
   useEffect(() => {
     const workspaceTabs = tabs.filter(tab =>
       activeWorkspaceId ? tab.workspaceId === activeWorkspaceId : !tab.workspaceId
     )
 
-    // If current active tab is not in this workspace, switch to first tab
     const currentTabInWorkspace = workspaceTabs.find(t => t.id === activeTabId)
     if (!currentTabInWorkspace && workspaceTabs.length > 0) {
       setActiveTab(workspaceTabs[0].id)
-      // Also update the active pane terminal
       const pane = panes.get(workspaceTabs[0].id)
       if (pane && pane.type === 'terminal' && pane.terminalId) {
         setActivePaneTerminalId(pane.terminalId)
       }
     }
-  }, [activeWorkspaceId, tabs, activeTabId, setActiveTab, panes])
+  }, [activeWorkspaceId, tabs, activeTabId, setActiveTab, panes, setActivePaneTerminalId])
 
   // Update window title when active tab changes
   useEffect(() => {
@@ -521,42 +154,6 @@ const App: React.FC = () => {
       window.electronAPI.setWindowTitle('VoidTerm')
     }
   }, [tabs, activeTabId])
-
-  // Apply window appearance settings
-  useEffect(() => {
-    if (window.electronAPI?.setOpacity) {
-      window.electronAPI.setOpacity(settings.opacity)
-    }
-  }, [settings.opacity])
-
-  useEffect(() => {
-    if (window.electronAPI?.setBackgroundBlur) {
-      window.electronAPI.setBackgroundBlur(settings.blur)
-    }
-  }, [settings.blur])
-
-  // Apply theme colors to CSS variables
-  useEffect(() => {
-    const root = document.documentElement
-    const bg = currentTheme.colors.background
-    // Calculate lighter/darker variants
-    const adjustColor = (hex: string, amount: number) => {
-      const num = parseInt(hex.replace('#', ''), 16)
-      const r = Math.min(255, Math.max(0, (num >> 16) + amount))
-      const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount))
-      const b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount))
-      return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
-    }
-
-    root.style.setProperty('--bg-terminal', bg)
-    root.style.setProperty('--bg-tabbar', adjustColor(bg, 15))
-    root.style.setProperty('--bg-tab-active', bg)
-    root.style.setProperty('--bg-tab-hover', adjustColor(bg, 25))
-    root.style.setProperty('--text-primary', currentTheme.colors.foreground)
-
-    // Also set body background for corner consistency
-    document.body.style.backgroundColor = bg
-  }, [currentTheme])
 
   const activePane = activeTabId ? panes.get(activeTabId) : null
 

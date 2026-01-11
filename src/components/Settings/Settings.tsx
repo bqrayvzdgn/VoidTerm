@@ -350,12 +350,12 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
   ]
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">Settings</h2>
-          <button className="modal-close" onClick={onClose}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+          <h2 className="modal-title" id="settings-title">Settings</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Close settings">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
               <path d="M13 1L1 13M1 1L13 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
