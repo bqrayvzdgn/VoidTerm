@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useWorkspaceStore } from '../../store/workspaceStore'
 import { useTerminalStore } from '../../store/terminalStore'
@@ -8,7 +8,7 @@ import { TerminalIcon } from '../Icons/TerminalIcons'
 interface WorkspaceSidebarProps {
   expanded: boolean
   onNewTab: (profileId?: string) => void
-  onCreateTerminal: (profileId?: string) => void
+  onCreateTerminal: (profileId?: string, workspaceId?: string) => void
   onOpenSettings: () => void
 }
 
@@ -39,6 +39,19 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
     id: string
   } | null>(null)
   const [colorPicker, setColorPicker] = useState<string | null>(null)
+  const [profileDropdownId, setProfileDropdownId] = useState<string | null>(null) // 'header' or workspace id
+  const profileDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target as Node)) {
+        setProfileDropdownId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const workspaceColors = [
     '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6',
@@ -55,8 +68,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
 
   const handleAddTerminalToWorkspace = () => {
     if (contextMenu && contextMenu.type === 'workspace') {
-      setActiveWorkspace(contextMenu.id)
-      onCreateTerminal()
+      onCreateTerminal(undefined, contextMenu.id)
     }
     setContextMenu(null)
   }
@@ -88,7 +100,11 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
     }
   }
 
-  const handleTerminalClick = (tabId: string) => {
+  const handleTerminalClick = (tabId: string, workspaceId?: string) => {
+    // Switch to the terminal's workspace (or null for unassigned)
+    if (workspaceId !== activeWorkspaceId) {
+      setActiveWorkspace(workspaceId || null)
+    }
     setActiveTab(tabId)
   }
 
@@ -165,7 +181,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             className="workspace-sidebar-add"
             onClick={() => onNewTab()}
             title="New"
-            aria-label="Create new terminal"
+            aria-label="Create new workspace or terminal"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -234,19 +250,47 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                     <span className="terminal-tree-name">{workspace.name}</span>
                   )}
                   <span className="workspace-tree-count">{workspaceTabs.length}</span>
-                  <button
-                    className="workspace-tree-add"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setActiveWorkspace(workspace.id)
-                      onCreateTerminal()
-                    }}
-                    title="Add terminal to workspace"
+                  <div
+                    className="workspace-tree-add-wrapper"
+                    ref={profileDropdownId === workspace.id ? profileDropdownRef : undefined}
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path d="M6 2V10M2 6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                  </button>
+                    <button
+                      className="workspace-tree-add"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setProfileDropdownId(profileDropdownId === workspace.id ? null : workspace.id)
+                      }}
+                      title="Add terminal to workspace"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M6 2V10M2 6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                    {profileDropdownId === workspace.id && (
+                      <div className="sidebar-profile-dropdown workspace-level">
+                        <div className="sidebar-profile-dropdown-header">Select Terminal Type</div>
+                        {profiles.map((profile) => (
+                          <button
+                            key={profile.id}
+                            className="sidebar-profile-dropdown-item"
+                            onClick={() => {
+                              onCreateTerminal(profile.id, workspace.id)
+                              setProfileDropdownId(null)
+                            }}
+                          >
+                            <span className="sidebar-profile-dropdown-icon">
+                              <TerminalIcon icon={profile.icon} size={18} />
+                            </span>
+                            <div className="sidebar-profile-dropdown-info">
+                              <span className="sidebar-profile-dropdown-name">{profile.name}</span>
+                              <span className="sidebar-profile-dropdown-path">{profile.shell}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {isExpanded && (
                   <div className="workspace-tree-children" role="group">
@@ -256,7 +300,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                         <div
                           key={tab.id}
                           className={`terminal-tree-item ${tab.id === activeTabId ? 'active' : ''}`}
-                          onClick={() => handleTerminalClick(tab.id)}
+                          onClick={() => handleTerminalClick(tab.id, tab.workspaceId)}
                           onContextMenu={(e) => handleContextMenu(e, 'terminal', tab.id)}
                           role="treeitem"
                           tabIndex={0}
@@ -265,7 +309,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault()
-                              handleTerminalClick(tab.id)
+                              handleTerminalClick(tab.id, tab.workspaceId)
                             }
                           }}
                         >
@@ -329,7 +373,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                     <div
                       key={tab.id}
                       className={`terminal-tree-item ${tab.id === activeTabId ? 'active' : ''}`}
-                      onClick={() => handleTerminalClick(tab.id)}
+                      onClick={() => handleTerminalClick(tab.id, undefined)}
                       onContextMenu={(e) => handleContextMenu(e, 'terminal', tab.id)}
                     >
                       <span className="terminal-tree-icon-wrapper">

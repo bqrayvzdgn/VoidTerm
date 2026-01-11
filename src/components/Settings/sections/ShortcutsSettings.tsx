@@ -44,7 +44,8 @@ const SHORTCUT_CONFIGS: ShortcutConfig[] = [
  * Kısayol tuşunu görsel olarak formatlar
  * Örn: "Ctrl+Shift+D" -> ["Ctrl", "Shift", "D"]
  */
-const formatShortcut = (shortcut: string): string[] => {
+const formatShortcut = (shortcut: string | undefined): string[] => {
+  if (!shortcut) return ['—']
   return shortcut.split('+')
 }
 

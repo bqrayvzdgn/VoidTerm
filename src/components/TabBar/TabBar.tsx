@@ -70,13 +70,19 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
     return { ungrouped, grouped }
   }, [filteredTabs])
 
-  // Handle horizontal scroll with mouse wheel
-  const handleTabsWheel = (e: React.WheelEvent) => {
-    if (tabsContainerRef.current) {
+  // Handle horizontal scroll with mouse wheel (non-passive to allow preventDefault)
+  useEffect(() => {
+    const container = tabsContainerRef.current
+    if (!container) return
+
+    const handleWheel = (e: WheelEvent) => {
       e.preventDefault()
-      tabsContainerRef.current.scrollLeft += e.deltaY * 0.3
+      container.scrollLeft += e.deltaY * 0.3
     }
-  }
+
+    container.addEventListener('wheel', handleWheel, { passive: false })
+    return () => container.removeEventListener('wheel', handleWheel)
+  }, [])
 
   const getProfile = (profileId: string) => {
     return profiles.find(p => p.id === profileId) || profiles[0]
@@ -427,7 +433,7 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
 
       <div className="tabbar-divider" />
 
-      <div className="tabbar-tabs" ref={tabsContainerRef} onWheel={handleTabsWheel} role="tablist" aria-label="Terminal tabs">
+      <div className="tabbar-tabs" ref={tabsContainerRef} role="tablist" aria-label="Terminal tabs">
         {/* Gruplu tablar */}
         {tabGroups.map(group => {
           const groupTabs = organizedTabs.grouped.get(group.id)

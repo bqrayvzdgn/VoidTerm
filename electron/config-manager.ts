@@ -22,12 +22,23 @@ export interface Profile {
 export interface KeyboardShortcuts {
   newTab: string
   closeTab: string
+  closePane: string
   splitVertical: string
   splitHorizontal: string
+  focusLeft: string
+  focusRight: string
+  focusUp: string
+  focusDown: string
   toggleSidebar: string
   openSettings: string
+  openCommandPalette: string
+  openSSHManager: string
   nextTab: string
   prevTab: string
+  toggleSearch: string
+  clearTerminal: string
+  copyText: string
+  pasteText: string
 }
 
 export interface Settings {
@@ -88,12 +99,23 @@ export interface BackupInfo {
 const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
   newTab: 'Ctrl+T',
   closeTab: 'Ctrl+W',
+  closePane: 'Ctrl+Shift+W',
   splitVertical: 'Ctrl+Shift+D',
   splitHorizontal: 'Ctrl+Shift+E',
+  focusLeft: 'Ctrl+Alt+Left',
+  focusRight: 'Ctrl+Alt+Right',
+  focusUp: 'Ctrl+Alt+Up',
+  focusDown: 'Ctrl+Alt+Down',
   toggleSidebar: 'Ctrl+B',
   openSettings: 'Ctrl+,',
+  openCommandPalette: 'Ctrl+Shift+P',
+  openSSHManager: 'Ctrl+Shift+S',
   nextTab: 'Ctrl+Tab',
-  prevTab: 'Ctrl+Shift+Tab'
+  prevTab: 'Ctrl+Shift+Tab',
+  toggleSearch: 'Ctrl+F',
+  clearTerminal: 'Ctrl+L',
+  copyText: 'Ctrl+Shift+C',
+  pasteText: 'Ctrl+Shift+V'
 }
 
 const DEFAULT_SETTINGS: Settings = {
