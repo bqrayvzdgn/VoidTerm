@@ -115,8 +115,8 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
         )}
       </button>
 
-      {/* Workspace Selector - only show when there are workspaces */}
-      {workspaces.length > 0 && (
+      {/* Workspace Selector - only show when a workspace is active */}
+      {activeWorkspaceId && (
         <div className="workspace-selector" ref={workspaceDropdownRef}>
           <button
             className="workspace-selector-btn"
