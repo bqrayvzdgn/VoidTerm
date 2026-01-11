@@ -9,6 +9,12 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/bqrayvzdgn/VoidTerm/releases/latest"><img src="https://img.shields.io/github/v/release/bqrayvzdgn/VoidTerm?style=flat-square&color=blue" alt="Latest Release"></a>
+  <a href="https://github.com/bqrayvzdgn/VoidTerm/blob/main/LICENSE"><img src="https://img.shields.io/github/license/bqrayvzdgn/VoidTerm?style=flat-square" alt="License"></a>
+  <a href="https://github.com/bqrayvzdgn/VoidTerm/releases"><img src="https://img.shields.io/github/downloads/bqrayvzdgn/VoidTerm/total?style=flat-square&color=green" alt="Downloads"></a>
+</p>
+
+<p align="center">
   <a href="#özellikler">Özellikler</a> •
   <a href="#kurulum">Kurulum</a> •
   <a href="#geliştirme">Geliştirme</a> •
@@ -173,7 +179,7 @@ npm run generate-icons
 
 | Kısayol | İşlev |
 |---------|-------|
-| `Alt+↑/↓/←/→` | Paneller arası geçiş |
+| `Ctrl+Alt+↑/↓/←/→` | Paneller arası geçiş |
 | `Ctrl+Shift+M` | Paneli maksimize et/küçült |
 
 ### Terminal İşlemleri
@@ -183,6 +189,7 @@ npm run generate-icons
 | `Ctrl+Shift+C` | Kopyala |
 | `Ctrl+Shift+V` | Yapıştır |
 | `Ctrl+F` | Terminal içi arama |
+| `Ctrl+L` | Terminal temizle |
 | `Ctrl++` / `Ctrl+=` | Yakınlaştır |
 | `Ctrl+-` | Uzaklaştır |
 | `Ctrl+0` | Zoom sıfırla |
@@ -192,10 +199,11 @@ npm run generate-icons
 | Kısayol | İşlev |
 |---------|-------|
 | `Ctrl+,` / `Cmd+,` | Ayarlar |
-| `Ctrl+Shift+B` | Workspace sidebar aç/kapat |
-| `Ctrl+Shift+B` (terminal'de) | Broadcast modu aç/kapat |
+| `Ctrl+Shift+P` | Komut paleti |
+| `Ctrl+Shift+S` | SSH yöneticisi |
+| `Ctrl+B` | Workspace sidebar aç/kapat |
 
-> **Not:** Klavye kısayolları Ayarlar > Kısayollar bölümünden özelleştirilebilir.
+> **Not:** Tüm klavye kısayolları Ayarlar > Kısayollar bölümünden özelleştirilebilir.
 
 ## 🎨 Temalar
 
