@@ -94,12 +94,14 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
   }, [])
 
   return (
-    <div className="tabbar">
+    <div className="tabbar" role="toolbar" aria-label="Tab bar">
       {/* Sidebar Toggle */}
       <button
         className="sidebar-toggle-btn"
         onClick={onToggleSidebar}
         title={sidebarExpanded ? 'Hide sidebar' : 'Show sidebar'}
+        aria-label={sidebarExpanded ? 'Hide sidebar' : 'Show sidebar'}
+        aria-expanded={sidebarExpanded}
       >
         {sidebarExpanded ? (
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
@@ -178,7 +180,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
 
       <div className="tabbar-divider" />
 
-      <div className="tabbar-tabs" ref={tabsContainerRef} onWheel={handleTabsWheel}>
+      <div className="tabbar-tabs" ref={tabsContainerRef} onWheel={handleTabsWheel} role="tablist" aria-label="Terminal tabs">
         {tabs
           .filter(tab => activeWorkspaceId ? tab.workspaceId === activeWorkspaceId : !tab.workspaceId)
           .map((tab) => {
@@ -187,8 +189,10 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
           return (
             <div
               key={tab.id}
-              role="button"
-              tabIndex={0}
+              role="tab"
+              tabIndex={tab.isActive ? 0 : -1}
+              aria-selected={tab.isActive}
+              aria-label={`${tab.title} terminal tab`}
               className={`tab ${tab.isActive ? 'active' : ''} ${draggedTabId === tab.id ? 'dragging' : ''} ${dragOverTabId === tab.id ? 'drag-over' : ''}`}
               style={{
                 borderBottom: profile.color ? `2px solid ${profile.color}` : undefined

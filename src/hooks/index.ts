@@ -1,3 +1,7 @@
 export { useKeyboardShortcuts } from './useKeyboardShortcuts'
 export { useMenuEvents } from './useMenuEvents'
 export { useWindowState } from './useWindowState'
+export { useTerminalManager } from './useTerminalManager'
+export { useSessionManager } from './useSessionManager'
+export { useThemeManager } from './useThemeManager'
+export { useSSHManager } from './useSSHManager'

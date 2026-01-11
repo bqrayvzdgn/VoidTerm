@@ -2159,6 +2159,27 @@ textarea:focus-visible {
   border-top: 1px solid #333;
 }
 
+.error-boundary-secondary-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.error-boundary-btn-link {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px 8px;
+}
+
+.error-boundary-btn-link:hover {
+  color: var(--text-primary);
+}
+
 /* Terminal Search Bar */
 .terminal-search-bar {
   display: flex;
