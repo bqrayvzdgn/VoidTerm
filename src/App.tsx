@@ -221,11 +221,52 @@ const App: React.FC = () => {
   }, [])
 
   const handleTerminalTitleChange = useCallback((terminalId: string, title: string) => {
+    if (!title || title.trim() === '') return
+    
+    // Extract meaningful title from shell output
+    let cleanTitle = title.trim()
+    
+    // For Windows paths like "C:\Users\void\Projects" - extract last folder
+    const windowsPathMatch = cleanTitle.match(/^[A-Z]:\\(.+)$/i)
+    if (windowsPathMatch) {
+      const parts = windowsPathMatch[1].split('\\')
+      cleanTitle = parts[parts.length - 1] || parts[parts.length - 2] || cleanTitle
+    }
+    
+    // For Unix paths like "/home/user/projects" - extract last folder
+    const unixPathMatch = cleanTitle.match(/^\/(.+)$/)
+    if (unixPathMatch) {
+      const parts = unixPathMatch[1].split('/')
+      cleanTitle = parts[parts.length - 1] || parts[parts.length - 2] || cleanTitle
+    }
+    
+    // For "user@host: path" format - extract path part
+    const sshStyleMatch = cleanTitle.match(/^.+@.+:\s*(.+)$/)
+    if (sshStyleMatch) {
+      cleanTitle = sshStyleMatch[1]
+      // If it's still a path, extract last folder
+      if (cleanTitle.includes('/')) {
+        const parts = cleanTitle.split('/')
+        cleanTitle = parts[parts.length - 1] || parts[parts.length - 2] || cleanTitle
+      }
+    }
+    
+    // Skip if it's too long (likely a full command)
+    if (cleanTitle.length > 30) return
+    
+    // Skip common command prefixes that shouldn't be titles
+    const skipPatterns = [
+      /^(git|npm|node|yarn|pnpm|docker|kubectl)\s+\w+/i,
+      /^\$\s+/,  // Shell prompt
+      /^>\s+/,   // PowerShell prompt
+    ]
+    if (skipPatterns.some(p => p.test(cleanTitle))) return
+    
     // Find the tab that contains this terminal
     for (const [tabId, pane] of panes.entries()) {
       const terminalIds = collectTerminalIds(pane)
       if (terminalIds.includes(terminalId)) {
-        updateTabTitle(tabId, title)
+        updateTabTitle(tabId, cleanTitle)
         break
       }
     }
