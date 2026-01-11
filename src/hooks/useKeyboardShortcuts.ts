@@ -12,6 +12,7 @@ interface KeyboardShortcutHandlers {
   onNavigatePane?: (direction: 'up' | 'down' | 'left' | 'right') => void
   onClosePane?: () => void
   onCommandPalette?: () => void
+  onToggleBroadcast?: () => void
 }
 
 export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
@@ -27,6 +28,11 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
           e.preventDefault()
           handlers.onSplitHorizontal()
         } else if (e.key === 'B' || e.key === 'b') {
+          // Ctrl+Shift+B - Toggle broadcast mode
+          e.preventDefault()
+          handlers.onToggleBroadcast?.()
+        } else if (e.key === 'S' || e.key === 's') {
+          // Ctrl+Shift+S - Toggle sidebar
           e.preventDefault()
           handlers.onToggleSidebar()
         } else if (e.key === 'W' || e.key === 'w') {

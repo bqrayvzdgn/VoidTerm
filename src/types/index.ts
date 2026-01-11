@@ -37,6 +37,20 @@ export interface Profile {
   startupCommand?: string
 }
 
+export interface SSHConnection {
+  id: string
+  name: string
+  host: string
+  port: number
+  username: string
+  authMethod: 'password' | 'key' | 'agent'
+  privateKeyPath?: string
+  jumpHost?: string  // For SSH tunneling/proxy
+  color?: string
+  icon?: string
+  lastConnected?: string
+}
+
 export interface Tab {
   id: string
   title: string
@@ -139,5 +153,6 @@ export interface AppConfig {
   settings: Settings
   profiles: Profile[]
   workspaces: Workspace[]
+  sshConnections: SSHConnection[]
   version: number
 }

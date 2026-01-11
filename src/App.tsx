@@ -5,6 +5,8 @@ import { SplitPane } from './components/SplitPane/SplitPane'
 import { Settings } from './components/Settings/Settings'
 import { CreateDialog } from './components/CreateDialog/CreateDialog'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
+import { SSHManager } from './components/SSHManager/SSHManager'
+import type { SSHConnection } from './types'
 import { useTerminalStore } from './store/terminalStore'
 import { useSettingsStore, useIsConfigLoaded, useSettingsActions } from './store/settingsStore'
 import { useWorkspaceStore, useIsWorkspacesLoaded, useWorkspaceActions } from './store/workspaceStore'
@@ -18,13 +20,14 @@ const App: React.FC = () => {
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [createDialog, setCreateDialog] = useState<{ open: boolean; profileId?: string }>({ open: false })
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const [sshManagerOpen, setSSHManagerOpen] = useState(false)
 
   // Terminal State
   const [ptyIds, setPtyIds] = useState<Map<string, string>>(new Map())
   const [activePaneTerminalId, setActivePaneTerminalId] = useState<string | null>(null)
 
   // Stores
-  const { tabs, activeTabId, addTab, removeTab, panes, setPane, setActiveTab, updateTabTitle } = useTerminalStore()
+  const { tabs, activeTabId, addTab, removeTab, panes, setPane, setActiveTab, updateTabTitle, broadcastMode, toggleBroadcastMode } = useTerminalStore()
   const { settings, profiles, currentTheme } = useSettingsStore()
   const { addWorkspace, activeWorkspaceId } = useWorkspaceStore()
 
@@ -80,6 +83,65 @@ const App: React.FC = () => {
   const closeCreateDialog = useCallback(() => {
     setCreateDialog({ open: false })
   }, [])
+
+  // SSH connection handler
+  const handleSSHConnect = useCallback(async (connection: SSHConnection) => {
+    // Create SSH connection command
+    let sshCommand = `ssh ${connection.username}@${connection.host}`
+    
+    if (connection.port !== 22) {
+      sshCommand += ` -p ${connection.port}`
+    }
+    
+    if (connection.authMethod === 'key' && connection.privateKeyPath) {
+      sshCommand += ` -i "${connection.privateKeyPath}"`
+    }
+    
+    if (connection.jumpHost) {
+      sshCommand += ` -J ${connection.jumpHost}`
+    }
+
+    // Find or create SSH profile
+    let sshProfile = profiles.find(p => p.shell.toLowerCase().includes('ssh'))
+    if (!sshProfile) {
+      sshProfile = profiles[0] // Use default profile
+    }
+
+    // Create a new tab with SSH profile
+    const tabId = addTab(sshProfile?.id || 'default', `SSH: ${connection.name}`, activeWorkspaceId || undefined)
+
+    try {
+      const ptyId = await window.electronAPI.ptyCreate({
+        shell: sshProfile?.shell || 'cmd.exe',
+        cwd: sshProfile?.cwd,
+        env: sshProfile?.env
+      })
+
+      const terminalId = uuidv4()
+
+      setPtyIds(prev => {
+        const newMap = new Map(prev)
+        newMap.set(terminalId, ptyId)
+        return newMap
+      })
+
+      setPane(tabId, {
+        id: uuidv4(),
+        type: 'terminal',
+        terminalId
+      })
+
+      setActivePaneTerminalId(terminalId)
+
+      // Execute SSH command after shell is ready
+      setTimeout(() => {
+        window.electronAPI.ptyWrite(ptyId, sshCommand + '\r')
+      }, 500)
+
+    } catch (error) {
+      console.error('Failed to create SSH terminal:', error)
+    }
+  }, [profiles, addTab, activeWorkspaceId, setPane])
 
   // Tab handlers
   const handleCreateTab = useCallback(async (profileId?: string) => {
@@ -276,6 +338,27 @@ const App: React.FC = () => {
     setCommandPaletteOpen(prev => !prev)
   }, [])
 
+  // Broadcast input to all other terminals in current tab
+  const handleBroadcastInput = useCallback((data: string) => {
+    if (!activeTabId || !activePaneTerminalId) return
+    
+    const currentPane = panes.get(activeTabId)
+    if (!currentPane) return
+    
+    // Get all terminal IDs from current pane
+    const terminalIds = collectTerminalIds(currentPane)
+    
+    // Write to all terminals except the source
+    terminalIds.forEach(terminalId => {
+      if (terminalId !== activePaneTerminalId) {
+        const ptyId = ptyIds.get(terminalId)
+        if (ptyId) {
+          window.electronAPI.ptyWrite(ptyId, data)
+        }
+      }
+    })
+  }, [activeTabId, activePaneTerminalId, panes, ptyIds])
+
   // Keyboard shortcut handlers
   const keyboardHandlers = useMemo(() => ({
     onNewTab: () => openCreateDialog(),
@@ -288,8 +371,9 @@ const App: React.FC = () => {
     onPrevTab: handlePrevTab,
     onNavigatePane: handleNavigatePane,
     onClosePane: handleClosePane,
-    onCommandPalette: toggleCommandPalette
-  }), [openCreateDialog, activeTabId, handleCloseTab, handleSplit, toggleSidebar, handleNextTab, handlePrevTab, handleNavigatePane, handleClosePane, toggleCommandPalette])
+    onCommandPalette: toggleCommandPalette,
+    onToggleBroadcast: toggleBroadcastMode
+  }), [openCreateDialog, activeTabId, handleCloseTab, handleSplit, toggleSidebar, handleNextTab, handlePrevTab, handleNavigatePane, handleClosePane, toggleCommandPalette, toggleBroadcastMode])
 
   useKeyboardShortcuts(keyboardHandlers)
 
@@ -375,6 +459,16 @@ const App: React.FC = () => {
     }
   }, [activeWorkspaceId, tabs, activeTabId, setActiveTab, panes])
 
+  // Update window title when active tab changes
+  useEffect(() => {
+    const activeTab = tabs.find(t => t.id === activeTabId)
+    if (activeTab && window.electronAPI?.setWindowTitle) {
+      window.electronAPI.setWindowTitle(`${activeTab.title} - VoidTerm`)
+    } else if (window.electronAPI?.setWindowTitle) {
+      window.electronAPI.setWindowTitle('VoidTerm')
+    }
+  }, [tabs, activeTabId])
+
   // Apply window appearance settings
   useEffect(() => {
     if (window.electronAPI?.setOpacity) {
@@ -455,6 +549,8 @@ const App: React.FC = () => {
               onClosePane={handleClosePane}
               onNextTab={handleNextTab}
               onPrevTab={handlePrevTab}
+              broadcastMode={broadcastMode}
+              onBroadcastInput={handleBroadcastInput}
             />
           ) : (
             <div className="terminal-placeholder">
@@ -491,6 +587,13 @@ const App: React.FC = () => {
         onOpenSettings={() => setSettingsOpen(true)}
         onNextTab={handleNextTab}
         onPrevTab={handlePrevTab}
+        onOpenSSHManager={() => setSSHManagerOpen(true)}
+      />
+
+      <SSHManager
+        isOpen={sshManagerOpen}
+        onClose={() => setSSHManagerOpen(false)}
+        onConnect={handleSSHConnect}
       />
     </div>
   )

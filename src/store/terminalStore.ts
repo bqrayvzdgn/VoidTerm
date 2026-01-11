@@ -2,12 +2,14 @@ import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import { v4 as uuidv4 } from 'uuid'
 import type { Tab, Pane, TerminalState } from '../types'
+import { collectTerminalIds } from '../utils/pane'
 
 interface TerminalStore {
   tabs: Tab[]
   activeTabId: string | null
   terminals: Map<string, TerminalState>
   panes: Map<string, Pane>
+  broadcastMode: boolean
 
   // Tab actions
   addTab: (profileId?: string, title?: string, workspaceId?: string) => string
@@ -24,6 +26,9 @@ interface TerminalStore {
 
   // Pane actions
   setPane: (tabId: string, pane: Pane) => void
+
+  // Broadcast actions
+  toggleBroadcastMode: () => void
 }
 
 export const useTerminalStore = create<TerminalStore>((set, get) => ({
@@ -31,6 +36,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   activeTabId: null,
   terminals: new Map(),
   panes: new Map(),
+  broadcastMode: false,
 
   addTab: (profileId = 'default', title?: string, workspaceId?: string) => {
     const tabId = uuidv4()
@@ -159,24 +165,18 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       panes.set(tabId, pane)
       return { panes }
     })
+  },
+
+  toggleBroadcastMode: () => {
+    set((state) => ({ broadcastMode: !state.broadcastMode }))
   }
 }))
-
-// Helper function for removeTab - also exported from utils/pane.ts
-function collectTerminalIds(pane: Pane): string[] {
-  if (pane.type === 'terminal' && pane.terminalId) {
-    return [pane.terminalId]
-  }
-  if (pane.children) {
-    return pane.children.flatMap(collectTerminalIds)
-  }
-  return []
-}
 
 // Selectors for performance optimization
 export const useTerminalTabs = () => useTerminalStore(useShallow((state) => state.tabs))
 export const useActiveTabId = () => useTerminalStore((state) => state.activeTabId)
 export const useTerminalPanes = () => useTerminalStore(useShallow((state) => state.panes))
+export const useBroadcastMode = () => useTerminalStore((state) => state.broadcastMode)
 export const useTerminalActions = () => useTerminalStore(useShallow((state) => ({
   addTab: state.addTab,
   removeTab: state.removeTab,
@@ -187,5 +187,6 @@ export const useTerminalActions = () => useTerminalStore(useShallow((state) => (
   addTerminal: state.addTerminal,
   removeTerminal: state.removeTerminal,
   updateTerminalTitle: state.updateTerminalTitle,
-  setPane: state.setPane
+  setPane: state.setPane,
+  toggleBroadcastMode: state.toggleBroadcastMode
 })))

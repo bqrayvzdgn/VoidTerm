@@ -80,6 +80,12 @@ export interface ElectronAPI {
   // Window appearance
   setOpacity: (opacity: number) => void
   setBackgroundBlur: (enabled: boolean) => void
+  setWindowTitle: (title: string) => void
+
+  // Quake mode
+  toggleQuakeMode: () => void
+  setQuakeMode: (enabled: boolean) => void
+  onQuakeModeChanged: (callback: (enabled: boolean) => void) => () => void
 
   // Platform info
   platform: NodeJS.Platform

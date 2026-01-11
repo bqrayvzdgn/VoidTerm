@@ -86,6 +86,18 @@ const electronAPI = {
   // Window appearance
   setOpacity: (opacity: number) => ipcRenderer.send('set-opacity', opacity),
   setBackgroundBlur: (enabled: boolean) => ipcRenderer.send('set-background-blur', enabled),
+  setWindowTitle: (title: string) => ipcRenderer.send('set-window-title', title),
+
+  // Quake mode
+  toggleQuakeMode: () => ipcRenderer.send('toggle-quake-mode'),
+  setQuakeMode: (enabled: boolean) => ipcRenderer.send('set-quake-mode', enabled),
+  onQuakeModeChanged: (callback: (enabled: boolean) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, enabled: boolean) => {
+      callback(enabled)
+    }
+    ipcRenderer.on('quake-mode-changed', handler)
+    return () => ipcRenderer.removeListener('quake-mode-changed', handler)
+  },
 
   // Platform info
   platform: process.platform,
