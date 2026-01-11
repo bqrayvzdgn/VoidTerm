@@ -10,6 +10,7 @@ export interface SessionTab {
 export interface Session {
   tabs: SessionTab[]
   activeTabId: string | null
+  activeWorkspaceId?: string
 }
 
 export interface PtyOptions {
