@@ -187,6 +187,9 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
             <button
               key={tab.id}
               className={`tab ${tab.isActive ? 'active' : ''} ${draggedTabId === tab.id ? 'dragging' : ''} ${dragOverTabId === tab.id ? 'drag-over' : ''}`}
+              style={{
+                borderBottom: profile.color ? `2px solid ${profile.color}` : undefined
+              }}
               onClick={() => setActiveTab(tab.id)}
               onMouseDown={(e) => {
                 // Middle click to close tab

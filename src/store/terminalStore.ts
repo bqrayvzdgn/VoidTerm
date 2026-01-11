@@ -4,12 +4,21 @@ import { v4 as uuidv4 } from 'uuid'
 import type { Tab, Pane, TerminalState } from '../types'
 import { collectTerminalIds } from '../utils/pane'
 
+// Closed tab info for reopening
+interface ClosedTab {
+  profileId: string
+  title: string
+  workspaceId?: string
+  closedAt: number
+}
+
 interface TerminalStore {
   tabs: Tab[]
   activeTabId: string | null
   terminals: Map<string, TerminalState>
   panes: Map<string, Pane>
   broadcastMode: boolean
+  closedTabs: ClosedTab[]
 
   // Tab actions
   addTab: (profileId?: string, title?: string, workspaceId?: string) => string
@@ -18,6 +27,7 @@ interface TerminalStore {
   updateTabTitle: (tabId: string, title: string) => void
   updateTab: (tabId: string, updates: Partial<Tab>) => void
   reorderTabs: (fromIndex: number, toIndex: number) => void
+  popClosedTab: () => ClosedTab | undefined
 
   // Terminal actions
   addTerminal: (tabId: string, profileId: string, ptyId: string) => string
@@ -31,12 +41,15 @@ interface TerminalStore {
   toggleBroadcastMode: () => void
 }
 
+const MAX_CLOSED_TABS = 10 // Keep last 10 closed tabs
+
 export const useTerminalStore = create<TerminalStore>((set, get) => ({
   tabs: [],
   activeTabId: null,
   terminals: new Map(),
   panes: new Map(),
   broadcastMode: false,
+  closedTabs: [],
 
   addTab: (profileId = 'default', title?: string, workspaceId?: string) => {
     const tabId = uuidv4()
@@ -58,7 +71,22 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   removeTab: (tabId) => {
     const state = get()
+    const tabToClose = state.tabs.find(t => t.id === tabId)
     const tabs = state.tabs.filter(t => t.id !== tabId)
+
+    // Save closed tab info for reopening later
+    if (tabToClose) {
+      const closedTabs = [
+        { 
+          profileId: tabToClose.profileId, 
+          title: tabToClose.title, 
+          workspaceId: tabToClose.workspaceId,
+          closedAt: Date.now()
+        },
+        ...state.closedTabs
+      ].slice(0, MAX_CLOSED_TABS)
+      set({ closedTabs })
+    }
 
     // Clean up terminals for this tab
     const pane = state.panes.get(tabId)
@@ -169,6 +197,15 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   toggleBroadcastMode: () => {
     set((state) => ({ broadcastMode: !state.broadcastMode }))
+  },
+
+  popClosedTab: () => {
+    const state = get()
+    if (state.closedTabs.length === 0) return undefined
+    
+    const [closedTab, ...rest] = state.closedTabs
+    set({ closedTabs: rest })
+    return closedTab
   }
 }))
 
@@ -177,6 +214,7 @@ export const useTerminalTabs = () => useTerminalStore(useShallow((state) => stat
 export const useActiveTabId = () => useTerminalStore((state) => state.activeTabId)
 export const useTerminalPanes = () => useTerminalStore(useShallow((state) => state.panes))
 export const useBroadcastMode = () => useTerminalStore((state) => state.broadcastMode)
+export const useClosedTabs = () => useTerminalStore(useShallow((state) => state.closedTabs))
 export const useTerminalActions = () => useTerminalStore(useShallow((state) => ({
   addTab: state.addTab,
   removeTab: state.removeTab,
@@ -188,5 +226,6 @@ export const useTerminalActions = () => useTerminalStore(useShallow((state) => (
   removeTerminal: state.removeTerminal,
   updateTerminalTitle: state.updateTerminalTitle,
   setPane: state.setPane,
-  toggleBroadcastMode: state.toggleBroadcastMode
+  toggleBroadcastMode: state.toggleBroadcastMode,
+  popClosedTab: state.popClosedTab
 })))
