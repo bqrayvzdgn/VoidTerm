@@ -23,6 +23,27 @@ npm run build:electron     # Compiles electron/*.ts to dist/electron/
 npm run generate-icons
 ```
 
+## Testing
+
+```bash
+# Unit tests (Vitest + jsdom)
+npm run test               # Run all tests once
+npm run test:watch         # Watch mode
+npm run test:coverage      # With coverage report
+
+# Single file test
+npx vitest run path/to/file.test.ts
+
+# Pattern matching
+npx vitest run -t "test name pattern"
+
+# E2E tests (Playwright + Electron)
+npm run test:e2e           # Headless
+npm run test:e2e:headed    # With visible browser
+```
+
+Test files use `.test.ts` or `.test.tsx` extension. E2E tests are in `e2e/` directory.
+
 ## Architecture Overview
 
 VoidTerm is an Electron-based terminal emulator built with React, xterm.js, and node-pty.
@@ -68,6 +89,46 @@ Renderer creates terminals via `window.electronAPI.ptyCreate()`, receives data v
 ### Themes
 
 Defined in `src/themes/index.ts`. Available: catppuccin-mocha (default), dracula, one-dark, tokyo-night, nord, github-dark.
+
+## Code Style
+
+### Import Order
+
+1. React and core library imports
+2. Third-party libraries (xterm, uuid, zustand)
+3. Internal imports with `@/` alias
+4. Type imports with `import type { ... }`
+5. CSS imports last
+
+```typescript
+import React, { useEffect, useState, useCallback } from 'react'
+import { create } from 'zustand'
+import { useShallow } from 'zustand/react/shallow'
+import { TabBar } from '@/components/TabBar/TabBar'
+import { useTerminalStore } from '@/store/terminalStore'
+import type { Tab, Pane } from '@/types'
+import '@/styles/main.css'
+```
+
+### Naming Conventions
+
+| Category | Convention | Example |
+|----------|------------|---------|
+| Components | PascalCase in folder | `TabBar/TabBar.tsx` |
+| Hooks | `use` prefix | `useTerminalManager.ts` |
+| Stores | `Store` suffix | `terminalStore.ts` |
+| Event handlers | `handle` prefix | `handleCloseTab` |
+| Callback props | `on` prefix | `onNewTab`, `onCloseTab` |
+| Boolean | `is` prefix | `isMaximized`, `isActive` |
+| CSS classes | kebab-case | `app-container` |
+
+### React Patterns
+
+- Functional components + hooks
+- `useCallback` for handlers passed to children
+- `useMemo` for expensive computations
+- `useShallow` with Zustand selectors to prevent unnecessary rerenders
+- `forwardRef` + `useImperativeHandle` to expose methods
 
 ## Keyboard Shortcuts
 
