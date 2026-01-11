@@ -354,18 +354,17 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
                 <span>{workspace.name}</span>
               </button>
             ))}
-            {workspaces.length === 0 && (
-              <button
-                className="context-menu-item"
-                onClick={async () => {
-                  const id = await addWorkspace()
-                  handleMoveToWorkspace(id)
-                }}
-              >
-                <span className="context-menu-icon add">+</span>
-                <span>New Workspace</span>
-              </button>
-            )}
+            <div className="context-menu-divider" />
+            <button
+              className="context-menu-item"
+              onClick={async () => {
+                const id = await addWorkspace()
+                handleMoveToWorkspace(id)
+              }}
+            >
+              <span className="context-menu-icon add">+</span>
+              <span>New Workspace</span>
+            </button>
           </div>
         </>
       )}
