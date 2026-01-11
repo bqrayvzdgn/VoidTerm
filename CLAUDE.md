@@ -83,6 +83,10 @@ The config file contains settings, profiles, and workspaces in human-readable JS
 
 Renderer creates terminals via `window.electronAPI.ptyCreate()`, receives data via `onPtyData` listener. The PTY ID (UUID) maps terminal instances to their underlying processes.
 
+### Logging
+
+Uses `electron-log` for structured logging in the main process (`electron/logger.ts`) and a custom logger utility in the renderer (`src/utils/logger.ts`).
+
 ### Key Types (`src/types/index.ts`)
 
 - `Pane` - Tree node with `type: 'terminal' | 'split'`, `direction`, `children`, and `ratio` for split proportions
@@ -94,11 +98,21 @@ Renderer creates terminals via `window.electronAPI.ptyCreate()`, receives data v
 
 ### Themes
 
-Defined in `src/themes/index.ts`. Available: catppuccin-mocha (default), dracula, one-dark, tokyo-night, nord, github-dark. Users can also create custom themes stored in `customThemeStore`.
+Defined in `src/themes/index.ts`. 11 built-in themes: catppuccin-mocha (default), dracula, one-dark, tokyo-night, nord, github-dark, windows-terminal, gruvbox-dark, solarized-dark, monokai, material. Users can also create custom themes stored in `customThemeStore`.
 
 ### Internationalization (`src/i18n/`)
 
 Simple Zustand-based i18n with Turkish (`tr`) and English (`en`) locales. Language preference is stored in localStorage. Use the `useTranslation` hook to access translations.
+
+## Commit Convention
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) format:
+- `feat:` new feature
+- `fix:` bug fix
+- `docs:` documentation
+- `refactor:` code refactoring
+- `test:` tests
+- `chore:` maintenance
 
 ## Code Style
 
@@ -142,19 +156,31 @@ import '@/styles/main.css'
 
 ## Keyboard Shortcuts
 
+### Tab/Pane Management
 - `Ctrl+T` / `Cmd+T` - New tab
 - `Ctrl+W` / `Cmd+W` - Close tab
+- `Ctrl+Shift+T` - Reopen closed tab
 - `Ctrl+Shift+W` - Close pane
 - `Ctrl+Tab` - Next tab
 - `Ctrl+Shift+Tab` - Previous tab
 - `Ctrl+Shift+D` - Split vertical
 - `Ctrl+Shift+E` - Split horizontal
-- `Ctrl+Shift+B` - Toggle workspace sidebar
-- `Ctrl+Shift+P` - Command palette
-- `Ctrl+Shift+S` - SSH manager
+- `Ctrl+Shift+M` - Maximize/minimize pane
+- `Ctrl+Alt+Arrow` - Focus pane in direction
+
+### Terminal
+- `Ctrl+Shift+C` - Copy
+- `Ctrl+Shift+V` - Paste
 - `Ctrl+F` - Toggle search
 - `Ctrl+L` - Clear terminal
-- `Ctrl+Alt+Arrow` - Focus pane in direction
+- `Ctrl++` / `Ctrl+=` - Zoom in
+- `Ctrl+-` - Zoom out
+- `Ctrl+0` - Reset zoom
+
+### Application
 - `Ctrl+,` / `Cmd+,` - Settings
+- `Ctrl+Shift+P` - Command palette
+- `Ctrl+Shift+S` - SSH manager
+- `Ctrl+Shift+B` - Toggle workspace sidebar
 
 Shortcuts are customizable via settings and stored in `Settings.shortcuts`.

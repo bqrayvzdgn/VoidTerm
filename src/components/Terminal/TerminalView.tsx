@@ -263,6 +263,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
     const terminal = new Terminal({
       cursorBlink: settings.cursorBlink,
       cursorStyle: settings.cursorStyle,
+      cursorInactiveStyle: 'none',
       fontSize: settings.fontSize,
       fontFamily: settings.fontFamily,
       scrollback: settings.scrollback,
