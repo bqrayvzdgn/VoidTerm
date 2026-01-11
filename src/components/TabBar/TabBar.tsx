@@ -57,6 +57,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTa
 
   const handleMoveToWorkspace = (workspaceId: string | undefined) => {
     if (tabContextMenu) {
+      console.log('Moving tab', tabContextMenu.tabId, 'to workspace', workspaceId)
       updateTab(tabContextMenu.tabId, { workspaceId })
       setTabContextMenu(null)
     }

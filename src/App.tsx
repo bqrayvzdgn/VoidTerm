@@ -148,6 +148,10 @@ const App: React.FC = () => {
   const handleCreateTab = useCallback(async (profileId?: string) => {
     const profileIdToUse = profileId || settings.defaultProfile
     const profile = profiles.find(p => p.id === profileIdToUse) || profiles[0]
+    if (!profile) {
+      console.error('No profile found for id:', profileIdToUse)
+      return
+    }
     const tabId = addTab(profileIdToUse, profile.name, activeWorkspaceId || undefined)
 
     try {
@@ -407,22 +411,27 @@ const App: React.FC = () => {
 
   useMenuEvents(menuHandlers)
 
-  // Load config and restore session on startup
+  // Load config on startup
   useEffect(() => {
     if (isInitialized.current) return
     isInitialized.current = true
 
-    const loadConfig = async () => {
-      await Promise.all([
-        loadSettingsConfig(),
-        loadWorkspacesConfig()
-      ])
+    Promise.all([
+      loadSettingsConfig(),
+      loadWorkspacesConfig()
+    ])
+  }, [loadSettingsConfig, loadWorkspacesConfig])
 
-      // Restore session
+  // Restore session after config is loaded
+  const sessionRestored = useRef(false)
+  useEffect(() => {
+    if (!isConfigLoaded || sessionRestored.current || profiles.length === 0) return
+    sessionRestored.current = true
+
+    const restoreSession = async () => {
       try {
         const session = await window.electronAPI.config.getSession()
         if (session && session.tabs.length > 0) {
-          // Restore tabs from session
           for (const savedTab of session.tabs) {
             try {
               await handleCreateTab(savedTab.profileId)
@@ -435,8 +444,8 @@ const App: React.FC = () => {
         console.error('Failed to restore session:', error)
       }
     }
-    loadConfig()
-  }, [loadSettingsConfig, loadWorkspacesConfig, handleCreateTab])
+    restoreSession()
+  }, [isConfigLoaded, profiles.length, handleCreateTab])
 
   // Save session before window closes
   useEffect(() => {
