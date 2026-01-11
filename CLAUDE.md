@@ -166,7 +166,7 @@ import '@/styles/main.css'
 - `Ctrl+Shift+D` - Split vertical
 - `Ctrl+Shift+E` - Split horizontal
 - `Ctrl+Shift+M` - Maximize/minimize pane
-- `Ctrl+Alt+Arrow` - Focus pane in direction
+- `Alt+Arrow` - Focus pane in direction
 
 ### Terminal
 - `Ctrl+Shift+C` - Copy
@@ -180,7 +180,7 @@ import '@/styles/main.css'
 ### Application
 - `Ctrl+,` / `Cmd+,` - Settings
 - `Ctrl+Shift+P` - Command palette
-- `Ctrl+Shift+S` - SSH manager
-- `Ctrl+Shift+B` - Toggle workspace sidebar
+- `Ctrl+Shift+S` - Toggle workspace sidebar
+- `Ctrl+Shift+B` - Toggle broadcast mode
 
 Shortcuts are customizable via settings and stored in `Settings.shortcuts`.
