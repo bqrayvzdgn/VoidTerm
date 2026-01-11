@@ -2,6 +2,25 @@ import React, { useState, useCallback, useRef, useEffect } from 'react'
 import type { Pane } from '../../types'
 import { TerminalView } from '../Terminal/TerminalView'
 
+// Helper to find a terminal pane by ID in the pane tree
+const findTerminalPane = (pane: Pane, terminalId: string): Pane | null => {
+  if (pane.type === 'terminal' && pane.terminalId === terminalId) {
+    return pane
+  }
+  if (pane.type === 'split' && pane.children) {
+    for (const child of pane.children) {
+      const found = findTerminalPane(child, terminalId)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+// Helper to check if a pane tree contains a terminal ID
+const containsTerminal = (pane: Pane, terminalId: string): boolean => {
+  return findTerminalPane(pane, terminalId) !== null
+}
+
 interface SplitPaneProps {
   pane: Pane
   onTerminalTitleChange?: (terminalId: string, title: string) => void
@@ -14,6 +33,8 @@ interface SplitPaneProps {
   onPrevTab?: () => void
   broadcastMode?: boolean
   onBroadcastInput?: (data: string) => void
+  maximizedPaneId?: string | null
+  onToggleMaximize?: () => void
 }
 
 export const SplitPane: React.FC<SplitPaneProps> = ({
@@ -27,7 +48,9 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
   onNextTab,
   onPrevTab,
   broadcastMode,
-  onBroadcastInput
+  onBroadcastInput,
+  maximizedPaneId,
+  onToggleMaximize
 }) => {
   const [ratio, setRatio] = useState(pane.ratio || 0.5)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -80,6 +103,7 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
   if (pane.type === 'terminal') {
     const ptyId = ptyIds.get(pane.terminalId || '')
     const isActive = pane.terminalId === activeTerminalId
+    const isMaximized = maximizedPaneId === pane.terminalId
 
     if (!ptyId) {
       return (
@@ -91,7 +115,7 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
 
     return (
       <div
-        className={`terminal-wrapper ${isActive ? 'active' : ''} ${broadcastMode ? 'broadcast' : ''}`}
+        className={`terminal-wrapper ${isActive ? 'active' : ''} ${broadcastMode ? 'broadcast' : ''} ${isMaximized ? 'maximized' : ''}`}
         onClick={() => pane.terminalId && handleTerminalClick(pane.terminalId)}
       >
         {broadcastMode && (
@@ -100,6 +124,14 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
             <span>BROADCAST</span>
+          </div>
+        )}
+        {isMaximized && (
+          <div className="terminal-maximize-indicator" onClick={(e) => { e.stopPropagation(); onToggleMaximize?.() }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+            </svg>
+            <span>MAXIMIZED (Ctrl+Shift+M to restore)</span>
           </div>
         )}
         <TerminalView
@@ -119,6 +151,50 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
 
   if (pane.type === 'split' && pane.children && pane.children.length >= 2) {
     const [first, second] = pane.children
+
+    // If a pane is maximized, find and render only that terminal
+    if (maximizedPaneId) {
+      // Check if maximized terminal is in first child
+      if (containsTerminal(first, maximizedPaneId)) {
+        return (
+          <SplitPane
+            pane={first}
+            onTerminalTitleChange={onTerminalTitleChange}
+            onTerminalFocus={onTerminalFocus}
+            ptyIds={ptyIds}
+            activeTerminalId={activeTerminalId}
+            onNavigatePane={onNavigatePane}
+            onClosePane={onClosePane}
+            onNextTab={onNextTab}
+            onPrevTab={onPrevTab}
+            broadcastMode={broadcastMode}
+            onBroadcastInput={onBroadcastInput}
+            maximizedPaneId={maximizedPaneId}
+            onToggleMaximize={onToggleMaximize}
+          />
+        )
+      }
+      // Check if maximized terminal is in second child
+      if (containsTerminal(second, maximizedPaneId)) {
+        return (
+          <SplitPane
+            pane={second}
+            onTerminalTitleChange={onTerminalTitleChange}
+            onTerminalFocus={onTerminalFocus}
+            ptyIds={ptyIds}
+            activeTerminalId={activeTerminalId}
+            onNavigatePane={onNavigatePane}
+            onClosePane={onClosePane}
+            onNextTab={onNextTab}
+            onPrevTab={onPrevTab}
+            broadcastMode={broadcastMode}
+            onBroadcastInput={onBroadcastInput}
+            maximizedPaneId={maximizedPaneId}
+            onToggleMaximize={onToggleMaximize}
+          />
+        )
+      }
+    }
 
     return (
       <div
@@ -143,6 +219,8 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
             onPrevTab={onPrevTab}
             broadcastMode={broadcastMode}
             onBroadcastInput={onBroadcastInput}
+            maximizedPaneId={maximizedPaneId}
+            onToggleMaximize={onToggleMaximize}
           />
         </div>
         <div
@@ -167,6 +245,8 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
             onPrevTab={onPrevTab}
             broadcastMode={broadcastMode}
             onBroadcastInput={onBroadcastInput}
+            maximizedPaneId={maximizedPaneId}
+            onToggleMaximize={onToggleMaximize}
           />
         </div>
       </div>

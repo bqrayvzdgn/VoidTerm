@@ -25,9 +25,10 @@ const App: React.FC = () => {
   // Terminal State
   const [ptyIds, setPtyIds] = useState<Map<string, string>>(new Map())
   const [activePaneTerminalId, setActivePaneTerminalId] = useState<string | null>(null)
+  const [maximizedPaneId, setMaximizedPaneId] = useState<string | null>(null)
 
   // Stores
-  const { tabs, activeTabId, addTab, removeTab, panes, setPane, setActiveTab, broadcastMode, toggleBroadcastMode } = useTerminalStore()
+  const { tabs, activeTabId, addTab, removeTab, panes, setPane, setActiveTab, broadcastMode, toggleBroadcastMode, popClosedTab } = useTerminalStore()
   const { settings, profiles, currentTheme } = useSettingsStore()
   const { addWorkspace, activeWorkspaceId } = useWorkspaceStore()
 
@@ -334,6 +335,24 @@ const App: React.FC = () => {
     setCommandPaletteOpen(prev => !prev)
   }, [])
 
+  // Reopen last closed tab
+  const handleReopenClosedTab = useCallback(async () => {
+    const closedTab = popClosedTab()
+    if (!closedTab) return
+
+    // Create new tab with same profile and workspace
+    await handleCreateTab(closedTab.profileId)
+  }, [popClosedTab, handleCreateTab])
+
+  // Toggle maximize pane
+  const handleToggleMaximize = useCallback(() => {
+    if (maximizedPaneId) {
+      setMaximizedPaneId(null)
+    } else if (activePaneTerminalId) {
+      setMaximizedPaneId(activePaneTerminalId)
+    }
+  }, [maximizedPaneId, activePaneTerminalId])
+
   // Broadcast input to all other terminals in current tab
   const handleBroadcastInput = useCallback((data: string) => {
     if (!activeTabId || !activePaneTerminalId) return
@@ -368,8 +387,10 @@ const App: React.FC = () => {
     onNavigatePane: handleNavigatePane,
     onClosePane: handleClosePane,
     onCommandPalette: toggleCommandPalette,
-    onToggleBroadcast: toggleBroadcastMode
-  }), [openCreateDialog, activeTabId, handleCloseTab, handleSplit, toggleSidebar, handleNextTab, handlePrevTab, handleNavigatePane, handleClosePane, toggleCommandPalette, toggleBroadcastMode])
+    onToggleBroadcast: toggleBroadcastMode,
+    onReopenClosedTab: handleReopenClosedTab,
+    onToggleMaximize: handleToggleMaximize
+  }), [openCreateDialog, activeTabId, handleCloseTab, handleSplit, toggleSidebar, handleNextTab, handlePrevTab, handleNavigatePane, handleClosePane, toggleCommandPalette, toggleBroadcastMode, handleReopenClosedTab, handleToggleMaximize])
 
   useKeyboardShortcuts(keyboardHandlers)
 
@@ -547,6 +568,8 @@ const App: React.FC = () => {
               onPrevTab={handlePrevTab}
               broadcastMode={broadcastMode}
               onBroadcastInput={handleBroadcastInput}
+              maximizedPaneId={maximizedPaneId}
+              onToggleMaximize={handleToggleMaximize}
             />
           ) : (
             <div className="terminal-placeholder">

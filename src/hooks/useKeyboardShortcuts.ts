@@ -13,6 +13,8 @@ interface KeyboardShortcutHandlers {
   onClosePane?: () => void
   onCommandPalette?: () => void
   onToggleBroadcast?: () => void
+  onReopenClosedTab?: () => void
+  onToggleMaximize?: () => void
 }
 
 export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
@@ -47,6 +49,14 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
           // Ctrl+Shift+Tab - Previous tab
           e.preventDefault()
           handlers.onPrevTab?.()
+        } else if (e.key === 'T' || e.key === 't') {
+          // Ctrl+Shift+T - Reopen last closed tab
+          e.preventDefault()
+          handlers.onReopenClosedTab?.()
+        } else if (e.key === 'M' || e.key === 'm') {
+          // Ctrl+Shift+M - Toggle maximize pane
+          e.preventDefault()
+          handlers.onToggleMaximize?.()
         }
       } else if (isCtrl) {
         if (e.key === 't') {
