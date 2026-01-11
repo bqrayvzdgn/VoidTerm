@@ -150,7 +150,17 @@ export const en: TranslationKeys = {
       resetTitle: 'Reset',
       resetDescription: 'Reset all settings to default values.',
       resetButton: 'Reset to Default',
-      resetConfirm: 'All settings will be reset to default. Continue?'
+      resetConfirm: 'All settings will be reset to default. Continue?',
+      autoBackupsTitle: 'Automatic Backups',
+      autoBackupsDescription: 'The system automatically keeps the last 5 backups. Click to restore a backup.',
+      noBackups: 'No automatic backups yet',
+      restoreBackup: 'Restore',
+      deleteBackup: 'Delete',
+      restoreConfirm: 'Restore this backup? Current settings will be saved first.',
+      restoreSuccess: 'Backup restored successfully!',
+      restoreError: 'Failed to restore backup',
+      createBackup: 'Create Backup',
+      backupCreated: 'Backup created'
     },
     
     about: {
@@ -282,6 +292,14 @@ export const en: TranslationKeys = {
     errorReport: 'VoidTerm Error Report'
   },
   
+  broadcast: {
+    confirmTitle: 'Enable Broadcast Mode?',
+    confirmMessage: 'Everything you type will be sent to all terminals in this tab. Use this feature carefully.',
+    enable: 'Enable',
+    cancel: 'Cancel',
+    warning: 'Warning: Commands will run on all terminals!'
+  },
+
   toast: {
     settingsExported: 'Settings exported',
     settingsImported: 'Settings imported',

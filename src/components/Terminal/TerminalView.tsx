@@ -8,7 +8,7 @@ import { LigaturesAddon } from '@xterm/addon-ligatures'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useSearchHistory } from '../../hooks/useSearchHistory'
 import { mapThemeToXterm } from '../../utils/theme'
-import { COPY_FEEDBACK_DURATION, MIN_FONT_SIZE, MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL, ZOOM_STEP } from '../../constants'
+import { COPY_FEEDBACK_DURATION, MIN_FONT_SIZE, MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL, ZOOM_STEP, RESIZE_DEBOUNCE_DELAY } from '../../constants'
 import '@xterm/xterm/css/xterm.css'
 
 interface TerminalViewProps {
@@ -56,6 +56,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
   const [showSearchHistory, setShowSearchHistory] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const copyFeedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   // Arama geçmişi hook'u
   const { 
@@ -114,11 +115,17 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
   }), [ptyId])
 
   const handleResize = useCallback(() => {
-    if (fitAddonRef.current && terminalRef.current) {
-      fitAddonRef.current.fit()
-      const { cols, rows } = terminalRef.current
-      window.electronAPI.ptyResize(ptyId, cols, rows)
+    if (resizeTimeoutRef.current) {
+      clearTimeout(resizeTimeoutRef.current)
     }
+
+    resizeTimeoutRef.current = setTimeout(() => {
+      if (fitAddonRef.current && terminalRef.current) {
+        fitAddonRef.current.fit()
+        const { cols, rows } = terminalRef.current
+        window.electronAPI.ptyResize(ptyId, cols, rows)
+      }
+    }, RESIZE_DEBOUNCE_DELAY)
   }, [ptyId])
 
   // Handle search keyboard shortcuts
@@ -475,6 +482,9 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       removeDataListener()
       removeExitListener()
       resizeObserver.disconnect()
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current)
+      }
       terminal.dispose()
     }
   }, [ptyId, onTitleChange, handleResize, triggerCopyFeedback])

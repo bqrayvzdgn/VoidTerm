@@ -3,6 +3,9 @@ import { useShallow } from 'zustand/react/shallow'
 import { v4 as uuidv4 } from 'uuid'
 import type { Workspace } from '../types'
 import { WORKSPACE_COLORS, WORKSPACE_ICONS } from '../constants'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('WorkspaceStore')
 
 interface WorkspaceStore {
   workspaces: Workspace[]
@@ -26,13 +29,13 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
   loadFromConfig: async () => {
     try {
       const workspaces = await window.electronAPI.config.getWorkspaces()
-      console.log('[WorkspaceStore] Loaded workspaces:', workspaces)
+      logger.debug('Loaded workspaces:', workspaces)
       set({
         workspaces,
         isLoaded: true
       })
     } catch (error) {
-      console.error('Failed to load workspaces:', error)
+      logger.error('Failed to load workspaces:', error)
       set({ isLoaded: true })
     }
   },
@@ -55,7 +58,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
         activeWorkspaceId: id
       })
     } catch (error) {
-      console.error('Failed to add workspace:', error)
+      logger.error('Failed to add workspace:', error)
     }
 
     return id
@@ -78,7 +81,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
         activeWorkspaceId: newActiveId
       })
     } catch (error) {
-      console.error('Failed to remove workspace:', error)
+      logger.error('Failed to remove workspace:', error)
     }
   },
 
@@ -97,7 +100,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
       const workspaces = await window.electronAPI.config.updateWorkspace(id, updates)
       set({ workspaces })
     } catch (error) {
-      console.error('Failed to update workspace:', error)
+      logger.error('Failed to update workspace:', error)
     }
   },
 
