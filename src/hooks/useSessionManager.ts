@@ -43,32 +43,37 @@ export const useSessionManager = ({ handleCreateTab }: UseSessionManagerProps) =
 
   // Restore session after config is loaded
   useEffect(() => {
-    if (!isConfigLoaded || sessionRestored || profiles.length === 0) return
+    if (!isConfigLoaded || !isWorkspacesLoaded || sessionRestored || profiles.length === 0) return
     sessionRestored = true
 
     const restoreSession = async () => {
+      const workspaces = useWorkspaceStore.getState().workspaces
+      const workspaceIds = new Set(workspaces.map(w => w.id))
+
       try {
         const session = await window.electronAPI.config.getSession()
-        
+
         if (session && session.tabs.length > 0) {
-          // Only restore tabs that belong to a workspace
-          const workspaceTabs = session.tabs.filter(tab => tab.workspaceId)
-          
-          if (workspaceTabs.length > 0) {
+          // Only restore tabs that belong to an EXISTING workspace
+          const validWorkspaceTabs = session.tabs.filter(
+            tab => tab.workspaceId && workspaceIds.has(tab.workspaceId)
+          )
+
+          if (validWorkspaceTabs.length > 0) {
             // Restore workspace tabs
-            for (const savedTab of workspaceTabs) {
+            for (const savedTab of validWorkspaceTabs) {
               try {
                 await handleCreateTab(savedTab.profileId, savedTab.workspaceId)
               } catch (error) {
                 console.error('Failed to restore tab:', error)
               }
             }
-            
-            // Set active workspace from session or use first tab's workspace
-            if (session.activeWorkspaceId) {
+
+            // Set active workspace only if it still exists
+            if (session.activeWorkspaceId && workspaceIds.has(session.activeWorkspaceId)) {
               setActiveWorkspace(session.activeWorkspaceId)
-            } else if (workspaceTabs[0].workspaceId) {
-              setActiveWorkspace(workspaceTabs[0].workspaceId)
+            } else if (validWorkspaceTabs[0].workspaceId) {
+              setActiveWorkspace(validWorkspaceTabs[0].workspaceId)
             }
           }
         }
@@ -76,15 +81,19 @@ export const useSessionManager = ({ handleCreateTab }: UseSessionManagerProps) =
         console.error('Failed to restore session:', error)
       }
 
-      // Always create one default unassigned tab for the main area
-      try {
-        await handleCreateTab(undefined, null) // null = force unassigned
-      } catch (error) {
-        console.error('Failed to create default tab:', error)
+      // Create a default tab only if no tabs were restored
+      // This ensures a terminal is always available on startup
+      const currentTabs = useTerminalStore.getState().tabs
+      if (currentTabs.length === 0) {
+        try {
+          await handleCreateTab(undefined, null) // null = force unassigned
+        } catch (error) {
+          console.error('Failed to create default tab:', error)
+        }
       }
     }
     restoreSession()
-  }, [isConfigLoaded, profiles.length, handleCreateTab, setActiveWorkspace])
+  }, [isConfigLoaded, isWorkspacesLoaded, profiles.length, handleCreateTab, setActiveWorkspace])
 
   // Save session before window closes
   useEffect(() => {
