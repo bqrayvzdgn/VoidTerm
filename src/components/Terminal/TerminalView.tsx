@@ -6,6 +6,9 @@ import { SearchAddon } from '@xterm/addon-search'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { LigaturesAddon } from '@xterm/addon-ligatures'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useSearchHistory } from '../../hooks/useSearchHistory'
+import { mapThemeToXterm } from '../../utils/theme'
+import { COPY_FEEDBACK_DURATION, MIN_FONT_SIZE, MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL, ZOOM_STEP } from '../../constants'
 import '@xterm/xterm/css/xterm.css'
 
 interface TerminalViewProps {
@@ -50,17 +53,28 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
   const [searchMatchInfo, setSearchMatchInfo] = useState<{ current: number; total: number } | null>(null)
   const [zoomLevel, setZoomLevel] = useState(0) // -5 to +10, each step is 2px
   const [showCopyFeedback, setShowCopyFeedback] = useState(false)
+  const [showSearchHistory, setShowSearchHistory] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const copyFeedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // Arama geçmişi hook'u
+  const { 
+    history: searchHistory, 
+    addToHistory, 
+    navigatePrevious, 
+    navigateNext, 
+    resetIndex,
+    removeFromHistory 
+  } = useSearchHistory()
 
-  // Show copy feedback for 1.5 seconds
+  // Show copy feedback
   const triggerCopyFeedback = useCallback(() => {
     // Clear any existing timeout
     if (copyFeedbackTimeoutRef.current) {
       clearTimeout(copyFeedbackTimeoutRef.current)
     }
     setShowCopyFeedback(true)
-    copyFeedbackTimeoutRef.current = setTimeout(() => setShowCopyFeedback(false), 1500)
+    copyFeedbackTimeoutRef.current = setTimeout(() => setShowCopyFeedback(false), COPY_FEEDBACK_DURATION)
   }, [])
 
   // Expose methods to parent components
@@ -111,12 +125,18 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
   const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       setShowSearch(false)
+      setShowSearchHistory(false)
       setSearchText('')
       setSearchMatchInfo(null)
       searchAddonRef.current?.clearDecorations()
+      resetIndex()
       terminalRef.current?.focus()
     } else if (e.key === 'Enter') {
       if (searchAddonRef.current && searchText) {
+        // Aramayı geçmişe ekle
+        addToHistory(searchText)
+        setShowSearchHistory(false)
+        
         if (e.shiftKey) {
           searchAddonRef.current.findPrevious(searchText, { caseSensitive: false })
           setSearchMatchInfo(prev => prev && prev.total > 0 
@@ -129,8 +149,24 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
             : prev)
         }
       }
+    } else if (e.key === 'ArrowUp') {
+      // Geçmişte yukarı git
+      e.preventDefault()
+      const prevSearch = navigatePrevious()
+      if (prevSearch !== null) {
+        setSearchText(prevSearch)
+        setShowSearchHistory(false)
+      }
+    } else if (e.key === 'ArrowDown') {
+      // Geçmişte aşağı git
+      e.preventDefault()
+      const nextSearch = navigateNext()
+      if (nextSearch !== null) {
+        setSearchText(nextSearch)
+        setShowSearchHistory(false)
+      }
     }
-  }, [searchText])
+  }, [searchText, addToHistory, navigatePrevious, navigateNext, resetIndex])
 
   // Count matches in terminal buffer
   const countSearchMatches = useCallback((text: string): number => {
@@ -159,17 +195,43 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const text = e.target.value
     setSearchText(text)
+    resetIndex()
     if (searchAddonRef.current) {
       if (text) {
         const found = searchAddonRef.current.findNext(text, { caseSensitive: false })
         const total = countSearchMatches(text)
         setSearchMatchInfo(found ? { current: 1, total } : { current: 0, total })
+        setShowSearchHistory(false)
       } else {
         searchAddonRef.current.clearDecorations()
         setSearchMatchInfo(null)
       }
     }
+  }, [countSearchMatches, resetIndex])
+
+  // Arama input'una focus olduğunda geçmişi göster
+  const handleSearchFocus = useCallback(() => {
+    if (searchHistory.length > 0 && !searchText) {
+      setShowSearchHistory(true)
+    }
+  }, [searchHistory.length, searchText])
+
+  // Geçmişten seçim yap
+  const handleSelectFromHistory = useCallback((term: string) => {
+    setSearchText(term)
+    setShowSearchHistory(false)
+    if (searchAddonRef.current) {
+      const found = searchAddonRef.current.findNext(term, { caseSensitive: false })
+      const total = countSearchMatches(term)
+      setSearchMatchInfo(found ? { current: 1, total } : { current: 0, total })
+    }
   }, [countSearchMatches])
+
+  // Geçmişten öğe sil
+  const handleRemoveFromHistory = useCallback((e: React.MouseEvent, term: string) => {
+    e.stopPropagation()
+    removeFromHistory(term)
+  }, [removeFromHistory])
 
   // Toggle search bar
   const toggleSearch = useCallback(() => {
@@ -197,29 +259,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       fontSize: settings.fontSize,
       fontFamily: settings.fontFamily,
       scrollback: settings.scrollback,
-      theme: {
-        background: currentTheme.colors.background,
-        foreground: currentTheme.colors.foreground,
-        cursor: currentTheme.colors.cursor,
-        cursorAccent: currentTheme.colors.cursorAccent,
-        selectionBackground: currentTheme.colors.selection,
-        black: currentTheme.colors.black,
-        red: currentTheme.colors.red,
-        green: currentTheme.colors.green,
-        yellow: currentTheme.colors.yellow,
-        blue: currentTheme.colors.blue,
-        magenta: currentTheme.colors.magenta,
-        cyan: currentTheme.colors.cyan,
-        white: currentTheme.colors.white,
-        brightBlack: currentTheme.colors.brightBlack,
-        brightRed: currentTheme.colors.brightRed,
-        brightGreen: currentTheme.colors.brightGreen,
-        brightYellow: currentTheme.colors.brightYellow,
-        brightBlue: currentTheme.colors.brightBlue,
-        brightMagenta: currentTheme.colors.brightMagenta,
-        brightCyan: currentTheme.colors.brightCyan,
-        brightWhite: currentTheme.colors.brightWhite
-      },
+      theme: mapThemeToXterm(currentTheme),
       allowTransparency: true,
       rightClickSelectsWord: true
     })
@@ -346,8 +386,8 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       if (isCtrl && (e.key === '+' || e.key === '=' || e.key === 'Add')) {
         e.preventDefault()
         setZoomLevel(prev => {
-          const newZoom = Math.min(prev + 1, 10)
-          const newFontSize = settings.fontSize + (newZoom * 2)
+          const newZoom = Math.min(prev + 1, MAX_ZOOM_LEVEL)
+          const newFontSize = settings.fontSize + (newZoom * ZOOM_STEP)
           terminal.options.fontSize = newFontSize
           fitAddonRef.current?.fit()
           return newZoom
@@ -359,9 +399,9 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       if (isCtrl && (e.key === '-' || e.key === 'Subtract')) {
         e.preventDefault()
         setZoomLevel(prev => {
-          const newZoom = Math.max(prev - 1, -5)
-          const newFontSize = settings.fontSize + (newZoom * 2)
-          terminal.options.fontSize = Math.max(8, newFontSize)
+          const newZoom = Math.max(prev - 1, MIN_ZOOM_LEVEL)
+          const newFontSize = settings.fontSize + (newZoom * ZOOM_STEP)
+          terminal.options.fontSize = Math.max(MIN_FONT_SIZE, newFontSize)
           fitAddonRef.current?.fit()
           return newZoom
         })
@@ -460,29 +500,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       terminalRef.current.options.cursorStyle = settings.cursorStyle
       terminalRef.current.options.fontSize = settings.fontSize
       terminalRef.current.options.fontFamily = settings.fontFamily
-      terminalRef.current.options.theme = {
-        background: currentTheme.colors.background,
-        foreground: currentTheme.colors.foreground,
-        cursor: currentTheme.colors.cursor,
-        cursorAccent: currentTheme.colors.cursorAccent,
-        selectionBackground: currentTheme.colors.selection,
-        black: currentTheme.colors.black,
-        red: currentTheme.colors.red,
-        green: currentTheme.colors.green,
-        yellow: currentTheme.colors.yellow,
-        blue: currentTheme.colors.blue,
-        magenta: currentTheme.colors.magenta,
-        cyan: currentTheme.colors.cyan,
-        white: currentTheme.colors.white,
-        brightBlack: currentTheme.colors.brightBlack,
-        brightRed: currentTheme.colors.brightRed,
-        brightGreen: currentTheme.colors.brightGreen,
-        brightYellow: currentTheme.colors.brightYellow,
-        brightBlue: currentTheme.colors.brightBlue,
-        brightMagenta: currentTheme.colors.brightMagenta,
-        brightCyan: currentTheme.colors.brightCyan,
-        brightWhite: currentTheme.colors.brightWhite
-      }
+      terminalRef.current.options.theme = mapThemeToXterm(currentTheme)
       handleResize()
     }
   }, [settings, currentTheme, handleResize])
@@ -544,15 +562,47 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       {/* Search Bar */}
       {showSearch && (
         <div className="terminal-search-bar">
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={searchText}
-            onChange={handleSearchChange}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Search..."
-            className="terminal-search-input"
-          />
+          <div className="terminal-search-input-wrapper">
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchText}
+              onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
+              onFocus={handleSearchFocus}
+              onBlur={() => setTimeout(() => setShowSearchHistory(false), 150)}
+              placeholder="Search... (↑↓ for history)"
+              className="terminal-search-input"
+            />
+            {/* Arama Geçmişi Dropdown */}
+            {showSearchHistory && searchHistory.length > 0 && (
+              <div className="terminal-search-history">
+                {searchHistory.slice(0, 10).map((term, index) => (
+                  <div 
+                    key={index} 
+                    className="terminal-search-history-item"
+                    onClick={() => handleSelectFromHistory(term)}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span className="terminal-search-history-text">{term}</span>
+                    <button 
+                      className="terminal-search-history-remove"
+                      onClick={(e) => handleRemoveFromHistory(e, term)}
+                      title="Remove from history"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           {searchMatchInfo && (
             <span className="terminal-search-count">
               {searchMatchInfo.total > 0 
@@ -577,6 +627,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
           <button
             className="terminal-search-btn"
             onClick={() => {
+              if (searchText) addToHistory(searchText)
               searchAddonRef.current?.findNext(searchText, { caseSensitive: false })
               setSearchMatchInfo(prev => prev && prev.total > 0 
                 ? { ...prev, current: prev.current < prev.total ? prev.current + 1 : 1 }

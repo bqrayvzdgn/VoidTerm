@@ -1,0 +1,58 @@
+/* VoidTerm - CSS Variables */
+
+:root {
+  /* Background Colors */
+  --bg-terminal: #0c0c0c;
+  --bg-tabbar: #202020;
+  --bg-tab: transparent;
+  --bg-tab-hover: #2d2d2d;
+  --bg-tab-active: #0c0c0c;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #252525;
+  
+  /* Text Colors */
+  --text-primary: #cccccc;
+  --text-secondary: #999999;
+  --text-muted: #666666;
+  
+  /* Accent Colors */
+  --accent: #0078d4;
+  --accent-hover: #1084d8;
+  --accent-active: #006cbd;
+  
+  /* Semantic Colors */
+  --red: #e81123;
+  --green: #22c55e;
+  --yellow: #f59e0b;
+  --blue: #3b82f6;
+  
+  /* Border Colors */
+  --border: #333333;
+  --border-color: #333333;
+  --border-light: #404040;
+  
+  /* Shadow */
+  --shadow: rgba(0, 0, 0, 0.3);
+  --shadow-lg: rgba(0, 0, 0, 0.5);
+  
+  /* Dimensions */
+  --tabbar-height: 40px;
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 0px;
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  
+  /* Transitions */
+  --transition-fast: 0.1s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+  
+  /* Z-Index Scale */
+  --z-dropdown: 100;
+  --z-modal: 1000;
+  --z-toast: 10000;
+}

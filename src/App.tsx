@@ -1,11 +1,9 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react'
 import { TabBar } from './components/TabBar/TabBar'
 import { WorkspaceSidebar } from './components/WorkspaceSidebar/WorkspaceSidebar'
 import { SplitPane } from './components/SplitPane/SplitPane'
-import { Settings } from './components/Settings/Settings'
 import { CreateDialog } from './components/CreateDialog/CreateDialog'
-import { CommandPalette } from './components/CommandPalette/CommandPalette'
-import { SSHManager } from './components/SSHManager/SSHManager'
+import { ToastContainer } from './components/Toast/Toast'
 import { useTerminalStore } from './store/terminalStore'
 import { useWorkspaceStore } from './store/workspaceStore'
 import {
@@ -17,6 +15,11 @@ import {
   useThemeManager,
   useSSHManager
 } from './hooks'
+
+// Lazy loaded modal bileşenler
+const Settings = lazy(() => import('./components/Settings/Settings').then(m => ({ default: m.Settings })))
+const CommandPalette = lazy(() => import('./components/CommandPalette/CommandPalette').then(m => ({ default: m.CommandPalette })))
+const SSHManager = lazy(() => import('./components/SSHManager/SSHManager').then(m => ({ default: m.SSHManager })))
 
 const App: React.FC = () => {
   // UI State
@@ -218,7 +221,11 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <Settings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <Settings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        </Suspense>
+      )}
 
       <CreateDialog
         open={createDialog.open}
@@ -227,26 +234,36 @@ const App: React.FC = () => {
         onCreateTerminal={() => handleCreateTab(createDialog.profileId)}
       />
 
-      <CommandPalette
-        isOpen={commandPaletteOpen}
-        onClose={() => setCommandPaletteOpen(false)}
-        onNewTab={handleCreateTab}
-        onSplitVertical={() => handleSplit('vertical')}
-        onSplitHorizontal={() => handleSplit('horizontal')}
-        onCloseTab={() => activeTabId && handleCloseTab(activeTabId)}
-        onClosePane={handleClosePane}
-        onToggleSidebar={toggleSidebar}
-        onOpenSettings={() => setSettingsOpen(true)}
-        onNextTab={handleNextTab}
-        onPrevTab={handlePrevTab}
-        onOpenSSHManager={() => setSSHManagerOpen(true)}
-      />
+      {commandPaletteOpen && (
+        <Suspense fallback={null}>
+          <CommandPalette
+            isOpen={commandPaletteOpen}
+            onClose={() => setCommandPaletteOpen(false)}
+            onNewTab={handleCreateTab}
+            onSplitVertical={() => handleSplit('vertical')}
+            onSplitHorizontal={() => handleSplit('horizontal')}
+            onCloseTab={() => activeTabId && handleCloseTab(activeTabId)}
+            onClosePane={handleClosePane}
+            onToggleSidebar={toggleSidebar}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onNextTab={handleNextTab}
+            onPrevTab={handlePrevTab}
+            onOpenSSHManager={() => setSSHManagerOpen(true)}
+          />
+        </Suspense>
+      )}
 
-      <SSHManager
-        isOpen={sshManagerOpen}
-        onClose={() => setSSHManagerOpen(false)}
-        onConnect={handleSSHConnect}
-      />
+      {sshManagerOpen && (
+        <Suspense fallback={null}>
+          <SSHManager
+            isOpen={sshManagerOpen}
+            onClose={() => setSSHManagerOpen(false)}
+            onConnect={handleSSHConnect}
+          />
+        </Suspense>
+      )}
+
+      <ToastContainer />
     </div>
   )
 }

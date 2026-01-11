@@ -1,6 +1,11 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { Pane } from '../types'
 
+/**
+ * Pane agacindan tum terminal ID'lerini toplar
+ * @param pane - Taranacak pane agaci
+ * @returns Terminal ID dizisi
+ */
 export function collectTerminalIds(pane: Pane): string[] {
   if (pane.type === 'terminal' && pane.terminalId) {
     return [pane.terminalId]
@@ -11,13 +16,24 @@ export function collectTerminalIds(pane: Pane): string[] {
   return []
 }
 
-// Get all terminal panes with their positions for navigation
+/** Pane pozisyon bilgisi - navigasyon icin kullanilir */
 export interface PanePosition {
   terminalId: string
-  x: number  // Average horizontal position (0-1)
-  y: number  // Average vertical position (0-1)
+  /** Yatay pozisyon (0-1 arasi) */
+  x: number
+  /** Dikey pozisyon (0-1 arasi) */
+  y: number
 }
 
+/**
+ * Tum pane'lerin pozisyonlarini toplar (navigasyon icin)
+ * @param pane - Taranacak pane agaci
+ * @param x - Baslangic X pozisyonu
+ * @param y - Baslangic Y pozisyonu
+ * @param width - Genislik (0-1)
+ * @param height - Yukseklik (0-1)
+ * @returns Pane pozisyonlari dizisi
+ */
 export function collectPanePositions(
   pane: Pane,
   x = 0,
@@ -53,7 +69,13 @@ export function collectPanePositions(
   return []
 }
 
-// Find the next terminal in a direction
+/**
+ * Belirtilen yonde bir sonraki terminal'i bulur
+ * @param pane - Pane agaci
+ * @param currentTerminalId - Mevcut terminal ID
+ * @param direction - Navigasyon yonu
+ * @returns Bulunan terminal ID veya null
+ */
 export function findNextPane(
   pane: Pane,
   currentTerminalId: string,
@@ -101,7 +123,12 @@ export function findNextPane(
   return best?.terminalId || null
 }
 
-// Remove a terminal pane and simplify the tree
+/**
+ * Terminal pane'i kaldirir ve agaci basitlestirir
+ * @param pane - Pane agaci
+ * @param targetTerminalId - Kaldirilacak terminal ID
+ * @returns Guncellenmis pane veya null
+ */
 export function removePaneAtTerminal(pane: Pane, targetTerminalId: string): Pane | null {
   // If this is the target terminal, return null to remove it
   if (pane.type === 'terminal' && pane.terminalId === targetTerminalId) {
@@ -141,6 +168,14 @@ export function removePaneAtTerminal(pane: Pane, targetTerminalId: string): Pane
   return pane
 }
 
+/**
+ * Terminal pane'i boler ve yeni terminal ekler
+ * @param pane - Pane agaci
+ * @param targetTerminalId - Bolunecek terminal ID
+ * @param direction - Bolme yonu
+ * @param newTerminalId - Yeni terminal ID
+ * @returns Guncellenmis pane veya null
+ */
 export function splitPaneAtTerminal(
   pane: Pane,
   targetTerminalId: string,

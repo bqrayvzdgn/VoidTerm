@@ -1,0 +1,6 @@
+export { AppearanceSettings } from './AppearanceSettings'
+export { TerminalSettings } from './TerminalSettings'
+export { ShortcutsSettings } from './ShortcutsSettings'
+export { ProfilesSettings } from './ProfilesSettings'
+export { BackupSettings } from './BackupSettings'
+export { AboutSettings } from './AboutSettings'

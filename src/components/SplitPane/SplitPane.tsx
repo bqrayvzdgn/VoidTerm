@@ -1,6 +1,11 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react'
+import React, { useState, useCallback, useRef, useEffect, memo } from 'react'
 import type { Pane } from '../../types'
 import { TerminalView } from '../Terminal/TerminalView'
+
+// Minimum panel boyutu (piksel cinsinden)
+const MIN_PANEL_SIZE = 100
+// Resize adımı (keyboard ile)
+const RESIZE_STEP = 0.05
 
 // Helper to find a terminal pane by ID in the pane tree
 const findTerminalPane = (pane: Pane, terminalId: string): Pane | null => {
@@ -37,7 +42,7 @@ interface SplitPaneProps {
   onToggleMaximize?: () => void
 }
 
-export const SplitPane: React.FC<SplitPaneProps> = ({
+export const SplitPane: React.FC<SplitPaneProps> = memo(({
   pane,
   onTerminalTitleChange,
   onTerminalFocus,
@@ -53,37 +58,85 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
   onToggleMaximize
 }) => {
   const [ratio, setRatio] = useState(pane.ratio || 0.5)
+  const [isDraggingState, setIsDraggingState] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
+
+  /**
+   * Minimum boyut kontrolü ile ratio hesaplama
+   */
+  const calculateRatio = useCallback((e: MouseEvent): number => {
+    if (!containerRef.current) return 0.5
+    
+    const rect = containerRef.current.getBoundingClientRect()
+    const totalSize = pane.direction === 'vertical' ? rect.width : rect.height
+    const position = pane.direction === 'vertical' 
+      ? e.clientX - rect.left 
+      : e.clientY - rect.top
+
+    // Minimum piksel bazlı sınır
+    const minRatio = MIN_PANEL_SIZE / totalSize
+    const maxRatio = 1 - minRatio
+
+    let newRatio = position / totalSize
+    return Math.max(minRatio, Math.min(maxRatio, newRatio))
+  }, [pane.direction])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     isDragging.current = true
+    setIsDraggingState(true)
     document.body.style.cursor = pane.direction === 'vertical' ? 'col-resize' : 'row-resize'
     document.body.style.userSelect = 'none'
+  }, [pane.direction])
+
+  /**
+   * Çift tıklayınca oranı sıfırla
+   */
+  const handleDoubleClick = useCallback(() => {
+    setRatio(0.5)
+  }, [])
+
+  /**
+   * Klavye ile boyutlandırma
+   */
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!e.shiftKey) return
+
+    const step = RESIZE_STEP
+    if (pane.direction === 'vertical') {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        setRatio(prev => Math.max(0.1, prev - step))
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        setRatio(prev => Math.min(0.9, prev + step))
+      }
+    } else {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setRatio(prev => Math.max(0.1, prev - step))
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setRatio(prev => Math.min(0.9, prev + step))
+      }
+    }
   }, [pane.direction])
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging.current || !containerRef.current) return
-
-      const rect = containerRef.current.getBoundingClientRect()
-      let newRatio: number
-
-      if (pane.direction === 'vertical') {
-        newRatio = (e.clientX - rect.left) / rect.width
-      } else {
-        newRatio = (e.clientY - rect.top) / rect.height
-      }
-
-      newRatio = Math.max(0.1, Math.min(0.9, newRatio))
+      const newRatio = calculateRatio(e)
       setRatio(newRatio)
     }
 
     const handleMouseUp = () => {
-      isDragging.current = false
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
+      if (isDragging.current) {
+        isDragging.current = false
+        setIsDraggingState(false)
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
     }
 
     document.addEventListener('mousemove', handleMouseMove)
@@ -93,7 +146,7 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [pane.direction])
+  }, [calculateRatio])
 
   // Handle terminal click to focus
   const handleTerminalClick = useCallback((terminalId: string) => {
@@ -224,8 +277,15 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
           />
         </div>
         <div
-          className="split-pane-divider"
+          className={`split-pane-divider ${isDraggingState ? 'dragging' : ''}`}
           onMouseDown={handleMouseDown}
+          onDoubleClick={handleDoubleClick}
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+          role="separator"
+          aria-orientation={pane.direction === 'vertical' ? 'vertical' : 'horizontal'}
+          aria-label="Resize panels"
+          title="Drag to resize, double-click to reset"
         />
         <div
           className="split-pane-panel"
@@ -254,4 +314,6 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
   }
 
   return null
-}
+})
+
+SplitPane.displayName = 'SplitPane'
