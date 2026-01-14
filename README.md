@@ -279,7 +279,6 @@ We welcome your contributions! Before submitting a Pull Request:
 
 ### Development Guidelines
 
-- Check [CLAUDE.md](CLAUDE.md) for code style
 - Write tests for new features
 - Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages
 
@@ -553,7 +552,6 @@ Katkılarınızı bekliyoruz! Lütfen bir Pull Request göndermeden önce:
 
 ### Geliştirme Kuralları
 
-- Kod stili için [CLAUDE.md](CLAUDE.md) dosyasını inceleyin
 - Yeni özellikler için test yazmayı unutmayın
 - Commit mesajlarında [Conventional Commits](https://www.conventionalcommits.org/) kullanın
 
