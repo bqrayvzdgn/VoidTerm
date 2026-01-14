@@ -33,3 +33,7 @@ e2escreenshots/
 *.dmg
 *.AppImage
 nul
+
+# Claude Code
+CLAUDE.md
+.claude/
