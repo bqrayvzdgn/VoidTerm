@@ -5,13 +5,294 @@
 </p>
 
 <p align="center">
-  <strong>Modern, hızlı ve çapraz platform terminal emülatörü</strong>
-</p>
-
-<p align="center">
   <a href="https://github.com/bqrayvzdgn/VoidTerm/releases/latest"><img src="https://img.shields.io/github/v/release/bqrayvzdgn/VoidTerm?style=flat-square&color=blue" alt="Latest Release"></a>
   <a href="https://github.com/bqrayvzdgn/VoidTerm/blob/main/LICENSE"><img src="https://img.shields.io/github/license/bqrayvzdgn/VoidTerm?style=flat-square" alt="License"></a>
   <a href="https://github.com/bqrayvzdgn/VoidTerm/releases"><img src="https://img.shields.io/github/downloads/bqrayvzdgn/VoidTerm/total?style=flat-square&color=green" alt="Downloads"></a>
+</p>
+
+<p align="center">
+  <a href="#english">English</a> •
+  <a href="#türkçe">Türkçe</a>
+</p>
+
+---
+
+# English
+
+<p align="center">
+  <strong>Modern, fast, cross-platform terminal emulator</strong>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#development">Development</a> •
+  <a href="#keyboard-shortcuts">Shortcuts</a> •
+  <a href="#themes">Themes</a> •
+  <a href="#configuration">Configuration</a>
+</p>
+
+## Features
+
+### Core Features
+
+- **Fast Performance** - WebGL-based render engine for high-performance terminal experience
+- **Rich Theme Support** - 11 built-in themes + custom theme creation
+- **Tabs & Panes** - Multiple tabs and vertical/horizontal split panes
+- **Customizable Profiles** - Separate profile configurations for different shells
+- **Workspace Support** - Group and manage your workspaces
+- **Cross-Platform** - Windows, macOS, and Linux support
+- **Multi-Language** - Turkish and English interface support
+
+### Advanced Features
+
+- **SSH Connections** - Direct SSH server connections and saved connection management
+- **Snippets** - Save frequently used commands and run with one click
+- **Broadcast Mode** - Send commands to all terminals simultaneously
+- **In-Terminal Search** - Search terminal output with Ctrl+F (with history support)
+- **Config Backup** - Backup and restore your settings
+- **Auto-Update** - Automatic update support for new versions
+
+### Stability & Performance
+
+- **PTY Cleanup** - Orphan process cleanup on renderer crash
+- **Resize Debouncing** - Optimized window resizing
+- **Structured Logging** - Structured log system for detailed debugging
+
+## Installation
+
+### Ready-Made Releases
+
+Download the installer for your operating system from the [Releases](https://github.com/bqrayvzdgn/VoidTerm/releases) page.
+
+| Platform | Format |
+|----------|--------|
+| Windows  | `.exe` (NSIS Installer) |
+| macOS    | `.dmg` |
+| Linux    | `.AppImage`, `.deb` |
+
+### Build from Source
+
+```bash
+# Clone the repo
+git clone https://github.com/bqrayvzdgn/VoidTerm.git
+cd VoidTerm
+
+# Install dependencies
+npm install
+
+# Run in development mode
+npm run dev
+
+# Create production build
+npm run build
+```
+
+#### Platform-Specific Build
+
+```bash
+# Windows
+npm run build:win
+
+# macOS
+npm run build:mac
+
+# Linux
+npm run build:linux
+```
+
+## Development
+
+### Requirements
+
+- Node.js 18+
+- npm or yarn
+- Git
+
+### Project Structure
+
+```
+VoidTerm/
+├── electron/           # Electron main process
+│   ├── main.ts         # Window and IPC management
+│   ├── pty-manager.ts  # Terminal process management
+│   ├── config-manager.ts # Config and backup management
+│   ├── logger.ts       # Structured logging
+│   └── preload.ts      # Renderer API bridge
+├── src/                # React renderer process
+│   ├── components/     # React components
+│   ├── store/          # Zustand state management
+│   ├── themes/         # Terminal themes
+│   ├── hooks/          # Custom React hooks
+│   ├── i18n/           # Multi-language support
+│   ├── utils/          # Utility functions
+│   └── types/          # TypeScript type definitions
+├── e2e/                # End-to-end tests
+├── assets/             # Icons and static files
+└── scripts/            # Build helper scripts
+```
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Electron 28 |
+| UI | React 18 |
+| Bundler | Vite 5 |
+| Terminal | xterm.js 6 + WebGL |
+| PTY | node-pty |
+| State | Zustand |
+| Config | electron-store |
+| Logging | electron-log |
+| i18n | Custom implementation |
+| Testing | Vitest + Playwright |
+| Language | TypeScript 5 |
+
+### Development Commands
+
+```bash
+# Development server
+npm run dev
+
+# Build Electron code only
+npm run build:electron
+
+# Run unit tests
+npm run test
+
+# Test watch mode
+npm run test:watch
+
+# Run E2E tests
+npm run test:e2e
+
+# Generate icons
+npm run generate-icons
+```
+
+## Keyboard Shortcuts
+
+### Tab & Pane Management
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+T` / `Cmd+T` | New tab |
+| `Ctrl+W` / `Cmd+W` | Close tab |
+| `Ctrl+Tab` | Next tab |
+| `Ctrl+Shift+Tab` | Previous tab |
+| `Ctrl+Shift+T` | Reopen closed tab |
+| `Ctrl+Shift+D` | Split vertical |
+| `Ctrl+Shift+E` | Split horizontal |
+| `Ctrl+Shift+W` | Close pane |
+| `Ctrl+Shift+M` | Maximize/minimize pane |
+
+### Navigation
+
+| Shortcut | Action |
+|----------|--------|
+| `Alt+↑/↓/←/→` | Navigate between panes |
+
+### Terminal Operations
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Shift+C` | Copy |
+| `Ctrl+Shift+V` | Paste |
+| `Ctrl+F` | In-terminal search |
+| `Ctrl+L` | Clear terminal |
+| `Ctrl++` / `Ctrl+=` | Zoom in |
+| `Ctrl+-` | Zoom out |
+| `Ctrl+0` | Reset zoom |
+
+### Application
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+,` / `Cmd+,` | Settings |
+| `Ctrl+Shift+P` | Command palette |
+| `Ctrl+Shift+S` | SSH manager |
+| `Ctrl+Shift+B` | Broadcast mode |
+
+> All keyboard shortcuts can be customized from Settings > Shortcuts.
+
+## Themes
+
+VoidTerm comes with the following built-in themes:
+
+- **Catppuccin Mocha** (default) - Soft, pastel-toned dark theme
+- **Dracula** - Popular purple-toned dark theme
+- **One Dark** - Atom editor inspired theme
+- **Tokyo Night** - Tokyo night scene inspired theme
+- **Nord** - Arctic, blue-toned theme
+- **GitHub Dark** - GitHub's dark theme
+- **Windows Terminal** - Windows Terminal default theme
+- **Gruvbox Dark** - Retro, warm-toned theme
+- **Solarized Dark** - Eye-friendly, low-contrast theme
+- **Monokai** - Sublime Text inspired classic theme
+- **Material** - Google Material Design theme
+
+### Custom Theme Creation
+
+You can create your own custom theme from Settings > Themes. 16-color palette, cursor color, and selection color are customizable.
+
+## Configuration
+
+Configuration file is stored in platform-specific locations:
+
+| Platform | Location |
+|----------|----------|
+| Windows  | `%APPDATA%/voidterm/config.json` |
+| macOS    | `~/Library/Application Support/voidterm/config.json` |
+| Linux    | `~/.config/voidterm/config.json` |
+
+### Profile Configuration
+
+The following settings can be configured for each profile:
+
+- Shell path and arguments
+- Working directory
+- Environment variables
+- Startup command
+- Icon and color
+
+### Backup & Restore
+
+From Settings > Backup:
+
+- Create manual backups
+- View and restore previous backups
+- Import/export configuration
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+## Contributing
+
+We welcome your contributions! Before submitting a Pull Request:
+
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: Add amazing feature'`)
+4. Push your branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Check [CLAUDE.md](CLAUDE.md) for code style
+- Write tests for new features
+- Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages
+
+## Contact
+
+- **Issues**: [GitHub Issues](https://github.com/bqrayvzdgn/VoidTerm/issues)
+
+---
+
+# Türkçe
+
+<p align="center">
+  <strong>Modern, hızlı ve çapraz platform terminal emülatörü</strong>
 </p>
 
 <p align="center">
@@ -23,37 +304,38 @@
   <a href="#yapılandırma">Yapılandırma</a>
 </p>
 
----
-
-## 🚀 Özellikler
+## Özellikler
 
 ### Temel Özellikler
-- **⚡ Hızlı Performans** - WebGL tabanlı render engine ile yüksek performanslı terminal deneyimi
-- **🎨 Zengin Tema Desteği** - 11 yerleşik tema + özel tema oluşturma desteği
-- **📑 Sekme ve Panel Yönetimi** - Çoklu sekmeler ve dikey/yatay bölünmüş paneller
-- **🔧 Özelleştirilebilir Profiller** - Farklı shell'ler için ayrı profil yapılandırmaları
-- **💼 Workspace Desteği** - Çalışma alanlarınızı gruplandırın ve yönetin
-- **🖥️ Çapraz Platform** - Windows, macOS ve Linux desteği
-- **🌐 Çoklu Dil** - Türkçe ve İngilizce arayüz desteği
+
+- **Hızlı Performans** - WebGL tabanlı render engine ile yüksek performanslı terminal deneyimi
+- **Zengin Tema Desteği** - 11 yerleşik tema + özel tema oluşturma desteği
+- **Sekme ve Panel Yönetimi** - Çoklu sekmeler ve dikey/yatay bölünmüş paneller
+- **Özelleştirilebilir Profiller** - Farklı shell'ler için ayrı profil yapılandırmaları
+- **Workspace Desteği** - Çalışma alanlarınızı gruplandırın ve yönetin
+- **Çapraz Platform** - Windows, macOS ve Linux desteği
+- **Çoklu Dil** - Türkçe ve İngilizce arayüz desteği
 
 ### Gelişmiş Özellikler
-- **🔌 SSH Bağlantıları** - SSH sunucularına doğrudan bağlantı ve kayıtlı bağlantı yönetimi
-- **📝 Kod Parçacıkları (Snippets)** - Sık kullanılan komutları kaydedin ve tek tıkla çalıştırın
-- **📢 Broadcast Modu** - Aynı anda tüm terminallere komut gönderin
-- **🔍 Terminal İçi Arama** - Ctrl+F ile terminal çıktısında arama (geçmiş desteği ile)
-- **💾 Yapılandırma Yedekleme** - Ayarlarınızı yedekleyin ve geri yükleyin
-- **🔄 Otomatik Güncelleme** - Yeni sürümler için otomatik güncelleme desteği
+
+- **SSH Bağlantıları** - SSH sunucularına doğrudan bağlantı ve kayıtlı bağlantı yönetimi
+- **Kod Parçacıkları (Snippets)** - Sık kullanılan komutları kaydedin ve tek tıkla çalıştırın
+- **Broadcast Modu** - Aynı anda tüm terminallere komut gönderin
+- **Terminal İçi Arama** - Ctrl+F ile terminal çıktısında arama (geçmiş desteği ile)
+- **Yapılandırma Yedekleme** - Ayarlarınızı yedekleyin ve geri yükleyin
+- **Otomatik Güncelleme** - Yeni sürümler için otomatik güncelleme desteği
 
 ### Stabilite ve Performans
-- **🛡️ PTY Cleanup** - Renderer crash durumunda orphan process temizleme
-- **⏱️ Resize Debouncing** - Optimize edilmiş pencere boyutlandırma
-- **📊 Structured Logging** - Detaylı hata ayıklama için yapılandırılmış log sistemi
 
-## 📦 Kurulum
+- **PTY Cleanup** - Renderer crash durumunda orphan process temizleme
+- **Resize Debouncing** - Optimize edilmiş pencere boyutlandırma
+- **Structured Logging** - Detaylı hata ayıklama için yapılandırılmış log sistemi
+
+## Kurulum
 
 ### Hazır Sürümler
 
-[Releases](https://github.com/bqrayvzdgn/VoidTerm/releases) sayfasından işletim sisteminize uygun kurulum dosyasını indirin:
+[Releases](https://github.com/bqrayvzdgn/VoidTerm/releases) sayfasından işletim sisteminize uygun kurulum dosyasını indirin.
 
 | Platform | Format |
 |----------|--------|
@@ -91,7 +373,7 @@ npm run build:mac
 npm run build:linux
 ```
 
-## 🛠️ Geliştirme
+## Geliştirme
 
 ### Gereksinimler
 
@@ -160,7 +442,7 @@ npm run test:e2e
 npm run generate-icons
 ```
 
-## ⌨️ Klavye Kısayolları
+## Klavye Kısayolları
 
 ### Sekme ve Panel Yönetimi
 
@@ -174,13 +456,13 @@ npm run generate-icons
 | `Ctrl+Shift+D` | Dikey bölme |
 | `Ctrl+Shift+E` | Yatay bölme |
 | `Ctrl+Shift+W` | Paneli kapat |
+| `Ctrl+Shift+M` | Paneli maksimize et/küçült |
 
 ### Navigasyon
 
 | Kısayol | İşlev |
 |---------|-------|
 | `Alt+↑/↓/←/→` | Paneller arası geçiş |
-| `Ctrl+Shift+M` | Paneli maksimize et/küçült |
 
 ### Terminal İşlemleri
 
@@ -200,12 +482,12 @@ npm run generate-icons
 |---------|-------|
 | `Ctrl+,` / `Cmd+,` | Ayarlar |
 | `Ctrl+Shift+P` | Komut paleti |
-| `Ctrl+Shift+S` | Workspace sidebar aç/kapat |
+| `Ctrl+Shift+S` | SSH yöneticisi |
 | `Ctrl+Shift+B` | Broadcast modu |
 
 > **Not:** Tüm klavye kısayolları Ayarlar > Kısayollar bölümünden özelleştirilebilir.
 
-## 🎨 Temalar
+## Temalar
 
 VoidTerm aşağıdaki yerleşik temalarla birlikte gelir:
 
@@ -225,7 +507,7 @@ VoidTerm aşağıdaki yerleşik temalarla birlikte gelir:
 
 Ayarlar > Temalar bölümünden kendi özel temanızı oluşturabilirsiniz. 16 renk paleti, imleç rengi ve seçim rengi özelleştirilebilir.
 
-## ⚙️ Yapılandırma
+## Yapılandırma
 
 Yapılandırma dosyası platforma göre şu konumlarda saklanır:
 
@@ -248,53 +530,18 @@ Her profil için aşağıdaki ayarlar yapılandırılabilir:
 ### Yedekleme ve Geri Yükleme
 
 Ayarlar > Yedekleme bölümünden:
+
 - Manuel yedek oluşturabilirsiniz
 - Önceki yedekleri görüntüleyebilir ve geri yükleyebilirsiniz
 - Yapılandırmayı dışa/içe aktarabilirsiniz
 
 > **Not:** Sistem otomatik olarak geri yükleme öncesinde mevcut yapılandırmanın yedeğini alır.
 
-## 🏗️ Mimari
-
-### Süreç Ayrımı
-
-VoidTerm, Electron'un çift süreç mimarisini kullanır:
-
-**Ana Süreç (Main Process)**
-- Pencere yönetimi
-- PTY (pseudo-terminal) işlemleri
-- Yapılandırma ve yedekleme yönetimi
-- Sistem menüleri
-- Otomatik güncelleme
-
-**Renderer Süreci**
-- React tabanlı kullanıcı arayüzü
-- xterm.js ile terminal görüntüleme
-- Zustand ile state yönetimi
-
-### IPC İletişimi
-
-Renderer süreci, `window.electronAPI` üzerinden ana süreç ile iletişim kurar:
-
-```typescript
-// Terminal oluşturma
-const ptyId = await window.electronAPI.ptyCreate({ shell, cwd, env })
-
-// Veri gönderme
-window.electronAPI.ptyWrite(ptyId, data)
-
-// Veri alma
-window.electronAPI.onPtyData((id, data) => { ... })
-
-// Yapılandırma
-const settings = await window.electronAPI.config.getSettings()
-```
-
-## 📄 Lisans
+## Lisans
 
 Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.
 
-## 🤝 Katkıda Bulunma
+## Katkıda Bulunma
 
 Katkılarınızı bekliyoruz! Lütfen bir Pull Request göndermeden önce:
 
@@ -310,12 +557,12 @@ Katkılarınızı bekliyoruz! Lütfen bir Pull Request göndermeden önce:
 - Yeni özellikler için test yazmayı unutmayın
 - Commit mesajlarında [Conventional Commits](https://www.conventionalcommits.org/) kullanın
 
-## 📞 İletişim
+## İletişim
 
 - **Issues**: [GitHub Issues](https://github.com/bqrayvzdgn/VoidTerm/issues)
 
 ---
 
 <p align="center">
-  Made with ❤️ by Bqrayvzdgn
+  Made with ❤️ by <a href="https://github.com/bqrayvzdgn">bqrayvzdgn</a>
 </p>
