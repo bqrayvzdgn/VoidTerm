@@ -80,10 +80,25 @@ export interface Session {
   activeWorkspaceId?: string
 }
 
+export interface SSHConnection {
+  id: string
+  name: string
+  host: string
+  port: number
+  username: string
+  authMethod: 'password' | 'key' | 'agent'
+  privateKeyPath?: string
+  jumpHost?: string
+  color?: string
+  icon?: string
+  lastConnected?: string
+}
+
 export interface AppConfig {
   settings: Settings
   profiles: Profile[]
   workspaces: Workspace[]
+  sshConnections: SSHConnection[]
   session?: Session
   version: number
 }
@@ -228,11 +243,13 @@ function getDefaultProfiles(): Profile[] {
 }
 
 const DEFAULT_WORKSPACES: Workspace[] = []
+const DEFAULT_SSH_CONNECTIONS: SSHConnection[] = []
 
 const DEFAULT_CONFIG: AppConfig = {
   settings: DEFAULT_SETTINGS,
   profiles: getDefaultProfiles(),
   workspaces: DEFAULT_WORKSPACES,
+  sshConnections: DEFAULT_SSH_CONNECTIONS,
   version: 1
 }
 
@@ -253,6 +270,7 @@ const store = new Store<AppConfig>({
       if (!config.settings) store.set('settings', DEFAULT_SETTINGS)
       if (!config.profiles) store.set('profiles', getDefaultProfiles())
       if (!config.workspaces) store.set('workspaces', DEFAULT_WORKSPACES)
+      if (!config.sshConnections) store.set('sshConnections', DEFAULT_SSH_CONNECTIONS)
     }
   }
 })
@@ -348,6 +366,37 @@ export class ConfigManager {
     const workspaces = this.getWorkspaces().filter(w => w.id !== id)
     store.set('workspaces', workspaces)
     return workspaces
+  }
+
+  // Get SSH connections
+  getSSHConnections(): SSHConnection[] {
+    return store.get('sshConnections', DEFAULT_SSH_CONNECTIONS)
+  }
+
+  // Add SSH connection
+  addSSHConnection(connection: SSHConnection): SSHConnection[] {
+    const connections = this.getSSHConnections()
+    connections.push(connection)
+    store.set('sshConnections', connections)
+    return connections
+  }
+
+  // Update SSH connection
+  updateSSHConnection(id: string, updates: Partial<SSHConnection>): SSHConnection[] {
+    const connections = this.getSSHConnections()
+    const index = connections.findIndex(c => c.id === id)
+    if (index !== -1) {
+      connections[index] = { ...connections[index], ...updates }
+      store.set('sshConnections', connections)
+    }
+    return connections
+  }
+
+  // Remove SSH connection
+  removeSSHConnection(id: string): SSHConnection[] {
+    const connections = this.getSSHConnections().filter(c => c.id !== id)
+    store.set('sshConnections', connections)
+    return connections
   }
 
   // Reset entire config to defaults
@@ -471,6 +520,9 @@ export class ConfigManager {
       if (backupConfig.workspaces && Array.isArray(backupConfig.workspaces)) {
         store.set('workspaces', backupConfig.workspaces)
       }
+      if (backupConfig.sshConnections && Array.isArray(backupConfig.sshConnections)) {
+        store.set('sshConnections', backupConfig.sshConnections)
+      }
 
       logger.info(`Config restored from: ${filename}`)
       return true
@@ -525,6 +577,7 @@ export class ConfigManager {
       if (!config.settings || typeof config.settings !== 'object') return false
       if (!config.profiles || !Array.isArray(config.profiles)) return false
       if (!config.workspaces || !Array.isArray(config.workspaces)) return false
+      if (!config.sshConnections || !Array.isArray(config.sshConnections)) return false
 
       // Check settings has required fields
       const requiredSettingsFields = ['theme', 'fontFamily', 'fontSize', 'cursorStyle']
@@ -558,6 +611,9 @@ export class ConfigManager {
       }
       if (config.workspaces && Array.isArray(config.workspaces)) {
         store.set('workspaces', config.workspaces)
+      }
+      if (config.sshConnections && Array.isArray(config.sshConnections)) {
+        store.set('sshConnections', config.sshConnections)
       }
 
       return this.getConfig()

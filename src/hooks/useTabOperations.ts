@@ -2,9 +2,10 @@ import { useCallback } from 'react'
 import { useTerminalStore } from '../store/terminalStore'
 import { useWorkspaceStore } from '../store/workspaceStore'
 import { collectTerminalIds } from '../utils/pane'
+import type { Pane } from '../types'
 
 interface UseTabOperationsProps {
-  panes: Map<string, any>
+  panes: Map<string, Pane>
   setActivePaneTerminalId: (id: string | null) => void
   handleCreateTab: (profileId?: string, workspaceId?: string) => Promise<void>
 }

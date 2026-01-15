@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, Menu, shell, globalShortcut, screen } from 'electron'
 import path from 'path'
 import { PtyManager } from './pty-manager'
-import { configManager, Profile, Settings, Workspace, BackupInfo } from './config-manager'
+import { configManager, Profile, Settings, Workspace, BackupInfo, SSHConnection } from './config-manager'
 import { updater } from './auto-updater'
 import { createLogger } from './logger'
 
@@ -357,6 +357,23 @@ function setupConfigHandlers() {
 
   ipcMain.handle('config-remove-workspace', (_, id: string) => {
     return configManager.removeWorkspace(id)
+  })
+
+  // SSH Connections
+  ipcMain.handle('config-get-ssh-connections', () => {
+    return configManager.getSSHConnections()
+  })
+
+  ipcMain.handle('config-add-ssh-connection', (_, connection: SSHConnection) => {
+    return configManager.addSSHConnection(connection)
+  })
+
+  ipcMain.handle('config-update-ssh-connection', (_, { id, updates }: { id: string; updates: Partial<SSHConnection> }) => {
+    return configManager.updateSSHConnection(id, updates)
+  })
+
+  ipcMain.handle('config-remove-ssh-connection', (_, id: string) => {
+    return configManager.removeSSHConnection(id)
   })
 
   // Import/Export

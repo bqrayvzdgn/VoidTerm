@@ -198,6 +198,24 @@ const electronAPI = {
     updateWorkspace: (id: string, updates: Record<string, unknown>) => ipcRenderer.invoke('config-update-workspace', { id, updates }),
     removeWorkspace: (id: string) => ipcRenderer.invoke('config-remove-workspace', id),
 
+    // SSH Connections
+    getSSHConnections: (): Promise<Array<{
+      id: string
+      name: string
+      host: string
+      port: number
+      username: string
+      authMethod: 'password' | 'key' | 'agent'
+      privateKeyPath?: string
+      jumpHost?: string
+      color?: string
+      icon?: string
+      lastConnected?: string
+    }>> => ipcRenderer.invoke('config-get-ssh-connections'),
+    addSSHConnection: (connection: Record<string, unknown>) => ipcRenderer.invoke('config-add-ssh-connection', connection),
+    updateSSHConnection: (id: string, updates: Record<string, unknown>) => ipcRenderer.invoke('config-update-ssh-connection', { id, updates }),
+    removeSSHConnection: (id: string) => ipcRenderer.invoke('config-remove-ssh-connection', id),
+
     // Import/Export
     export: () => ipcRenderer.invoke('config-export'),
     import: (jsonString: string) => ipcRenderer.invoke('config-import', jsonString),

@@ -5,8 +5,14 @@ import { SplitPane } from './components/SplitPane/SplitPane'
 import { CreateDialog } from './components/CreateDialog/CreateDialog'
 import { BroadcastConfirmDialog } from './components/BroadcastConfirmDialog/BroadcastConfirmDialog'
 import { ToastContainer } from './components/Toast/Toast'
-import { useTerminalStore } from './store/terminalStore'
-import { useWorkspaceStore } from './store/workspaceStore'
+import {
+  useTerminalTabs,
+  useActiveTabId,
+  useTerminalPanes,
+  useBroadcastMode,
+  useTerminalActions
+} from './store/terminalStore'
+import { useActiveWorkspaceId, useWorkspaceActions } from './store/workspaceStore'
 import {
   useKeyboardShortcuts,
   useMenuEvents,
@@ -30,9 +36,14 @@ const App: React.FC = () => {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [broadcastConfirmOpen, setBroadcastConfirmOpen] = useState(false)
 
-  // Stores
-  const { tabs, activeTabId, panes, setActiveTab, broadcastMode, toggleBroadcastMode } = useTerminalStore()
-  const { addWorkspace, activeWorkspaceId } = useWorkspaceStore()
+  // Stores - using selectors for optimized re-renders
+  const tabs = useTerminalTabs()
+  const activeTabId = useActiveTabId()
+  const panes = useTerminalPanes()
+  const broadcastMode = useBroadcastMode()
+  const { setActiveTab, toggleBroadcastMode } = useTerminalActions()
+  const activeWorkspaceId = useActiveWorkspaceId()
+  const { addWorkspace } = useWorkspaceActions()
 
   // When workspace changes, ensure active tab belongs to that workspace
   useEffect(() => {

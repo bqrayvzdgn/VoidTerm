@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import type { Settings, Profile, Theme } from '../types'
 import { DEFAULT_SETTINGS } from '../types'
 import { themes } from '../themes'
-import { useCustomThemeStore } from './customThemeStore'
+import { resolveTheme } from '../utils/theme'
 import { createLogger } from '../utils/logger'
 
 const logger = createLogger('SettingsStore')
@@ -41,17 +41,10 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
         window.electronAPI.config.getProfiles()
       ])
 
-      // Check built-in themes first, then custom themes
-      let theme: Theme | undefined = themes[settings.theme]
-      if (!theme) {
-        theme = useCustomThemeStore.getState().getTheme(settings.theme)
-      }
-      const resolvedTheme: Theme = theme || themes['catppuccin-mocha']
-
       set({
         settings,
         profiles,
-        currentTheme: resolvedTheme,
+        currentTheme: resolveTheme(settings.theme),
         isLoaded: true
       })
     } catch (error) {
@@ -63,11 +56,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
   updateSettings: async (updates) => {
     try {
       const newSettings = await window.electronAPI.config.updateSettings(updates)
-      let theme: Theme | undefined = themes[newSettings.theme]
-      if (!theme) {
-        theme = useCustomThemeStore.getState().getTheme(newSettings.theme)
-      }
-      set({ settings: newSettings, currentTheme: theme || themes['catppuccin-mocha'] })
+      set({ settings: newSettings, currentTheme: resolveTheme(newSettings.theme) })
     } catch (error) {
       logger.error('Failed to update settings:', error)
     }
@@ -76,26 +65,16 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
   resetSettings: async () => {
     try {
       const settings = await window.electronAPI.config.resetSettings()
-      const theme = themes[settings.theme] || themes['catppuccin-mocha']
-      set({ settings, currentTheme: theme })
+      set({ settings, currentTheme: resolveTheme(settings.theme) })
     } catch (error) {
       logger.error('Failed to reset settings:', error)
     }
   },
 
   setTheme: (themeName) => {
-    // Check built-in themes first
-    let theme: Theme | undefined = themes[themeName]
-    
-    // If not found, check custom themes
-    if (!theme) {
-      theme = useCustomThemeStore.getState().getTheme(themeName)
-    }
-    
-    if (theme) {
-      set({ currentTheme: theme })
-      get().updateSettings({ theme: themeName })
-    }
+    const theme = resolveTheme(themeName)
+    set({ currentTheme: theme })
+    get().updateSettings({ theme: themeName })
   },
 
   getTheme: () => get().currentTheme,

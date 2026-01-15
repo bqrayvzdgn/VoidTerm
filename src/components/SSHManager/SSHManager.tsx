@@ -22,28 +22,16 @@ export const SSHManager: React.FC<SSHManagerProps> = ({
   const [editingConnection, setEditingConnection] = useState<Partial<SSHConnection> | null>(null)
   const [isEditing, setIsEditing] = useState(false)
 
-  // Load saved connections from localStorage
+  // Load saved connections from electron-store
   useEffect(() => {
     if (isOpen) {
-      try {
-        const saved = localStorage.getItem('voidterm-ssh-connections')
-        if (saved) {
-          setConnections(JSON.parse(saved))
-        }
-      } catch (error) {
-        console.error('Failed to load SSH connections:', error)
-      }
+      window.electronAPI.config.getSSHConnections()
+        .then(setConnections)
+        .catch((error: Error) => {
+          console.error('Failed to load SSH connections:', error)
+        })
     }
   }, [isOpen])
-
-  // Save connections to localStorage
-  const saveConnections = useCallback((newConnections: SSHConnection[]) => {
-    try {
-      localStorage.setItem('voidterm-ssh-connections', JSON.stringify(newConnections))
-    } catch (error) {
-      console.error('Failed to save SSH connections:', error)
-    }
-  }, [])
 
   const handleAddNew = useCallback(() => {
     setEditingConnection({ ...DEFAULT_SSH_CONNECTION, id: crypto.randomUUID() })
@@ -56,10 +44,13 @@ export const SSHManager: React.FC<SSHManagerProps> = ({
   }, [])
 
   const handleDelete = useCallback(async (id: string) => {
-    const newConnections = connections.filter(c => c.id !== id)
-    setConnections(newConnections)
-    await saveConnections(newConnections)
-  }, [connections, saveConnections])
+    try {
+      const newConnections = await window.electronAPI.config.removeSSHConnection(id)
+      setConnections(newConnections)
+    } catch (error) {
+      console.error('Failed to delete SSH connection:', error)
+    }
+  }, [])
 
   const handleSave = useCallback(async () => {
     if (!editingConnection?.name || !editingConnection?.host || !editingConnection?.username) {
@@ -79,38 +70,38 @@ export const SSHManager: React.FC<SSHManagerProps> = ({
       icon: editingConnection.icon || 'SSH'
     }
 
-    const existingIndex = connections.findIndex(c => c.id === connection.id)
-    let newConnections: SSHConnection[]
-    
-    if (existingIndex >= 0) {
-      newConnections = [...connections]
-      newConnections[existingIndex] = connection
-    } else {
-      newConnections = [...connections, connection]
+    try {
+      const existingIndex = connections.findIndex(c => c.id === connection.id)
+      let newConnections: SSHConnection[]
+
+      if (existingIndex >= 0) {
+        newConnections = await window.electronAPI.config.updateSSHConnection(connection.id, connection)
+      } else {
+        newConnections = await window.electronAPI.config.addSSHConnection(connection)
+      }
+
+      setConnections(newConnections)
+      setIsEditing(false)
+      setEditingConnection(null)
+    } catch (error) {
+      console.error('Failed to save SSH connection:', error)
     }
+  }, [editingConnection, connections])
 
-    setConnections(newConnections)
-    await saveConnections(newConnections)
-    setIsEditing(false)
-    setEditingConnection(null)
-  }, [editingConnection, connections, saveConnections])
-
-  const handleConnect = useCallback((connection: SSHConnection) => {
+  const handleConnect = useCallback(async (connection: SSHConnection) => {
     // Update last connected time
-    const updatedConnection = {
-      ...connection,
-      lastConnected: new Date().toISOString()
+    try {
+      const newConnections = await window.electronAPI.config.updateSSHConnection(connection.id, {
+        lastConnected: new Date().toISOString()
+      })
+      setConnections(newConnections)
+    } catch (error) {
+      console.error('Failed to update last connected time:', error)
     }
-    
-    const newConnections = connections.map(c => 
-      c.id === connection.id ? updatedConnection : c
-    )
-    setConnections(newConnections)
-    saveConnections(newConnections)
-    
+
     onConnect(connection)
     onClose()
-  }, [connections, saveConnections, onConnect, onClose])
+  }, [onConnect, onClose])
 
   const handleCancel = useCallback(() => {
     setIsEditing(false)

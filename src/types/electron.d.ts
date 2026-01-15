@@ -1,4 +1,4 @@
-import type { Settings, Profile, Workspace, AppConfig } from './index'
+import type { Settings, Profile, Workspace, AppConfig, SSHConnection } from './index'
 
 export interface SessionTab {
   id: string
@@ -11,6 +11,13 @@ export interface Session {
   tabs: SessionTab[]
   activeTabId: string | null
   activeWorkspaceId?: string
+}
+
+export interface BackupInfo {
+  filename: string
+  timestamp: number
+  date: string
+  size: number
 }
 
 export interface PtyOptions {
@@ -37,6 +44,11 @@ export interface ConfigAPI {
   updateWorkspace: (id: string, updates: Partial<Workspace>) => Promise<Workspace[]>
   removeWorkspace: (id: string) => Promise<Workspace[]>
 
+  getSSHConnections: () => Promise<SSHConnection[]>
+  addSSHConnection: (connection: SSHConnection) => Promise<SSHConnection[]>
+  updateSSHConnection: (id: string, updates: Partial<SSHConnection>) => Promise<SSHConnection[]>
+  removeSSHConnection: (id: string) => Promise<SSHConnection[]>
+
   export: () => Promise<string>
   import: (jsonString: string) => Promise<AppConfig>
   reset: () => Promise<AppConfig>
@@ -44,6 +56,14 @@ export interface ConfigAPI {
   getSession: () => Promise<Session | undefined>
   saveSession: (session: Session) => Promise<void>
   clearSession: () => Promise<void>
+
+  backup: {
+    create: () => Promise<string>
+    list: () => Promise<BackupInfo[]>
+    restore: (filename: string) => Promise<boolean>
+    delete: (filename: string) => Promise<boolean>
+  }
+  validate: () => Promise<boolean>
 }
 
 export interface ElectronAPI {
