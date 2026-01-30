@@ -83,6 +83,23 @@ export class PtyManager {
     return process.env.SHELL || '/bin/bash'
   }
 
+  private getShellArgs(shell: string): string[] {
+    if (process.platform !== 'win32') return ['--login']
+    const name = shell.toLowerCase()
+    if (name.includes('powershell') || name.includes('pwsh')) {
+      return ['-NoLogo']
+    }
+    return []
+  }
+
+  /**
+   * Check if this shell is legacy Windows PowerShell (which defaults to blue background).
+   */
+  private isLegacyPowerShell(shell: string): boolean {
+    const name = shell.toLowerCase()
+    return process.platform === 'win32' && name.includes('powershell') && !name.includes('pwsh')
+  }
+
   create(options: PtyCreateOptions = {}): string {
     const id = uuidv4()
     const shell = options.shell || this.getDefaultShell()
@@ -90,7 +107,7 @@ export class PtyManager {
 
     const env = buildSafeEnv(options.env)
 
-    const shellArgs = process.platform === 'win32' ? [] : ['--login']
+    const shellArgs = this.getShellArgs(shell)
 
     const ptyProcess = pty.spawn(shell, shellArgs, {
       name: 'xterm-256color',
@@ -99,6 +116,12 @@ export class PtyManager {
       cwd,
       env
     })
+
+    // Legacy Windows PowerShell defaults to a blue (#012456) background.
+    // Send a command to reset console colors so the xterm.js theme shows through.
+    if (this.isLegacyPowerShell(shell)) {
+      ptyProcess.write('[Console]::ResetColor(); Clear-Host\r')
+    }
 
     ptyProcess.onData((data) => {
       this.dataCallbacks.forEach(cb => cb(id, data))
@@ -130,7 +153,11 @@ export class PtyManager {
   kill(id: string): void {
     const process = this.processes.get(id)
     if (process) {
-      process.pty.kill()
+      try {
+        process.pty.kill()
+      } catch {
+        // Process may already be dead (AttachConsole can fail on Windows)
+      }
       this.processes.delete(id)
     }
   }

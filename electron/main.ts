@@ -14,7 +14,11 @@ let isQuakeMode = false
 let quakeWindowBounds: { x: number; y: number; width: number; height: number } | null = null
 let normalWindowBounds: { x: number; y: number; width: number; height: number } | null = null
 
-const isDev = !app.isPackaged
+let _isDev: boolean | null = null
+function isDev(): boolean {
+  if (_isDev === null) _isDev = !app.isPackaged
+  return _isDev
+}
 
 function createWindow() {
   // Platform-specific window options
@@ -42,9 +46,9 @@ function createWindow() {
     }
   })
 
-  if (isDev) {
+  if (isDev()) {
     mainWindow.loadURL('http://localhost:5173')
-    mainWindow.webContents.openDevTools()
+    // DevTools can be opened manually with F12 or Ctrl+Shift+I
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
@@ -503,7 +507,7 @@ app.whenReady().then(() => {
   setupGlobalShortcuts()
 
   // Setup auto-updater (only in production)
-  if (!isDev && mainWindow) {
+  if (!isDev() && mainWindow) {
     updater.init()
     updater.setMainWindow(mainWindow)
     updater.setupIpcHandlers()
