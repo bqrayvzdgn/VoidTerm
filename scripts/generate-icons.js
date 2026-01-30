@@ -1,7 +1,7 @@
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const toIco = require('to-ico');
 
 const iconsDir = path.join(__dirname, '..', 'assets', 'icons');
 const svgPath = path.join(iconsDir, 'icon.svg');
@@ -30,15 +30,14 @@ async function generateIcons() {
     .toFile(path.join(iconsDir, 'icon.png'));
   console.log('  Created icon.png (512x512)');
 
-  // Create ICO file using png-to-ico CLI
+  // Create ICO file with multiple resolutions using to-ico
   try {
-    const icon256 = path.join(iconsDir, 'icon-256.png');
-    const icoPath = path.join(iconsDir, 'icon.ico');
-    execSync(`npx png-to-ico "${icon256}" > "${icoPath}"`, {
-      cwd: path.join(__dirname, '..'),
-      shell: true
-    });
-    console.log('  Created icon.ico (Windows)');
+    const icoInputs = [16, 32, 48, 256].map(s =>
+      fs.readFileSync(path.join(iconsDir, `icon-${s}.png`))
+    );
+    const icoBuffer = await toIco(icoInputs);
+    fs.writeFileSync(path.join(iconsDir, 'icon.ico'), icoBuffer);
+    console.log('  Created icon.ico (Windows, multi-resolution: 16, 32, 48, 256)');
   } catch (err) {
     console.log('  Warning: Could not create ICO file:', err.message);
     console.log('  electron-builder will generate it from icon.png');

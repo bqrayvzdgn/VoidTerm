@@ -13,17 +13,14 @@
   <!-- Background -->
   <rect width="512" height="512" rx="80" fill="url(#bg)"/>
 
-  <!-- Terminal prompt chevron -->
-  <path d="M120 200 L220 256 L120 312"
+  <!-- Terminal prompt chevron - larger and bolder -->
+  <path d="M100 170 L230 256 L100 342"
         stroke="url(#accent)"
-        stroke-width="32"
+        stroke-width="48"
         stroke-linecap="round"
         stroke-linejoin="round"
         fill="none"/>
 
-  <!-- Cursor line -->
-  <rect x="260" y="240" width="140" height="32" rx="4" fill="url(#accent)"/>
-
-  <!-- Blinking cursor -->
-  <rect x="260" y="300" width="24" height="32" rx="2" fill="#cdd6f4" opacity="0.8"/>
+  <!-- Cursor line - larger and centered -->
+  <rect x="270" y="228" width="160" height="56" rx="8" fill="url(#accent)"/>
 </svg>
