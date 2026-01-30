@@ -14,6 +14,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## English
 
+### [1.2.0] - 2025
+
+#### Added
+
+- PTY environment variable whitelist to prevent secret leakage to child processes
+- IPC rate limiting with token-bucket algorithm for PTY operations
+- SSH connection form validation with input sanitization and toast feedback
+- Platform-aware shell path escaping for SSH private key paths
+- Granular error boundaries (TerminalErrorBoundary, PanelErrorBoundary)
+- ESLint flat config and Prettier for code style enforcement
+- 268 unit tests across 8 test files (rate-limiter, env-whitelist, shell-escape, url, logger, ErrorBoundary, snippetStore, customThemeStore)
+- `launch-electron.js` script for reliable Electron launch from VSCode
+- `-NoLogo` flag for PowerShell/pwsh shell startup
+
+#### Fixed
+
+- Legacy Windows PowerShell blue (#012456) background in terminal
+- `ELECTRON_RUN_AS_NODE` environment variable preventing Electron from starting in VSCode
+- Module-level crashes from `app.isPackaged`, `app.getPath()`, and `autoUpdater` accessed before app ready
+- PTY cleanup crash (`AttachConsole failed`) on window close (node-pty Windows issue)
+- Keyboard shortcut inconsistency for `toggleSidebar` (`Ctrl+B` → `Ctrl+Shift+B`)
+- Silent clipboard error handling replaced with proper warning logs
+- DevTools no longer auto-opens in dev mode (use `Ctrl+Shift+I` manually)
+
+#### Changed
+
+- All `console.log` calls replaced with structured `createLogger()` across 10+ components
+- PTY processes now receive only whitelisted environment variables instead of full `process.env`
+
 ### [1.1.1] - 2024
 
 #### Fixed
@@ -101,6 +130,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## Türkçe
+
+### [1.2.0] - 2025
+
+#### Eklenenler
+
+- Alt süreçlere gizli bilgi sızmasını önlemek için PTY ortam değişkeni beyaz listesi
+- PTY işlemleri için token-bucket algoritmalı IPC hız sınırlama
+- Giriş temizleme ve toast geri bildirimi ile SSH bağlantı form doğrulaması
+- SSH özel anahtar yolları için platforma duyarlı shell yol kaçışı
+- Ayrıntılı hata sınırları (TerminalErrorBoundary, PanelErrorBoundary)
+- Kod stili uygulaması için ESLint flat config ve Prettier
+- 8 test dosyasında 268 birim test (rate-limiter, env-whitelist, shell-escape, url, logger, ErrorBoundary, snippetStore, customThemeStore)
+- VSCode'dan güvenilir Electron başlatma için `launch-electron.js` scripti
+- PowerShell/pwsh shell başlatma için `-NoLogo` bayrağı
+
+#### Düzeltmeler
+
+- Terminalde eski Windows PowerShell mavi (#012456) arka planı düzeltildi
+- VSCode'da Electron'un başlamasını engelleyen `ELECTRON_RUN_AS_NODE` ortam değişkeni düzeltildi
+- Uygulama hazır olmadan önce erişilen `app.isPackaged`, `app.getPath()` ve `autoUpdater` modül seviyesi çökmeleri düzeltildi
+- Pencere kapatılırken PTY temizleme çökmesi (`AttachConsole failed`) düzeltildi (node-pty Windows sorunu)
+- `toggleSidebar` klavye kısayolu tutarsızlığı düzeltildi (`Ctrl+B` → `Ctrl+Shift+B`)
+- Sessiz pano hata işleme, uygun uyarı logları ile değiştirildi
+- DevTools artık geliştirme modunda otomatik açılmıyor (`Ctrl+Shift+I` ile manuel açılabilir)
+
+#### Değişiklikler
+
+- Tüm `console.log` çağrıları 10+ bileşende yapılandırılmış `createLogger()` ile değiştirildi
+- PTY süreçleri artık tam `process.env` yerine sadece beyaz listedeki ortam değişkenlerini alıyor
 
 ### [1.1.1] - 2024
 

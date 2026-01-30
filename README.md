@@ -53,11 +53,16 @@
 - **Config Backup** - Backup and restore your settings
 - **Auto-Update** - Automatic update support for new versions
 
-### Stability & Performance
+### Security & Stability
 
+- **Environment Whitelist** - Only safe environment variables are passed to terminal processes
+- **IPC Rate Limiting** - Token-bucket rate limiter to prevent PTY operation abuse
+- **SSH Input Validation** - Connection parameters are sanitized before saving
+- **Error Boundaries** - Granular error isolation for terminal and panel components
 - **PTY Cleanup** - Orphan process cleanup on renderer crash
 - **Resize Debouncing** - Optimized window resizing
-- **Structured Logging** - Structured log system for detailed debugging
+- **Structured Logging** - Context-aware structured log system for detailed debugging
+- **268 Unit Tests** - Comprehensive test coverage across security and core modules
 
 ## Installation
 
@@ -115,21 +120,23 @@ npm run build:linux
 VoidTerm/
 ├── electron/           # Electron main process
 │   ├── main.ts         # Window and IPC management
-│   ├── pty-manager.ts  # Terminal process management
+│   ├── pty-manager.ts  # Terminal process management (env whitelist)
 │   ├── config-manager.ts # Config and backup management
+│   ├── auto-updater.ts # Auto-update with lazy loading
+│   ├── rate-limiter.ts # IPC rate limiting (token-bucket)
 │   ├── logger.ts       # Structured logging
 │   └── preload.ts      # Renderer API bridge
 ├── src/                # React renderer process
-│   ├── components/     # React components
+│   ├── components/     # React components (ErrorBoundary, SSH, Terminal)
 │   ├── store/          # Zustand state management
 │   ├── themes/         # Terminal themes
 │   ├── hooks/          # Custom React hooks
 │   ├── i18n/           # Multi-language support
-│   ├── utils/          # Utility functions
+│   ├── utils/          # Utility functions (validation, logger)
 │   └── types/          # TypeScript type definitions
 ├── e2e/                # End-to-end tests
 ├── assets/             # Icons and static files
-└── scripts/            # Build helper scripts
+└── scripts/            # Build and launch scripts
 ```
 
 ### Tech Stack
@@ -324,11 +331,16 @@ We welcome your contributions! Before submitting a Pull Request:
 - **Yapılandırma Yedekleme** - Ayarlarınızı yedekleyin ve geri yükleyin
 - **Otomatik Güncelleme** - Yeni sürümler için otomatik güncelleme desteği
 
-### Stabilite ve Performans
+### Güvenlik ve Stabilite
 
+- **Ortam Değişkeni Beyaz Listesi** - Terminal süreçlerine sadece güvenli ortam değişkenleri aktarılır
+- **IPC Hız Sınırlama** - PTY işlem suistimalini önlemek için token-bucket hız sınırlayıcı
+- **SSH Giriş Doğrulama** - Bağlantı parametreleri kaydedilmeden önce temizlenir
+- **Hata Sınırları** - Terminal ve panel bileşenleri için ayrıntılı hata izolasyonu
 - **PTY Cleanup** - Renderer crash durumunda orphan process temizleme
 - **Resize Debouncing** - Optimize edilmiş pencere boyutlandırma
-- **Structured Logging** - Detaylı hata ayıklama için yapılandırılmış log sistemi
+- **Structured Logging** - Detaylı hata ayıklama için bağlam farkındalıklı yapılandırılmış log sistemi
+- **268 Birim Test** - Güvenlik ve çekirdek modüller için kapsamlı test kapsamı
 
 ## Kurulum
 
@@ -386,21 +398,23 @@ npm run build:linux
 VoidTerm/
 ├── electron/           # Electron ana süreç kodları
 │   ├── main.ts         # Pencere ve IPC yönetimi
-│   ├── pty-manager.ts  # Terminal süreç yönetimi (node-pty)
+│   ├── pty-manager.ts  # Terminal süreç yönetimi (ortam beyaz listesi)
 │   ├── config-manager.ts # Yapılandırma ve yedekleme yönetimi
+│   ├── auto-updater.ts # Lazy loading ile otomatik güncelleme
+│   ├── rate-limiter.ts # IPC hız sınırlama (token-bucket)
 │   ├── logger.ts       # Structured logging (electron-log)
 │   └── preload.ts      # Renderer API köprüsü
 ├── src/                # React renderer süreci
-│   ├── components/     # React bileşenleri
+│   ├── components/     # React bileşenleri (ErrorBoundary, SSH, Terminal)
 │   ├── store/          # Zustand state yönetimi
 │   ├── themes/         # Terminal temaları
 │   ├── hooks/          # Custom React hooks
 │   ├── i18n/           # Çoklu dil desteği (tr/en)
-│   ├── utils/          # Yardımcı fonksiyonlar ve logger
+│   ├── utils/          # Yardımcı fonksiyonlar (validation, logger)
 │   └── types/          # TypeScript tip tanımları
 ├── e2e/                # End-to-end testler (Playwright)
 ├── assets/             # İkonlar ve statik dosyalar
-└── scripts/            # Build yardımcı scriptleri
+└── scripts/            # Build ve başlatma scriptleri
 ```
 
 ### Teknoloji Yığını
