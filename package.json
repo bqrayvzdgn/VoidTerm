@@ -1,6 +1,6 @@
 {
   "name": "voidterm",
-  "version": "1.2.0",
+  "version": "1.0.1",
   "description": "A modern, cross-platform terminal emulator",
   "author": {
     "name": "bqrayvzdgn",
@@ -112,7 +112,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "VoidTerm-Setup.${ext}"
     }
   }
 }
