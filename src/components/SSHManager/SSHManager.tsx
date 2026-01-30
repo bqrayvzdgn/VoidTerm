@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import type { SSHConnection } from '../../types'
+import { createLogger } from '../../utils/logger'
+import { sanitizeSSHConnection } from '../../utils/validation'
+import { useToastStore } from '../../store/toastStore'
+
+const logger = createLogger('SSHManager')
 
 interface SSHManagerProps {
   isOpen: boolean
@@ -28,7 +33,7 @@ export const SSHManager: React.FC<SSHManagerProps> = ({
       window.electronAPI.config.getSSHConnections()
         .then(setConnections)
         .catch((error: Error) => {
-          console.error('Failed to load SSH connections:', error)
+          logger.error('Failed to load SSH connections:', error)
         })
     }
   }, [isOpen])
@@ -48,24 +53,38 @@ export const SSHManager: React.FC<SSHManagerProps> = ({
       const newConnections = await window.electronAPI.config.removeSSHConnection(id)
       setConnections(newConnections)
     } catch (error) {
-      console.error('Failed to delete SSH connection:', error)
+      logger.error('Failed to delete SSH connection:', error)
     }
   }, [])
 
   const handleSave = useCallback(async () => {
     if (!editingConnection?.name || !editingConnection?.host || !editingConnection?.username) {
+      useToastStore.getState().warning('Name, host and username are required')
+      return
+    }
+
+    const validation = sanitizeSSHConnection({
+      host: editingConnection.host,
+      username: editingConnection.username,
+      port: editingConnection.port || 22,
+      privateKeyPath: editingConnection.privateKeyPath,
+      jumpHost: editingConnection.jumpHost
+    })
+
+    if (!validation.isValid) {
+      useToastStore.getState().error(validation.errors.join(', '))
       return
     }
 
     const connection: SSHConnection = {
       id: editingConnection.id || crypto.randomUUID(),
-      name: editingConnection.name,
-      host: editingConnection.host,
-      port: editingConnection.port || 22,
-      username: editingConnection.username,
+      name: editingConnection.name.trim(),
+      host: validation.sanitized!.host,
+      port: validation.sanitized!.port,
+      username: validation.sanitized!.username,
       authMethod: editingConnection.authMethod || 'key',
-      privateKeyPath: editingConnection.privateKeyPath,
-      jumpHost: editingConnection.jumpHost,
+      privateKeyPath: validation.sanitized!.privateKeyPath,
+      jumpHost: validation.sanitized!.jumpHost,
       color: editingConnection.color,
       icon: editingConnection.icon || 'SSH'
     }
@@ -84,7 +103,7 @@ export const SSHManager: React.FC<SSHManagerProps> = ({
       setIsEditing(false)
       setEditingConnection(null)
     } catch (error) {
-      console.error('Failed to save SSH connection:', error)
+      logger.error('Failed to save SSH connection:', error)
     }
   }, [editingConnection, connections])
 
@@ -96,7 +115,7 @@ export const SSHManager: React.FC<SSHManagerProps> = ({
       })
       setConnections(newConnections)
     } catch (error) {
-      console.error('Failed to update last connected time:', error)
+      logger.error('Failed to update last connected time:', error)
     }
 
     onConnect(connection)

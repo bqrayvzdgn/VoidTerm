@@ -1,10 +1,13 @@
-import { autoUpdater } from 'electron-updater'
 import { BrowserWindow, ipcMain, dialog } from 'electron'
 import log from 'electron-log'
 
-// Configure logging
-autoUpdater.logger = log
-log.transports.file.level = 'info'
+// electron-updater accesses app.getVersion() on import,
+// so we must lazy-load it after app is ready.
+function getAutoUpdater() {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { autoUpdater } = require('electron-updater')
+  return autoUpdater
+}
 
 export interface UpdateInfo {
   version: string
@@ -23,11 +26,19 @@ export class AutoUpdater {
   private mainWindow: BrowserWindow | null = null
   private isUpdateAvailable = false
   private updateInfo: UpdateInfo | null = null
+  private initialized = false
 
-  constructor() {
+  // Defer all autoUpdater access until init() is called (after app is ready)
+  init(): void {
+    if (this.initialized) return
+    this.initialized = true
+
+    const au = getAutoUpdater()
+    // Configure logging
+    au.logger = log
     // Disable auto-download to let user decide
-    autoUpdater.autoDownload = false
-    autoUpdater.autoInstallOnAppQuit = true
+    au.autoDownload = false
+    au.autoInstallOnAppQuit = true
 
     this.setupEventListeners()
   }
@@ -37,19 +48,21 @@ export class AutoUpdater {
   }
 
   private setupEventListeners(): void {
+    const au = getAutoUpdater()
+
     // When checking for updates
-    autoUpdater.on('checking-for-update', () => {
+    au.on('checking-for-update', () => {
       this.sendToRenderer('update-checking')
       log.info('Checking for updates...')
     })
 
     // When an update is available
-    autoUpdater.on('update-available', (info) => {
+    au.on('update-available', (info: { version: string; releaseNotes?: string | unknown; releaseDate?: string }) => {
       this.isUpdateAvailable = true
       this.updateInfo = {
         version: info.version,
-        releaseNotes: typeof info.releaseNotes === 'string' 
-          ? info.releaseNotes 
+        releaseNotes: typeof info.releaseNotes === 'string'
+          ? info.releaseNotes
           : undefined,
         releaseDate: info.releaseDate
       }
@@ -58,14 +71,14 @@ export class AutoUpdater {
     })
 
     // When no update is available
-    autoUpdater.on('update-not-available', (info) => {
+    au.on('update-not-available', (info: { version: string }) => {
       this.isUpdateAvailable = false
       this.sendToRenderer('update-not-available', { version: info.version })
       log.info('No updates available')
     })
 
     // Download progress
-    autoUpdater.on('download-progress', (progress) => {
+    au.on('download-progress', (progress: { bytesPerSecond: number; percent: number; transferred: number; total: number }) => {
       const progressInfo: UpdateProgress = {
         bytesPerSecond: progress.bytesPerSecond,
         percent: progress.percent,
@@ -77,11 +90,11 @@ export class AutoUpdater {
     })
 
     // When update is downloaded
-    autoUpdater.on('update-downloaded', (info) => {
+    au.on('update-downloaded', (info: { version: string; releaseNotes?: string | unknown }) => {
       this.sendToRenderer('update-downloaded', {
         version: info.version,
-        releaseNotes: typeof info.releaseNotes === 'string' 
-          ? info.releaseNotes 
+        releaseNotes: typeof info.releaseNotes === 'string'
+          ? info.releaseNotes
           : undefined
       })
       log.info(`Update downloaded: ${info.version}`)
@@ -91,7 +104,7 @@ export class AutoUpdater {
     })
 
     // Error handling
-    autoUpdater.on('error', (error) => {
+    au.on('error', (error: Error) => {
       this.sendToRenderer('update-error', { message: error.message })
       log.error('Update error:', error)
     })
@@ -101,7 +114,7 @@ export class AutoUpdater {
     // Check for updates manually
     ipcMain.handle('check-for-updates', async () => {
       try {
-        const result = await autoUpdater.checkForUpdates()
+        await getAutoUpdater().checkForUpdates()
         return {
           updateAvailable: this.isUpdateAvailable,
           updateInfo: this.updateInfo
@@ -115,7 +128,7 @@ export class AutoUpdater {
     // Download update
     ipcMain.handle('download-update', async () => {
       try {
-        await autoUpdater.downloadUpdate()
+        await getAutoUpdater().downloadUpdate()
         return true
       } catch (error) {
         log.error('Failed to download update:', error)
@@ -125,7 +138,7 @@ export class AutoUpdater {
 
     // Install update and restart
     ipcMain.handle('install-update', () => {
-      autoUpdater.quitAndInstall(false, true)
+      getAutoUpdater().quitAndInstall(false, true)
     })
 
     // Get current update status
@@ -139,7 +152,7 @@ export class AutoUpdater {
 
   async checkForUpdates(): Promise<void> {
     try {
-      await autoUpdater.checkForUpdates()
+      await getAutoUpdater().checkForUpdates()
     } catch (error) {
       log.error('Failed to check for updates:', error)
     }
@@ -165,10 +178,10 @@ export class AutoUpdater {
     })
 
     if (result.response === 0) {
-      autoUpdater.quitAndInstall(false, true)
+      getAutoUpdater().quitAndInstall(false, true)
     }
   }
 }
 
-// Singleton instance
+// Singleton instance (safe: constructor no longer accesses autoUpdater)
 export const updater = new AutoUpdater()

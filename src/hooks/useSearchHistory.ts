@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
+import { createLogger } from '../utils/logger'
 
+const logger = createLogger('SearchHistory')
 const STORAGE_KEY = 'voidterm-search-history'
 const MAX_HISTORY_SIZE = 20
 
@@ -22,7 +24,7 @@ export const useSearchHistory = () => {
         }
       }
     } catch (e) {
-      console.warn('Failed to load search history:', e)
+      logger.warn('Failed to load search history:', e)
     }
   }, [])
 
@@ -31,7 +33,7 @@ export const useSearchHistory = () => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory))
     } catch (e) {
-      console.warn('Failed to save search history:', e)
+      logger.warn('Failed to save search history:', e)
     }
   }, [])
 

@@ -2,6 +2,9 @@ import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import type { Theme } from '../types'
 import { themes as builtInThemes } from '../themes'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('CustomThemeStore')
 
 interface CustomTheme extends Theme {
   id: string
@@ -178,7 +181,7 @@ export const useCustomThemeStore = create<CustomThemeStore>()((set, get) => ({
         set({ customThemes })
       }
     } catch (error) {
-      console.error('Failed to load custom themes:', error)
+      logger.error('Failed to load custom themes:', error)
     }
   },
 
@@ -187,7 +190,7 @@ export const useCustomThemeStore = create<CustomThemeStore>()((set, get) => ({
       const { customThemes } = get()
       localStorage.setItem(STORAGE_KEY, JSON.stringify(customThemes))
     } catch (error) {
-      console.error('Failed to save custom themes:', error)
+      logger.error('Failed to save custom themes:', error)
     }
   }
 }))

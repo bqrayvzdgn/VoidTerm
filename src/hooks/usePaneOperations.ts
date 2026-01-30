@@ -1,6 +1,9 @@
 import { useCallback } from 'react'
 import { useTerminalStore } from '../store/terminalStore'
 import { collectTerminalIds, splitPaneAtTerminal, findNextPane, removePaneAtTerminal } from '../utils/pane'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('PaneOperations')
 
 interface UsePaneOperationsProps {
   ptyIds: Map<string, string>
@@ -42,7 +45,7 @@ export const usePaneOperations = ({
         setActivePaneTerminalId(newTerminalId)
       }
     } catch (error) {
-      console.error('Failed to split pane:', error)
+      logger.error('Failed to split pane:', error)
     }
   }, [activeTabId, activePaneTerminalId, panes, createTerminal, settings.defaultProfile, setPane, setActivePaneTerminalId])
 
@@ -80,7 +83,7 @@ export const usePaneOperations = ({
       try {
         window.electronAPI.ptyKill(ptyId)
       } catch (error) {
-        console.error('Failed to kill PTY:', error)
+        logger.error('Failed to kill PTY:', error)
       }
       setPtyIds(prev => {
         const newMap = new Map(prev)

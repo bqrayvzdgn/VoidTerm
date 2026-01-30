@@ -6,6 +6,9 @@ import { useSettingsStore } from '../store/settingsStore'
 import { useWorkspaceStore } from '../store/workspaceStore'
 import { buildSSHCommand } from '../utils/validation'
 import { SSH_COMMAND_DELAY } from '../constants'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('SSHManager')
 
 interface UseSSHManagerProps {
   setPtyIds: React.Dispatch<React.SetStateAction<Map<string, string>>>
@@ -30,7 +33,7 @@ export const useSSHManager = ({ setPtyIds, setActivePaneTerminalId }: UseSSHMana
     })
 
     if (!sshCommand) {
-      console.error('Invalid SSH connection parameters')
+      logger.error('Invalid SSH connection parameters')
       return
     }
 
@@ -73,7 +76,7 @@ export const useSSHManager = ({ setPtyIds, setActivePaneTerminalId }: UseSSHMana
       }, SSH_COMMAND_DELAY)
 
     } catch (error) {
-      console.error('Failed to create SSH terminal:', error)
+      logger.error('Failed to create SSH terminal:', error)
     }
   }, [profiles, addTab, activeWorkspaceId, setPane, setPtyIds, setActivePaneTerminalId])
 

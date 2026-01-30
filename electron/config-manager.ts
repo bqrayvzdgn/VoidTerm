@@ -1,5 +1,5 @@
 import Store from 'electron-store'
-import { app } from 'electron'
+import os from 'os'
 import path from 'path'
 import fs from 'fs'
 import { createLogger } from './logger'
@@ -121,7 +121,7 @@ const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
   focusRight: 'Ctrl+Alt+Right',
   focusUp: 'Ctrl+Alt+Up',
   focusDown: 'Ctrl+Alt+Down',
-  toggleSidebar: 'Ctrl+B',
+  toggleSidebar: 'Ctrl+Shift+B',
   openSettings: 'Ctrl+,',
   openCommandPalette: 'Ctrl+Shift+P',
   openSSHManager: 'Ctrl+Shift+S',
@@ -153,7 +153,7 @@ const DEFAULT_SETTINGS: Settings = {
 
 // Platform-specific default profiles
 function getDefaultProfiles(): Profile[] {
-  const homedir = app.getPath('home')
+  const homedir = os.homedir()
   const platform = process.platform
 
   if (platform === 'win32') {

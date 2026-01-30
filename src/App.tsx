@@ -5,6 +5,8 @@ import { SplitPane } from './components/SplitPane/SplitPane'
 import { CreateDialog } from './components/CreateDialog/CreateDialog'
 import { BroadcastConfirmDialog } from './components/BroadcastConfirmDialog/BroadcastConfirmDialog'
 import { ToastContainer } from './components/Toast/Toast'
+import { TerminalErrorBoundary } from './components/ErrorBoundary/TerminalErrorBoundary'
+import { PanelErrorBoundary } from './components/ErrorBoundary/PanelErrorBoundary'
 import {
   useTerminalTabs,
   useActiveTabId,
@@ -220,7 +222,7 @@ const App: React.FC = () => {
   const activeTabBelongsToView = activeTab && (activeWorkspaceId
     ? activeTab.workspaceId === activeWorkspaceId
     : !activeTab.workspaceId)
-  const activePane = activeTabBelongsToView ? panes.get(activeTabId) : null
+  const activePane = activeTabBelongsToView && activeTabId ? panes.get(activeTabId) : null
 
   // Show loading state while config is being loaded
   if (!isConfigLoaded || !isWorkspacesLoaded) {
@@ -254,21 +256,23 @@ const App: React.FC = () => {
 
         <div className="terminal-container">
           {activePane ? (
-            <SplitPane
-              pane={activePane}
-              onTerminalTitleChange={handleTerminalTitleChange}
-              onTerminalFocus={handleTerminalFocus}
-              ptyIds={ptyIds}
-              activeTerminalId={activePaneTerminalId}
-              onNavigatePane={handleNavigatePane}
-              onClosePane={handleClosePane}
-              onNextTab={handleNextTab}
-              onPrevTab={handlePrevTab}
-              broadcastMode={broadcastMode}
-              onBroadcastInput={handleBroadcastInput}
-              maximizedPaneId={maximizedPaneId}
-              onToggleMaximize={handleToggleMaximize}
-            />
+            <TerminalErrorBoundary terminalId={activePaneTerminalId || undefined}>
+              <SplitPane
+                pane={activePane}
+                onTerminalTitleChange={handleTerminalTitleChange}
+                onTerminalFocus={handleTerminalFocus}
+                ptyIds={ptyIds}
+                activeTerminalId={activePaneTerminalId}
+                onNavigatePane={handleNavigatePane}
+                onClosePane={handleClosePane}
+                onNextTab={handleNextTab}
+                onPrevTab={handlePrevTab}
+                broadcastMode={broadcastMode}
+                onBroadcastInput={handleBroadcastInput}
+                maximizedPaneId={maximizedPaneId}
+                onToggleMaximize={handleToggleMaximize}
+              />
+            </TerminalErrorBoundary>
           ) : (
             <div className="terminal-placeholder">
               <div className="terminal-placeholder-content">
@@ -284,9 +288,11 @@ const App: React.FC = () => {
       </div>
 
       {settingsOpen && (
-        <Suspense fallback={null}>
-          <Settings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
-        </Suspense>
+        <PanelErrorBoundary panelName="Settings" onReset={() => setSettingsOpen(false)}>
+          <Suspense fallback={null}>
+            <Settings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+          </Suspense>
+        </PanelErrorBoundary>
       )}
 
       <CreateDialog
@@ -297,32 +303,36 @@ const App: React.FC = () => {
       />
 
       {commandPaletteOpen && (
-        <Suspense fallback={null}>
-          <CommandPalette
-            isOpen={commandPaletteOpen}
-            onClose={() => setCommandPaletteOpen(false)}
-            onNewTab={handleCreateTab}
-            onSplitVertical={() => handleSplit('vertical')}
-            onSplitHorizontal={() => handleSplit('horizontal')}
-            onCloseTab={() => activeTabId && handleCloseTab(activeTabId)}
-            onClosePane={handleClosePane}
-            onToggleSidebar={toggleSidebar}
-            onOpenSettings={() => setSettingsOpen(true)}
-            onNextTab={handleNextTab}
-            onPrevTab={handlePrevTab}
-            onOpenSSHManager={() => setSSHManagerOpen(true)}
-          />
-        </Suspense>
+        <PanelErrorBoundary panelName="Command Palette" onReset={() => setCommandPaletteOpen(false)}>
+          <Suspense fallback={null}>
+            <CommandPalette
+              isOpen={commandPaletteOpen}
+              onClose={() => setCommandPaletteOpen(false)}
+              onNewTab={handleCreateTab}
+              onSplitVertical={() => handleSplit('vertical')}
+              onSplitHorizontal={() => handleSplit('horizontal')}
+              onCloseTab={() => activeTabId && handleCloseTab(activeTabId)}
+              onClosePane={handleClosePane}
+              onToggleSidebar={toggleSidebar}
+              onOpenSettings={() => setSettingsOpen(true)}
+              onNextTab={handleNextTab}
+              onPrevTab={handlePrevTab}
+              onOpenSSHManager={() => setSSHManagerOpen(true)}
+            />
+          </Suspense>
+        </PanelErrorBoundary>
       )}
 
       {sshManagerOpen && (
-        <Suspense fallback={null}>
-          <SSHManager
-            isOpen={sshManagerOpen}
-            onClose={() => setSSHManagerOpen(false)}
-            onConnect={handleSSHConnect}
-          />
-        </Suspense>
+        <PanelErrorBoundary panelName="SSH Manager" onReset={() => setSSHManagerOpen(false)}>
+          <Suspense fallback={null}>
+            <SSHManager
+              isOpen={sshManagerOpen}
+              onClose={() => setSSHManagerOpen(false)}
+              onConnect={handleSSHConnect}
+            />
+          </Suspense>
+        </PanelErrorBoundary>
       )}
 
       <BroadcastConfirmDialog

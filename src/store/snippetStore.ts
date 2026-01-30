@@ -2,6 +2,9 @@ import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import { v4 as uuidv4 } from 'uuid'
 import type { Snippet } from '../types'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('SnippetStore')
 
 const STORAGE_KEY = 'voidterm-snippets'
 
@@ -36,7 +39,7 @@ const saveToStorage = (snippets: Snippet[], categories: string[]) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ snippets, categories }))
   } catch (e) {
-    console.error('Failed to save snippets:', e)
+    logger.error('Failed to save snippets:', e)
   }
 }
 
@@ -54,7 +57,7 @@ const loadFromStorage = (): { snippets: Snippet[], categories: string[] } => {
       }
     }
   } catch (e) {
-    console.error('Failed to load snippets:', e)
+    logger.error('Failed to load snippets:', e)
   }
   return { 
     snippets: [], 

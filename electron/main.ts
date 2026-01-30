@@ -4,6 +4,7 @@ import { PtyManager } from './pty-manager'
 import { configManager, Profile, Settings, Workspace, BackupInfo, SSHConnection } from './config-manager'
 import { updater } from './auto-updater'
 import { createLogger } from './logger'
+import { isAllowed, RATE_LIMITS } from './rate-limiter'
 
 const logger = createLogger('Main')
 
@@ -266,15 +267,21 @@ function setupPtyHandlers() {
   ptyManager = new PtyManager()
 
   ipcMain.handle('pty-create', async (_, options: { shell?: string; cwd?: string; env?: Record<string, string> }) => {
+    if (!isAllowed('pty-create', RATE_LIMITS.ptyCreate)) {
+      logger.warn('pty-create rate limited')
+      throw new Error('Rate limit exceeded for pty-create')
+    }
     const id = ptyManager.create(options)
     return id
   })
 
   ipcMain.on('pty-write', (_, { id, data }: { id: string; data: string }) => {
+    if (!isAllowed('pty-write', RATE_LIMITS.ptyWrite)) return
     ptyManager.write(id, data)
   })
 
   ipcMain.on('pty-resize', (_, { id, cols, rows }: { id: string; cols: number; rows: number }) => {
+    if (!isAllowed('pty-resize', RATE_LIMITS.ptyResize)) return
     ptyManager.resize(id, cols, rows)
   })
 
@@ -497,6 +504,7 @@ app.whenReady().then(() => {
 
   // Setup auto-updater (only in production)
   if (!isDev && mainWindow) {
+    updater.init()
     updater.setMainWindow(mainWindow)
     updater.setupIpcHandlers()
     

@@ -8,6 +8,7 @@ import { LigaturesAddon } from '@xterm/addon-ligatures'
 import { useSettingsStore } from '../../store/settingsStore'
 import { mapThemeToXterm } from '../../utils/theme'
 import { isValidExternalUrl } from '../../utils/url'
+import { terminalLogger } from '../../utils/logger'
 import { SearchBar } from './SearchBar'
 import { COPY_FEEDBACK_DURATION, MIN_FONT_SIZE, MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL, ZOOM_STEP, RESIZE_DEBOUNCE_DELAY } from '../../constants'
 import '@xterm/xterm/css/xterm.css'
@@ -93,7 +94,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
           window.electronAPI.ptyWrite(ptyId, text)
         }
       } catch (error) {
-        console.error('Failed to paste:', error)
+        terminalLogger.error('Failed to paste:', error)
       }
     }
   }), [ptyId])
@@ -154,7 +155,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       })
       terminal.loadAddon(webglAddon)
     } catch {
-      console.warn('WebGL addon failed to load, falling back to canvas renderer')
+      terminalLogger.warn('WebGL addon failed to load, falling back to canvas renderer')
     }
 
     try {
@@ -194,8 +195,8 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
           if (text) {
             window.electronAPI.ptyWrite(ptyId, text)
           }
-        }).catch(() => {
-          // Clipboard access denied
+        }).catch((error) => {
+          terminalLogger.warn('Clipboard read denied:', error)
         })
         return false
       }
@@ -364,8 +365,8 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
         if (text) {
           window.electronAPI.ptyWrite(ptyId, text)
         }
-      }).catch(() => {
-        // Clipboard access denied
+      }).catch((error) => {
+        terminalLogger.warn('Clipboard read denied:', error)
       })
     })
 

@@ -42,6 +42,40 @@ export function isValidPath(filePath: string): boolean {
   return !dangerousChars.test(filePath)
 }
 
+/**
+ * Detect if the current platform is Windows.
+ * Works in both renderer (via electronAPI) and test environments.
+ */
+function isWindows(): boolean {
+  try {
+    if (typeof window !== 'undefined' && window.electronAPI?.platform) {
+      return window.electronAPI.platform === 'win32'
+    }
+  } catch {
+    // Fallback for test environment
+  }
+  // Fallback: check process.platform (available in Node/Electron/test contexts)
+  if (typeof process !== 'undefined' && process.platform) {
+    return process.platform === 'win32'
+  }
+  return false
+}
+
+/**
+ * Escape a file path for safe use in shell arguments.
+ * Uses single quotes on Unix (which prevent all expansion)
+ * and double quotes on Windows.
+ */
+export function escapeShellPath(filePath: string): string {
+  if (isWindows()) {
+    // Windows: double-quote, escape inner double-quotes
+    return `"${filePath.replace(/"/g, '""')}"`
+  }
+  // Unix: single-quote, escape inner single-quotes by ending the
+  // quoted section, adding an escaped quote, and reopening.
+  return `'${filePath.replace(/'/g, "'\\''")}'`
+}
+
 /** Jump host validasyonu (user@host formatinda) */
 export function isValidJumpHost(jumpHost: string): boolean {
   if (!jumpHost) return true // opsiyonel alan
@@ -126,8 +160,8 @@ export function buildSSHCommand(connection: {
   }
   
   if (privateKeyPath) {
-    // Yolu tirnak icine al
-    command += ` -i "${privateKeyPath}"`
+    // Escape path safely for shell use
+    command += ` -i ${escapeShellPath(privateKeyPath)}`
   }
   
   if (jumpHost) {

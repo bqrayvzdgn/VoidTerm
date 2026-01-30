@@ -5,6 +5,58 @@ import { createLogger } from './logger'
 
 const logger = createLogger('PtyManager')
 
+/**
+ * Whitelisted environment variable names that are safe to pass to PTY processes.
+ * This prevents leaking sensitive env vars (API keys, tokens, secrets) to child processes.
+ */
+const ENV_WHITELIST_WIN32 = [
+  'COMSPEC', 'SYSTEMROOT', 'SYSTEMDRIVE', 'WINDIR',
+  'PATH', 'PATHEXT', 'TEMP', 'TMP',
+  'HOMEDRIVE', 'HOMEPATH', 'USERPROFILE', 'USERNAME',
+  'APPDATA', 'LOCALAPPDATA', 'PROGRAMDATA',
+  'PROGRAMFILES', 'PROGRAMFILES(X86)', 'COMMONPROGRAMFILES',
+  'NUMBER_OF_PROCESSORS', 'PROCESSOR_ARCHITECTURE', 'OS',
+  'LANG', 'LC_ALL', 'LC_CTYPE',
+  'PSModulePath'
+]
+
+const ENV_WHITELIST_UNIX = [
+  'PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL',
+  'LANG', 'LC_ALL', 'LC_CTYPE', 'LC_MESSAGES', 'LC_COLLATE',
+  'DISPLAY', 'WAYLAND_DISPLAY', 'XDG_RUNTIME_DIR', 'XDG_SESSION_TYPE',
+  'XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME',
+  'TMPDIR', 'EDITOR', 'VISUAL', 'PAGER',
+  'SSH_AUTH_SOCK', 'SSH_AGENT_PID',
+  'DBUS_SESSION_BUS_ADDRESS'
+]
+
+/**
+ * Build a safe environment for PTY processes using a whitelist approach.
+ * Only known-safe environment variables are passed through.
+ */
+export function buildSafeEnv(userEnv?: Record<string, string>): Record<string, string> {
+  const whitelist = process.platform === 'win32' ? ENV_WHITELIST_WIN32 : ENV_WHITELIST_UNIX
+  const safeEnv: Record<string, string> = {}
+
+  for (const key of whitelist) {
+    const value = process.env[key]
+    if (value !== undefined) {
+      safeEnv[key] = value
+    }
+  }
+
+  // Apply user-provided overrides (from profile settings)
+  if (userEnv) {
+    Object.assign(safeEnv, userEnv)
+  }
+
+  // Always set terminal type
+  safeEnv['TERM'] = 'xterm-256color'
+  safeEnv['COLORTERM'] = 'truecolor'
+
+  return safeEnv
+}
+
 interface PtyProcess {
   pty: pty.IPty
   id: string
@@ -36,12 +88,7 @@ export class PtyManager {
     const shell = options.shell || this.getDefaultShell()
     const cwd = options.cwd || os.homedir()
 
-    const env = {
-      ...process.env,
-      ...options.env,
-      TERM: 'xterm-256color',
-      COLORTERM: 'truecolor'
-    } as Record<string, string>
+    const env = buildSafeEnv(options.env)
 
     const shellArgs = process.platform === 'win32' ? [] : ['--login']
 

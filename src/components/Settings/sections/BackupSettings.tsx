@@ -2,7 +2,10 @@ import React, { memo, useState, useEffect, useCallback } from 'react'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useToastStore } from '../../../store/toastStore'
 import { useTranslation } from '../../../i18n'
+import { createLogger } from '../../../utils/logger'
 import type { Profile, KeyboardShortcuts, Settings as SettingsType } from '../../../types'
+
+const logger = createLogger('BackupSettings')
 import { DEFAULT_SETTINGS } from '../../../types'
 
 interface BackupInfo {
@@ -30,7 +33,7 @@ export const BackupSettings: React.FC = memo(() => {
       const backupList = await window.electronAPI.config.backup.list()
       setBackups(backupList)
     } catch (error) {
-      console.error('Failed to load backups:', error)
+      logger.error('Failed to load backups:', error)
     } finally {
       setLoadingBackups(false)
     }
@@ -47,7 +50,7 @@ export const BackupSettings: React.FC = memo(() => {
       toast.success(t.settings.backup.backupCreated)
       loadBackups()
     } catch (error) {
-      console.error('Failed to create backup:', error)
+      logger.error('Failed to create backup:', error)
       toast.error(t.settings.backup.restoreError)
     }
   }
@@ -67,7 +70,7 @@ export const BackupSettings: React.FC = memo(() => {
         toast.error(t.settings.backup.restoreError)
       }
     } catch (error) {
-      console.error('Failed to restore backup:', error)
+      logger.error('Failed to restore backup:', error)
       toast.error(t.settings.backup.restoreError)
     }
   }
@@ -78,7 +81,7 @@ export const BackupSettings: React.FC = memo(() => {
       await window.electronAPI.config.backup.delete(filename)
       loadBackups()
     } catch (error) {
-      console.error('Failed to delete backup:', error)
+      logger.error('Failed to delete backup:', error)
     }
   }
 
@@ -266,7 +269,7 @@ export const BackupSettings: React.FC = memo(() => {
 
         toast.success(t.settings.backup.importSuccess)
       } catch (error) {
-        console.error('Import error:', error)
+        logger.error('Import error:', error)
         toast.error(t.settings.backup.importError)
       }
     }
@@ -299,7 +302,7 @@ export const BackupSettings: React.FC = memo(() => {
         const importedCount = importProfiles(data.profiles)
         toast.success(`${importedCount} ${t.settings.backup.profileImportCount}`)
       } catch (error) {
-        console.error('Profile import error:', error)
+        logger.error('Profile import error:', error)
         toast.error(t.settings.backup.importError)
       }
     }

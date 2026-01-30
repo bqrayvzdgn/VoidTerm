@@ -2,6 +2,9 @@ import { useEffect } from 'react'
 import { useTerminalStore } from '../store/terminalStore'
 import { useSettingsStore, useIsConfigLoaded, useSettingsActions } from '../store/settingsStore'
 import { useWorkspaceStore, useIsWorkspacesLoaded, useWorkspaceActions } from '../store/workspaceStore'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('SessionManager')
 
 interface UseSessionManagerProps {
   handleCreateTab: (profileId?: string, workspaceId?: string | null) => Promise<void>
@@ -65,7 +68,7 @@ export const useSessionManager = ({ handleCreateTab }: UseSessionManagerProps) =
               try {
                 await handleCreateTab(savedTab.profileId, savedTab.workspaceId)
               } catch (error) {
-                console.error('Failed to restore tab:', error)
+                logger.error('Failed to restore tab:', error)
               }
             }
 
@@ -78,7 +81,7 @@ export const useSessionManager = ({ handleCreateTab }: UseSessionManagerProps) =
           }
         }
       } catch (error) {
-        console.error('Failed to restore session:', error)
+        logger.error('Failed to restore session:', error)
       }
 
       // Create a default tab only if no tabs were restored
@@ -88,7 +91,7 @@ export const useSessionManager = ({ handleCreateTab }: UseSessionManagerProps) =
         try {
           await handleCreateTab(undefined, null) // null = force unassigned
         } catch (error) {
-          console.error('Failed to create default tab:', error)
+          logger.error('Failed to create default tab:', error)
         }
       }
     }
