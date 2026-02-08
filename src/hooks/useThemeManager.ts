@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useSettingsStore } from '../store/settingsStore'
 
 export const useThemeManager = () => {
-  const { settings, currentTheme } = useSettingsStore()
+  const { settings, currentTheme, setTheme } = useSettingsStore()
 
   // Apply window appearance settings
   useEffect(() => {
@@ -16,6 +16,22 @@ export const useThemeManager = () => {
       window.electronAPI.setBackgroundBlur(settings.blur)
     }
   }, [settings.blur])
+
+  // OS theme tracking (Phase A)
+  useEffect(() => {
+    if (!settings.autoTheme) return
+
+    const removeListener = window.electronAPI.onThemeChanged?.((isDark: boolean) => {
+      const targetTheme = isDark ? settings.darkTheme : settings.lightTheme
+      if (targetTheme) {
+        setTheme(targetTheme)
+      }
+    })
+
+    return () => {
+      removeListener?.()
+    }
+  }, [settings.autoTheme, settings.darkTheme, settings.lightTheme, setTheme])
 
   // Apply theme colors to CSS variables
   useEffect(() => {

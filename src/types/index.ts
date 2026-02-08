@@ -103,6 +103,17 @@ export interface Workspace {
   isActive: boolean
 }
 
+export interface CommandBlock {
+  id: string
+  command: string
+  cwd: string
+  startLine: number
+  endLine: number
+  exitCode: number | null
+  startTime: number
+  endTime: number | null
+}
+
 export interface KeyboardShortcuts {
   newTab: string
   closeTab: string
@@ -123,6 +134,10 @@ export interface KeyboardShortcuts {
   pasteText: string
   openCommandPalette: string
   openSSHManager: string
+  prevCommand: string
+  nextCommand: string
+  hintsMode: string
+  viMode: string
 }
 
 export interface Settings {
@@ -145,6 +160,28 @@ export interface Settings {
   copyOnSelect: boolean
   scrollback: number
   bellSound: boolean
+
+  // Addons (Phase A)
+  enableImages: boolean
+  enableClipboard: boolean
+
+  // Tray (Phase A)
+  minimizeToTray: boolean
+
+  // OS Theme (Phase A)
+  autoTheme: boolean
+  lightTheme: string
+  darkTheme: string
+
+  // Notifications (Phase A)
+  notifications: boolean
+  notificationDelay: number
+
+  // Shell Integration (Phase B)
+  shellIntegration: boolean
+
+  // Editor (Phase C)
+  editorCommand: string
 
   // Keyboard Shortcuts
   shortcuts: KeyboardShortcuts
@@ -169,7 +206,11 @@ export const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
   copyText: 'Ctrl+Shift+C',
   pasteText: 'Ctrl+Shift+V',
   openCommandPalette: 'Ctrl+Shift+P',
-  openSSHManager: 'Ctrl+Shift+S'
+  openSSHManager: 'Ctrl+Shift+S',
+  prevCommand: 'Ctrl+Shift+ArrowUp',
+  nextCommand: 'Ctrl+Shift+ArrowDown',
+  hintsMode: 'Ctrl+Shift+H',
+  viMode: 'Ctrl+Shift+X'
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -187,6 +228,16 @@ export const DEFAULT_SETTINGS: Settings = {
   copyOnSelect: true,
   scrollback: 50000,
   bellSound: false,
+  enableImages: true,
+  enableClipboard: true,
+  minimizeToTray: false,
+  autoTheme: false,
+  lightTheme: 'github-light',
+  darkTheme: 'catppuccin-mocha',
+  notifications: false,
+  notificationDelay: 5000,
+  shellIntegration: true,
+  editorCommand: 'code --goto {file}:{line}:{col}',
   shortcuts: DEFAULT_SHORTCUTS
 }
 

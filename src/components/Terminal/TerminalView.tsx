@@ -5,16 +5,31 @@ import { WebglAddon } from '@xterm/addon-webgl'
 import { SearchAddon } from '@xterm/addon-search'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { LigaturesAddon } from '@xterm/addon-ligatures'
+import { ImageAddon } from '@xterm/addon-image'
+import { SerializeAddon } from '@xterm/addon-serialize'
+import { ClipboardAddon } from '@xterm/addon-clipboard'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useTerminalStore } from '../../store/terminalStore'
+import { useToastStore } from '../../store/toastStore'
 import { mapThemeToXterm } from '../../utils/theme'
 import { isValidExternalUrl } from '../../utils/url'
 import { terminalLogger } from '../../utils/logger'
+import { terminalRegistry } from '../../utils/terminalRegistry'
+import { FileLinkProvider } from '../../utils/file-link-provider'
+import { createInitialState, parseOsc633, processEvent } from '../../utils/shell-integration'
+import type { ShellIntegrationState } from '../../utils/shell-integration'
+import { useCommandBlocks } from '../../hooks/useCommandBlocks'
+import { useViMode } from '../../hooks/useViMode'
+import { useHintsMode } from '../../hooks/useHintsMode'
 import { SearchBar } from './SearchBar'
+import { StickyCommandHeader } from './StickyCommandHeader'
+import { HintsOverlay } from './HintsOverlay'
 import { COPY_FEEDBACK_DURATION, MIN_FONT_SIZE, MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL, ZOOM_STEP, RESIZE_DEBOUNCE_DELAY } from '../../constants'
 import '@xterm/xterm/css/xterm.css'
 
 interface TerminalViewProps {
   ptyId: string
+  terminalId?: string
   onTitleChange?: (title: string) => void
   isActive?: boolean
   onNavigatePane?: (direction: 'up' | 'down' | 'left' | 'right') => void
@@ -31,10 +46,16 @@ export interface TerminalViewHandle {
   clearSearch: () => void
   copy: () => void
   paste: () => void
+  getBufferContent: () => string
+  serialize: () => string
+  toggleViMode: () => void
+  toggleHintsMode: () => void
+  navigateCommand: (direction: 'prev' | 'next') => void
 }
 
 export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
   ptyId,
+  terminalId,
   onTitleChange,
   isActive,
   onNavigatePane,
@@ -48,7 +69,17 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
   const terminalRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const searchAddonRef = useRef<SearchAddon | null>(null)
+  const serializeAddonRef = useRef<SerializeAddon | null>(null)
+  const shellIntegrationRef = useRef<ShellIntegrationState>(createInitialState())
+  const lastDataTimeRef = useRef<number>(0)
+  const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { settings, currentTheme } = useSettingsStore()
+  const { setTerminalCwd, addCommandBlock } = useTerminalStore()
+  const [isAtBottom, setIsAtBottom] = useState(true)
+
+  const { scrollToCommand, navigateCommand, currentCommand } = useCommandBlocks(terminalId || null)
+  const viMode = useViMode(terminalRef.current)
+  const hintsMode = useHintsMode(terminalRef.current)
 
   const [showSearch, setShowSearch] = useState(false)
   const [zoomLevel, setZoomLevel] = useState(0)
@@ -96,8 +127,30 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       } catch (error) {
         terminalLogger.error('Failed to paste:', error)
       }
-    }
-  }), [ptyId])
+    },
+    getBufferContent: () => {
+      const terminal = terminalRef.current
+      if (!terminal) return ''
+      const buffer = terminal.buffer.active
+      const lines: string[] = []
+      for (let i = 0; i < buffer.length; i++) {
+        const line = buffer.getLine(i)
+        if (line) {
+          lines.push(line.translateToString(true))
+        }
+      }
+      return lines.join('\n')
+    },
+    serialize: () => {
+      if (serializeAddonRef.current) {
+        return serializeAddonRef.current.serialize()
+      }
+      return ''
+    },
+    toggleViMode: () => viMode.toggle(),
+    toggleHintsMode: () => hintsMode.toggle(),
+    navigateCommand: (direction: 'prev' | 'next') => navigateCommand(direction)
+  }), [ptyId, viMode.toggle, hintsMode.toggle, navigateCommand])
 
   const handleResize = useCallback(() => {
     if (resizeTimeoutRef.current) {
@@ -146,6 +199,11 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
     terminal.loadAddon(searchAddon)
     terminal.loadAddon(webLinksAddon)
 
+    // Serialize addon (Phase A — buffer persistence)
+    const serializeAddon = new SerializeAddon()
+    terminal.loadAddon(serializeAddon)
+    serializeAddonRef.current = serializeAddon
+
     terminal.open(containerRef.current)
 
     try {
@@ -156,6 +214,31 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       terminal.loadAddon(webglAddon)
     } catch {
       terminalLogger.warn('WebGL addon failed to load, falling back to canvas renderer')
+      useToastStore.getState().info('WebGL unavailable, using canvas renderer. Performance may be reduced.')
+    }
+
+    // Image addon — Sixel support (Phase A)
+    if (settings.enableImages) {
+      try {
+        const imageAddon = new ImageAddon({
+          sixelSupport: true,
+          sixelScrolling: true,
+          sixelPaletteLimit: 4096
+        })
+        terminal.loadAddon(imageAddon)
+      } catch {
+        terminalLogger.warn('Image addon failed to load')
+      }
+    }
+
+    // Clipboard addon — OSC 52 (Phase A)
+    if (settings.enableClipboard) {
+      try {
+        const clipboardAddon = new ClipboardAddon()
+        terminal.loadAddon(clipboardAddon)
+      } catch {
+        terminalLogger.warn('Clipboard addon failed to load')
+      }
     }
 
     try {
@@ -165,11 +248,41 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       // Ligatures addon requires specific font support
     }
 
+    // File:line link provider (Phase C)
+    const fileLinkProvider = new FileLinkProvider((file, line, col) => {
+      window.electronAPI.openInEditor?.(file, line, col)
+    })
+    fileLinkProvider.setTerminal(terminal)
+    terminal.registerLinkProvider(fileLinkProvider)
+
+    // OSC 633 shell integration parser (Phase B)
+    if (settings.shellIntegration && terminalId) {
+      const currentTerminalId = terminalId
+      terminal.parser.registerOscHandler(633, (data) => {
+        const currentLine = terminal.buffer.active.cursorY + terminal.buffer.active.baseY
+        const event = parseOsc633(data, currentLine)
+        if (event) {
+          const result = processEvent(shellIntegrationRef.current, event)
+          shellIntegrationRef.current = result.state
+
+          if (event.type === 'cwd-changed') {
+            setTerminalCwd(currentTerminalId, event.cwd)
+          }
+
+          if (result.completedBlock) {
+            addCommandBlock(currentTerminalId, result.completedBlock)
+          }
+        }
+        return true
+      })
+    }
+
     fitAddon.fit()
 
     terminalRef.current = terminal
     fitAddonRef.current = fitAddon
     searchAddonRef.current = searchAddon
+    terminalRegistry.register(ptyId, terminal)
 
     terminal.attachCustomKeyEventHandler((e: KeyboardEvent) => {
       const isCtrl = e.ctrlKey || e.metaKey
@@ -296,7 +409,24 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
     const removeDataListener = window.electronAPI.onPtyData((id, data) => {
       if (id === ptyId) {
         terminal.write(data)
+
+        // Track data timing for notification idle detection (Phase A)
+        if (settings.notifications && !isActive) {
+          const now = Date.now()
+          const elapsed = now - lastDataTimeRef.current
+          if (elapsed > settings.notificationDelay && lastDataTimeRef.current > 0) {
+            window.electronAPI.showNotification?.('VoidTerm', 'Terminal activity detected')
+          }
+          lastDataTimeRef.current = now
+        }
       }
+    })
+
+    // Track scroll position for sticky header
+    terminal.onScroll(() => {
+      const buffer = terminal.buffer.active
+      const atBottom = buffer.viewportY >= buffer.baseY
+      setIsAtBottom(atBottom)
     })
 
     const removeExitListener = window.electronAPI.onPtyExit((id, exitCode) => {
@@ -320,9 +450,17 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       if (resizeTimeoutRef.current) {
         clearTimeout(resizeTimeoutRef.current)
       }
+      if (copyFeedbackTimeoutRef.current) {
+        clearTimeout(copyFeedbackTimeoutRef.current)
+      }
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current)
+      }
+      serializeAddonRef.current = null
+      terminalRegistry.unregister(ptyId)
       terminal.dispose()
     }
-  }, [ptyId, onTitleChange, handleResize, triggerCopyFeedback])
+  }, [ptyId, terminalId, onTitleChange, handleResize, triggerCopyFeedback, settings.enableImages, settings.enableClipboard, settings.shellIntegration, settings.notifications, settings.notificationDelay, isActive, setTerminalCwd, addCommandBlock])
 
   useEffect(() => {
     if (isActive && terminalRef.current && !showSearch) {
@@ -381,6 +519,10 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
     }
   }, [ptyId, triggerCopyFeedback])
 
+  // Compute approximate character dimensions for hint overlay positioning
+  const charWidth = terminalRef.current ? (containerRef.current?.clientWidth || 800) / (terminalRef.current.cols || 80) : 8
+  const lineHeight = terminalRef.current ? (containerRef.current?.clientHeight || 600) / (terminalRef.current.rows || 24) : 18
+
   return (
     <div
       style={{
@@ -400,6 +542,13 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
         />
       )}
 
+      {/* Sticky command header (Phase B) */}
+      <StickyCommandHeader
+        block={currentCommand}
+        isAtBottom={isAtBottom}
+        onScrollToCommand={scrollToCommand}
+      />
+
       {zoomLevel !== 0 && (
         <div className="terminal-zoom-indicator">
           {zoomLevel > 0 ? '+' : ''}{zoomLevel * 2}px ({Math.round((settings.fontSize + zoomLevel * 2) / settings.fontSize * 100)}%)
@@ -410,9 +559,40 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
         <div className="terminal-copy-feedback">Copied!</div>
       )}
 
+      {/* Vi mode indicator */}
+      {viMode.isActive && (
+        <div style={{
+          position: 'absolute',
+          bottom: 4,
+          left: 8,
+          zIndex: 15,
+          padding: '2px 8px',
+          borderRadius: 4,
+          fontSize: 11,
+          fontWeight: 'bold',
+          fontFamily: 'monospace',
+          backgroundColor: 'rgba(139, 92, 246, 0.9)',
+          color: '#fff'
+        }}>
+          -- {viMode.viState.mode} --
+        </div>
+      )}
+
+      {/* Hints overlay (Phase C) */}
+      {hintsMode.active && (
+        <HintsOverlay
+          hints={hintsMode.hints}
+          inputBuffer={hintsMode.inputBuffer}
+          charWidth={charWidth}
+          lineHeight={lineHeight}
+        />
+      )}
+
       <div
         ref={containerRef}
         onContextMenu={handleContextMenu}
+        role="region"
+        aria-label="Terminal"
         style={{
           flex: 1,
           width: '100%',

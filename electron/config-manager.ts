@@ -39,6 +39,10 @@ export interface KeyboardShortcuts {
   clearTerminal: string
   copyText: string
   pasteText: string
+  prevCommand: string
+  nextCommand: string
+  hintsMode: string
+  viMode: string
 }
 
 export interface Settings {
@@ -56,6 +60,16 @@ export interface Settings {
   opacity: number
   blur: boolean
   backgroundImage: string
+  enableImages: boolean
+  enableClipboard: boolean
+  minimizeToTray: boolean
+  autoTheme: boolean
+  lightTheme: string
+  darkTheme: string
+  notifications: boolean
+  notificationDelay: number
+  shellIntegration: boolean
+  editorCommand: string
   shortcuts: KeyboardShortcuts
 }
 
@@ -130,7 +144,11 @@ const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
   toggleSearch: 'Ctrl+F',
   clearTerminal: 'Ctrl+L',
   copyText: 'Ctrl+Shift+C',
-  pasteText: 'Ctrl+Shift+V'
+  pasteText: 'Ctrl+Shift+V',
+  prevCommand: 'Ctrl+Shift+ArrowUp',
+  nextCommand: 'Ctrl+Shift+ArrowDown',
+  hintsMode: 'Ctrl+Shift+H',
+  viMode: 'Ctrl+Shift+X'
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -148,6 +166,16 @@ const DEFAULT_SETTINGS: Settings = {
   opacity: 1,
   blur: false,
   backgroundImage: '',
+  enableImages: true,
+  enableClipboard: true,
+  minimizeToTray: false,
+  autoTheme: false,
+  lightTheme: 'github-light',
+  darkTheme: 'catppuccin-mocha',
+  notifications: false,
+  notificationDelay: 5000,
+  shellIntegration: true,
+  editorCommand: 'code --goto {file}:{line}:{col}',
   shortcuts: DEFAULT_SHORTCUTS
 }
 
@@ -256,6 +284,14 @@ const DEFAULT_CONFIG: AppConfig = {
 // Backup configuration
 const MAX_BACKUPS = 5
 const BACKUP_PREFIX = 'config.backup.'
+const BACKUP_FILENAME_REGEX = /^config\.backup\.\d+\.json$/
+
+function isValidBackupFilename(filename: string): boolean {
+  return BACKUP_FILENAME_REGEX.test(filename) &&
+    !filename.includes('..') &&
+    !filename.includes('/') &&
+    !filename.includes('\\')
+}
 
 // Create store instance
 const store = new Store<AppConfig>({
@@ -492,6 +528,11 @@ export class ConfigManager {
    * Restore config from a backup file
    */
   restoreBackup(filename: string): boolean {
+    if (!isValidBackupFilename(filename)) {
+      logger.error('Invalid backup filename:', filename)
+      return false
+    }
+
     const backupPath = path.join(getConfigDir(), filename)
 
     try {
@@ -536,6 +577,11 @@ export class ConfigManager {
    * Delete a specific backup
    */
   deleteBackup(filename: string): boolean {
+    if (!isValidBackupFilename(filename)) {
+      logger.error('Invalid backup filename:', filename)
+      return false
+    }
+
     const backupPath = path.join(getConfigDir(), filename)
 
     try {
@@ -601,18 +647,68 @@ export class ConfigManager {
     try {
       const config = JSON.parse(jsonString) as Partial<AppConfig>
 
-      // Validate and merge with defaults
+      // Validate settings field types and value ranges
       if (config.settings) {
-        const validSettings = { ...DEFAULT_SETTINGS, ...config.settings }
+        const s = config.settings
+        if (s.fontSize !== undefined && (typeof s.fontSize !== 'number' || s.fontSize < 6 || s.fontSize > 72)) {
+          throw new Error('Invalid fontSize: must be a number between 6 and 72')
+        }
+        if (s.lineHeight !== undefined && (typeof s.lineHeight !== 'number' || s.lineHeight < 0.5 || s.lineHeight > 3)) {
+          throw new Error('Invalid lineHeight: must be a number between 0.5 and 3')
+        }
+        if (s.letterSpacing !== undefined && (typeof s.letterSpacing !== 'number' || s.letterSpacing < -5 || s.letterSpacing > 10)) {
+          throw new Error('Invalid letterSpacing: must be a number between -5 and 10')
+        }
+        if (s.scrollback !== undefined && (typeof s.scrollback !== 'number' || s.scrollback < 0 || s.scrollback > 100000)) {
+          throw new Error('Invalid scrollback: must be a number between 0 and 100000')
+        }
+        if (s.opacity !== undefined && (typeof s.opacity !== 'number' || s.opacity < 0.3 || s.opacity > 1)) {
+          throw new Error('Invalid opacity: must be a number between 0.3 and 1')
+        }
+        if (s.cursorStyle !== undefined && !['block', 'underline', 'bar'].includes(s.cursorStyle)) {
+          throw new Error('Invalid cursorStyle: must be block, underline, or bar')
+        }
+        if (s.theme !== undefined && typeof s.theme !== 'string') {
+          throw new Error('Invalid theme: must be a string')
+        }
+        if (s.fontFamily !== undefined && typeof s.fontFamily !== 'string') {
+          throw new Error('Invalid fontFamily: must be a string')
+        }
+        const validSettings = { ...DEFAULT_SETTINGS, ...s }
         store.set('settings', validSettings)
       }
+
+      // Validate profiles
       if (config.profiles && Array.isArray(config.profiles)) {
+        for (const profile of config.profiles) {
+          if (!profile.id || typeof profile.id !== 'string') throw new Error('Invalid profile: missing or invalid id')
+          if (!profile.name || typeof profile.name !== 'string') throw new Error('Invalid profile: missing or invalid name')
+          if (!profile.shell || typeof profile.shell !== 'string') throw new Error('Invalid profile: missing or invalid shell')
+        }
         store.set('profiles', config.profiles)
       }
+
+      // Validate workspaces
       if (config.workspaces && Array.isArray(config.workspaces)) {
+        for (const workspace of config.workspaces) {
+          if (!workspace.id || typeof workspace.id !== 'string') throw new Error('Invalid workspace: missing or invalid id')
+          if (!workspace.name || typeof workspace.name !== 'string') throw new Error('Invalid workspace: missing or invalid name')
+        }
         store.set('workspaces', config.workspaces)
       }
+
+      // Validate SSH connections
       if (config.sshConnections && Array.isArray(config.sshConnections)) {
+        for (const conn of config.sshConnections) {
+          if (!conn.id || typeof conn.id !== 'string') throw new Error('Invalid SSH connection: missing or invalid id')
+          if (!conn.host || typeof conn.host !== 'string') throw new Error('Invalid SSH connection: missing or invalid host')
+          if (conn.port !== undefined && (typeof conn.port !== 'number' || conn.port < 1 || conn.port > 65535)) {
+            throw new Error('Invalid SSH connection: port must be between 1 and 65535')
+          }
+          if (conn.authMethod && !['password', 'key', 'agent'].includes(conn.authMethod)) {
+            throw new Error('Invalid SSH connection: authMethod must be password, key, or agent')
+          }
+        }
         store.set('sshConnections', config.sshConnections)
       }
 

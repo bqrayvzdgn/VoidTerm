@@ -1,18 +1,26 @@
-import { app, BrowserWindow, ipcMain, Menu, shell, globalShortcut, screen } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, shell, globalShortcut, screen, session, dialog, Notification, nativeTheme } from 'electron'
+import { exec } from 'child_process'
 import path from 'path'
+import os from 'os'
+import fs from 'fs'
 import { PtyManager } from './pty-manager'
 import { configManager, Profile, Settings, Workspace, BackupInfo, SSHConnection } from './config-manager'
 import { updater } from './auto-updater'
 import { createLogger } from './logger'
 import { isAllowed, RATE_LIMITS } from './rate-limiter'
+import { TrayManager } from './tray-manager'
+import { parseDeepLink } from './deep-link-handler'
 
 const logger = createLogger('Main')
 
 let mainWindow: BrowserWindow | null = null
 let ptyManager: PtyManager
+let trayManager: TrayManager | null = null
 let isQuakeMode = false
 let quakeWindowBounds: { x: number; y: number; width: number; height: number } | null = null
 let normalWindowBounds: { x: number; y: number; width: number; height: number } | null = null
+let minimizeToTray = false
+let pendingDeepLink: string | null = null
 
 let _isDev: boolean | null = null
 function isDev(): boolean {
@@ -42,8 +50,22 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: true
     }
+  })
+
+  // Content Security Policy
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          isDev()
+            ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' ws://localhost:*"
+            : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'"
+        ]
+      }
+    })
   })
 
   if (isDev()) {
@@ -62,6 +84,14 @@ function createWindow() {
       } else {
         mainWindow?.webContents.send('next-tab')
       }
+    }
+  })
+
+  // Minimize to tray instead of closing when tray is enabled
+  mainWindow.on('close', (event) => {
+    if (minimizeToTray && trayManager?.shouldPreventClose()) {
+      event.preventDefault()
+      mainWindow?.hide()
     }
   })
 
@@ -135,9 +165,49 @@ function createWindow() {
     }
   })
 
-  // External links
+  // External links — validate protocol before opening
   ipcMain.on('open-external', (_, url: string) => {
-    shell.openExternal(url)
+    try {
+      const parsed = new URL(url)
+      if (['https:', 'http:', 'mailto:'].includes(parsed.protocol)) {
+        shell.openExternal(url)
+      } else {
+        logger.warn(`Blocked opening URL with disallowed protocol: ${parsed.protocol}`)
+      }
+    } catch {
+      logger.warn(`Blocked opening invalid URL: ${url}`)
+    }
+  })
+
+  // Terminal output export
+  ipcMain.handle('save-terminal-output', async (_, content: string) => {
+    if (!mainWindow) return null
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export Terminal Output',
+      defaultPath: `terminal-output-${Date.now()}.txt`,
+      filters: [
+        { name: 'Text Files', extensions: ['txt'] },
+        { name: 'Log Files', extensions: ['log'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    })
+    if (!result.canceled && result.filePath) {
+      fs.writeFileSync(result.filePath, content, 'utf-8')
+      return result.filePath
+    }
+    return null
+  })
+
+  // System info (moved from preload for sandbox compatibility)
+  ipcMain.handle('get-homedir', () => os.homedir())
+  ipcMain.handle('path-join', (_, args: string[]) => path.join(...args))
+  ipcMain.handle('shell-exists', (_, shellPath: string) => {
+    try {
+      fs.accessSync(shellPath, fs.constants.F_OK)
+      return true
+    } catch {
+      return false
+    }
   })
 
   // Set window title
@@ -189,6 +259,60 @@ function createWindow() {
     } else if (!enabled && isQuakeMode) {
       disableQuakeMode()
     }
+  })
+
+  // Desktop notifications (Phase A)
+  ipcMain.on('show-notification', (_, { title, body }: { title: string; body: string }) => {
+    if (Notification.isSupported()) {
+      new Notification({ title, body }).show()
+    }
+  })
+
+  // Tray enable/disable
+  ipcMain.on('set-minimize-to-tray', (_, enabled: boolean) => {
+    minimizeToTray = enabled
+    if (enabled && !trayManager && mainWindow) {
+      trayManager = new TrayManager()
+      trayManager.init(mainWindow)
+    } else if (!enabled && trayManager) {
+      trayManager.dispose()
+      trayManager = null
+    }
+  })
+
+  // Buffer persistence (Phase A)
+  ipcMain.handle('save-buffers', async (_, buffers: Record<string, string>) => {
+    const bufferPath = path.join(app.getPath('userData'), 'buffers.json')
+    try {
+      await fs.promises.writeFile(bufferPath, JSON.stringify(buffers), 'utf-8')
+    } catch (error) {
+      logger.error('Failed to save buffers:', error)
+    }
+  })
+
+  ipcMain.handle('get-buffers', async () => {
+    const bufferPath = path.join(app.getPath('userData'), 'buffers.json')
+    try {
+      const data = await fs.promises.readFile(bufferPath, 'utf-8')
+      return JSON.parse(data)
+    } catch {
+      return {}
+    }
+  })
+
+  // Editor integration (Phase C)
+  ipcMain.on('open-in-editor', (_, { file, line, col }: { file: string; line: number; col: number }) => {
+    const settings = configManager.getSettings()
+    const cmd = (settings.editorCommand || 'code --goto {file}:{line}:{col}')
+      .replace('{file}', file)
+      .replace('{line}', String(line))
+      .replace('{col}', String(col))
+
+    exec(cmd, (error) => {
+      if (error) {
+        logger.error('Failed to open editor:', error)
+      }
+    })
   })
 }
 
@@ -329,6 +453,10 @@ function setupConfigHandlers() {
   })
 
   ipcMain.handle('config-update-settings', (_, updates: Partial<Settings>) => {
+    if (!isAllowed('config', RATE_LIMITS.config)) {
+      logger.warn('config-update-settings rate limited')
+      throw new Error('Rate limit exceeded for config-update-settings')
+    }
     return configManager.updateSettings(updates)
   })
 
@@ -393,11 +521,19 @@ function setupConfigHandlers() {
   })
 
   ipcMain.handle('config-import', (_, jsonString: string) => {
+    if (!isAllowed('config', RATE_LIMITS.config)) {
+      logger.warn('config-import rate limited')
+      throw new Error('Rate limit exceeded for config-import')
+    }
     return configManager.importConfig(jsonString)
   })
 
   // Reset entire config
   ipcMain.handle('config-reset', () => {
+    if (!isAllowed('config', RATE_LIMITS.config)) {
+      logger.warn('config-reset rate limited')
+      throw new Error('Rate limit exceeded for config-reset')
+    }
     return configManager.resetConfig()
   })
 
@@ -499,6 +635,66 @@ function createMenu() {
   Menu.setApplicationMenu(menu)
 }
 
+// Register deep link protocol
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('voidterm', process.execPath, [path.resolve(process.argv[1])])
+  }
+} else {
+  app.setAsDefaultProtocolClient('voidterm')
+}
+
+// Handle deep link on Windows/Linux (second-instance)
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, commandLine) => {
+    // The deep link URL is typically the last argument
+    const url = commandLine.find(arg => arg.startsWith('voidterm://'))
+    if (url) {
+      handleDeepLink(url)
+    }
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
+}
+
+// Handle deep link on macOS
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  if (mainWindow) {
+    handleDeepLink(url)
+  } else {
+    pendingDeepLink = url
+  }
+})
+
+function handleDeepLink(url: string) {
+  const action = parseDeepLink(url)
+  if (action && mainWindow) {
+    // For 'run' commands, show confirmation dialog
+    if (action.type === 'run' && action.cmd) {
+      dialog.showMessageBox(mainWindow, {
+        type: 'warning',
+        title: 'Deep Link Command',
+        message: `An external application wants to run a command:\n\n${action.cmd}\n\nAllow this?`,
+        buttons: ['Cancel', 'Allow'],
+        defaultId: 0,
+        cancelId: 0
+      }).then((result) => {
+        if (result.response === 1) {
+          mainWindow?.webContents.send('deep-link-action', action)
+        }
+      })
+    } else {
+      mainWindow.webContents.send('deep-link-action', action)
+    }
+  }
+}
+
 app.whenReady().then(() => {
   createWindow()
   createMenu()
@@ -506,12 +702,31 @@ app.whenReady().then(() => {
   setupConfigHandlers()
   setupGlobalShortcuts()
 
+  // OS theme tracking (Phase A)
+  nativeTheme.on('updated', () => {
+    mainWindow?.webContents.send('theme-changed', nativeTheme.shouldUseDarkColors)
+  })
+
+  // Initialize tray if setting is enabled
+  const settings = configManager.getSettings()
+  minimizeToTray = settings.minimizeToTray || false
+  if (minimizeToTray && mainWindow) {
+    trayManager = new TrayManager()
+    trayManager.init(mainWindow)
+  }
+
+  // Handle pending deep link
+  if (pendingDeepLink) {
+    handleDeepLink(pendingDeepLink)
+    pendingDeepLink = null
+  }
+
   // Setup auto-updater (only in production)
   if (!isDev() && mainWindow) {
     updater.init()
     updater.setMainWindow(mainWindow)
     updater.setupIpcHandlers()
-    
+
     // Check for updates after a short delay
     setTimeout(() => {
       updater.checkForUpdates()
@@ -532,6 +747,7 @@ app.on('will-quit', () => {
 
 app.on('window-all-closed', () => {
   ptyManager?.killAll()
+  trayManager?.dispose()
   if (process.platform !== 'darwin') {
     app.quit()
   }

@@ -1,6 +1,9 @@
 import * as pty from 'node-pty'
 import { v4 as uuidv4 } from 'uuid'
 import os from 'os'
+import path from 'path'
+import fs from 'fs'
+import { app } from 'electron'
 import { createLogger } from './logger'
 
 const logger = createLogger('PtyManager')
@@ -53,6 +56,7 @@ export function buildSafeEnv(userEnv?: Record<string, string>): Record<string, s
   // Always set terminal type
   safeEnv['TERM'] = 'xterm-256color'
   safeEnv['COLORTERM'] = 'truecolor'
+  safeEnv['VOIDTERM'] = '1'
 
   return safeEnv
 }
@@ -62,19 +66,21 @@ interface PtyProcess {
   id: string
 }
 
+type DataCallback = (id: string, data: string) => void
+type ExitCallback = (id: string, exitCode: number) => void
+
 export interface PtyCreateOptions {
   shell?: string
   cwd?: string
   env?: Record<string, string>
+  shellIntegration?: boolean
 }
-
-type DataCallback = (id: string, data: string) => void
-type ExitCallback = (id: string, exitCode: number) => void
 
 export class PtyManager {
   private processes: Map<string, PtyProcess> = new Map()
   private dataCallbacks: DataCallback[] = []
   private exitCallbacks: ExitCallback[] = []
+  private shellIntegrationEnabled = true
 
   getDefaultShell(): string {
     if (process.platform === 'win32') {
@@ -100,12 +106,70 @@ export class PtyManager {
     return process.platform === 'win32' && name.includes('powershell') && !name.includes('pwsh')
   }
 
+  setShellIntegration(enabled: boolean): void {
+    this.shellIntegrationEnabled = enabled
+  }
+
+  /**
+   * Detect shell type from shell path and return the source command for integration.
+   */
+  private getShellIntegrationCommand(shell: string): string | null {
+    if (!this.shellIntegrationEnabled) return null
+
+    const shellName = shell.toLowerCase()
+    let scriptFile: string | null = null
+
+    if (shellName.includes('bash')) {
+      scriptFile = 'bash.sh'
+    } else if (shellName.includes('zsh')) {
+      scriptFile = 'zsh.sh'
+    } else if (shellName.includes('pwsh') || shellName.includes('powershell')) {
+      scriptFile = 'powershell.ps1'
+    } else if (shellName.includes('fish')) {
+      scriptFile = 'fish.fish'
+    }
+
+    if (!scriptFile) return null
+
+    // Determine the path to shell integration scripts
+    let scriptDir: string
+    if (app.isPackaged) {
+      scriptDir = path.join(process.resourcesPath, 'assets', 'shell-integration')
+    } else {
+      scriptDir = path.join(app.getAppPath(), 'assets', 'shell-integration')
+    }
+
+    const scriptPath = path.join(scriptDir, scriptFile)
+
+    // Verify script exists
+    try {
+      fs.accessSync(scriptPath, fs.constants.R_OK)
+    } catch {
+      logger.warn(`Shell integration script not found: ${scriptPath}`)
+      return null
+    }
+
+    // Return the source/dot command to inject the script
+    if (scriptFile.endsWith('.ps1')) {
+      return `. "${scriptPath.replace(/\\/g, '\\\\')}"\r`
+    } else if (scriptFile.endsWith('.fish')) {
+      return `source "${scriptPath}"\r`
+    } else {
+      return `. "${scriptPath}"\r`
+    }
+  }
+
   create(options: PtyCreateOptions = {}): string {
     const id = uuidv4()
     const shell = options.shell || this.getDefaultShell()
     const cwd = options.cwd || os.homedir()
 
     const env = buildSafeEnv(options.env)
+
+    // Mark shell integration environment variable
+    if (this.shellIntegrationEnabled && options.shellIntegration !== false) {
+      env['VOIDTERM_SHELL_INTEGRATION'] = '1'
+    }
 
     const shellArgs = this.getShellArgs(shell)
 
@@ -121,6 +185,21 @@ export class PtyManager {
     // Send a command to reset console colors so the xterm.js theme shows through.
     if (this.isLegacyPowerShell(shell)) {
       ptyProcess.write('[Console]::ResetColor(); Clear-Host\r')
+    }
+
+    // Inject shell integration script
+    if (options.shellIntegration !== false) {
+      const integrationCmd = this.getShellIntegrationCommand(shell)
+      if (integrationCmd) {
+        // Small delay to let the shell initialize
+        setTimeout(() => {
+          try {
+            ptyProcess.write(integrationCmd)
+          } catch {
+            // PTY may have already exited
+          }
+        }, 200)
+      }
     }
 
     ptyProcess.onData((data) => {

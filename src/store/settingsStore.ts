@@ -5,6 +5,7 @@ import { DEFAULT_SETTINGS } from '../types'
 import { themes } from '../themes'
 import { resolveTheme } from '../utils/theme'
 import { createLogger } from '../utils/logger'
+import { useToastStore } from './toastStore'
 
 const logger = createLogger('SettingsStore')
 
@@ -49,6 +50,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
       })
     } catch (error) {
       logger.error('Failed to load config:', error)
+      useToastStore.getState().warning('Failed to load settings. Using defaults.')
       set({ isLoaded: true })
     }
   },

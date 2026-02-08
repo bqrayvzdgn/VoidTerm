@@ -1,6 +1,4 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import os from 'os'
-import path from 'path'
 
 export interface PtyOptions {
   shell?: string
@@ -14,9 +12,9 @@ const electronAPI = {
   windowMaximize: () => ipcRenderer.send('window-maximize'),
   windowClose: () => ipcRenderer.send('window-close'),
 
-  // System paths
-  homedir: () => os.homedir(),
-  pathJoin: (...args: string[]) => path.join(...args),
+  // System paths (via IPC for sandbox compatibility)
+  homedir: (): Promise<string> => ipcRenderer.invoke('get-homedir'),
+  pathJoin: (...args: string[]): Promise<string> => ipcRenderer.invoke('path-join', args),
 
   // PTY operations
   ptyCreate: (options: PtyOptions): Promise<string> =>
@@ -103,6 +101,12 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('quake-mode-changed', handler)
   },
 
+  // Shell validation
+  shellExists: (shellPath: string): Promise<boolean> => ipcRenderer.invoke('shell-exists', shellPath),
+
+  // Terminal output export
+  saveTerminalOutput: (content: string): Promise<string | null> => ipcRenderer.invoke('save-terminal-output', content),
+
   // Platform info
   platform: process.platform,
 
@@ -131,6 +135,42 @@ const electronAPI = {
     ipcRenderer.on('terminal-clear', callback)
     return () => ipcRenderer.removeListener('terminal-clear', callback)
   },
+
+  // Desktop notifications (Phase A)
+  showNotification: (title: string, body: string) =>
+    ipcRenderer.send('show-notification', { title, body }),
+
+  // OS theme tracking (Phase A)
+  onThemeChanged: (callback: (isDark: boolean) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, isDark: boolean) => {
+      callback(isDark)
+    }
+    ipcRenderer.on('theme-changed', handler)
+    return () => ipcRenderer.removeListener('theme-changed', handler)
+  },
+
+  // Tray settings (Phase A)
+  setMinimizeToTray: (enabled: boolean) =>
+    ipcRenderer.send('set-minimize-to-tray', enabled),
+
+  // Deep links (Phase A)
+  onDeepLink: (callback: (action: { type: string; cwd?: string; host?: string; user?: string; cmd?: string }) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, action: { type: string; cwd?: string; host?: string; user?: string; cmd?: string }) => {
+      callback(action)
+    }
+    ipcRenderer.on('deep-link-action', handler)
+    return () => ipcRenderer.removeListener('deep-link-action', handler)
+  },
+
+  // Buffer persistence (Phase A)
+  saveBuffers: (buffers: Record<string, string>): Promise<void> =>
+    ipcRenderer.invoke('save-buffers', buffers),
+  getBuffers: (): Promise<Record<string, string>> =>
+    ipcRenderer.invoke('get-buffers'),
+
+  // Editor integration (Phase C)
+  openInEditor: (file: string, line: number, col: number) =>
+    ipcRenderer.send('open-in-editor', { file, line, col }),
 
   // Auto-update operations
   updates: {

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useTerminalStore } from '../store/terminalStore'
 import { useSettingsStore, useIsConfigLoaded, useSettingsActions } from '../store/settingsStore'
 import { useWorkspaceStore, useIsWorkspacesLoaded, useWorkspaceActions } from '../store/workspaceStore'
+import { useToastStore } from '../store/toastStore'
 import { createLogger } from '../utils/logger'
 
 const logger = createLogger('SessionManager')
@@ -41,7 +42,10 @@ export const useSessionManager = ({ handleCreateTab }: UseSessionManagerProps) =
     Promise.all([
       loadSettingsConfig(),
       loadWorkspacesConfig()
-    ])
+    ]).catch((error) => {
+      logger.error('Failed to load config:', error)
+      useToastStore.getState().warning('Failed to load configuration. Using defaults.')
+    })
   }, [loadSettingsConfig, loadWorkspacesConfig])
 
   // Restore session after config is loaded
@@ -98,7 +102,7 @@ export const useSessionManager = ({ handleCreateTab }: UseSessionManagerProps) =
     restoreSession()
   }, [isConfigLoaded, isWorkspacesLoaded, profiles.length, handleCreateTab, setActiveWorkspace])
 
-  // Save session before window closes
+  // Save session before window closes (with buffer persistence)
   useEffect(() => {
     const saveSession = () => {
       // Only save tabs that belong to a workspace
@@ -116,6 +120,9 @@ export const useSessionManager = ({ handleCreateTab }: UseSessionManagerProps) =
         activeTabId,
         activeWorkspaceId: activeWorkspaceId || undefined
       })
+
+      // Save terminal buffers is handled by TerminalView's serialize method
+      // through the TerminalViewHandle refs, triggered via the electronAPI
     }
 
     window.addEventListener('beforeunload', saveSession)

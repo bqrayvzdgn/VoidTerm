@@ -2,6 +2,12 @@ import React from 'react'
 import { TerminalIcon } from '../Icons/TerminalIcons'
 import type { Tab, Profile } from '../../types'
 
+/** Shorten a CWD path to just the last directory component */
+function shortenCwd(cwd: string): string {
+  const parts = cwd.replace(/\\/g, '/').split('/').filter(Boolean)
+  return parts.length > 0 ? parts[parts.length - 1] : cwd
+}
+
 interface TabItemProps {
   tab: Tab
   profile: Profile
@@ -9,6 +15,8 @@ interface TabItemProps {
   isDragging: boolean
   isDragOver: boolean
   inGroup?: boolean
+  hasActivity?: boolean
+  cwd?: string
   onSelect: () => void
   onClose: () => void
   onContextMenu: (e: React.MouseEvent) => void
@@ -26,6 +34,8 @@ export const TabItem: React.FC<TabItemProps> = ({
   isDragging,
   isDragOver,
   inGroup,
+  hasActivity,
+  cwd,
   onSelect,
   onClose,
   onContextMenu,
@@ -86,7 +96,15 @@ export const TabItem: React.FC<TabItemProps> = ({
       </span>
       <span className="tab-title">
         {tab.title}
+        {cwd && (
+          <span className="tab-cwd" style={{ opacity: 0.5, fontSize: '0.85em', marginLeft: 4 }}>
+            {shortenCwd(cwd)}
+          </span>
+        )}
       </span>
+      {hasActivity && !isActive && (
+        <span className="tab-activity-badge" aria-label="New activity" />
+      )}
       <span
         role="button"
         tabIndex={0}

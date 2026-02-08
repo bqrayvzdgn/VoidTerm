@@ -29,7 +29,7 @@ export const usePaneOperations = ({
 }: UsePaneOperationsProps) => {
   const { activeTabId, panes, setPane } = useTerminalStore()
 
-  // Split the current pane
+  // Split the current pane (CWD-aware — Phase B)
   const handleSplit = useCallback(async (direction: 'horizontal' | 'vertical') => {
     if (!activeTabId || !activePaneTerminalId) return
 
@@ -37,7 +37,26 @@ export const usePaneOperations = ({
     if (!currentPane) return
 
     try {
+      // Read CWD from the current terminal's shell integration state
+      const currentCwd = useTerminalStore.getState().terminalCwds.get(activePaneTerminalId)
+
       const { terminalId: newTerminalId } = await createTerminal(settings.defaultProfile)
+
+      // If we have a CWD from shell integration, change directory in the new terminal
+      if (currentCwd) {
+        const newPtyId = ptyIds.get(newTerminalId)
+        if (newPtyId) {
+          // Small delay to let the shell initialize before sending cd
+          setTimeout(() => {
+            try {
+              window.electronAPI.ptyWrite(newPtyId, `cd ${JSON.stringify(currentCwd)}\r`)
+            } catch {
+              // Best effort
+            }
+          }, 300)
+        }
+      }
+
       const newPane = splitPaneAtTerminal(currentPane, activePaneTerminalId, direction, newTerminalId)
 
       if (newPane) {
@@ -47,7 +66,7 @@ export const usePaneOperations = ({
     } catch (error) {
       logger.error('Failed to split pane:', error)
     }
-  }, [activeTabId, activePaneTerminalId, panes, createTerminal, settings.defaultProfile, setPane, setActivePaneTerminalId])
+  }, [activeTabId, activePaneTerminalId, panes, ptyIds, createTerminal, settings.defaultProfile, setPane, setActivePaneTerminalId])
 
   // Navigate between panes
   const handleNavigatePane = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import { v4 as uuidv4 } from 'uuid'
-import type { Tab, Pane, TerminalState, TabGroup } from '../types'
+import type { Tab, Pane, TerminalState, TabGroup, CommandBlock } from '../types'
 import { collectTerminalIds } from '../utils/pane'
 
 // Varsayılan grup renkleri
@@ -33,6 +33,10 @@ interface TerminalStore {
   closedTabs: ClosedTab[]
   tabGroups: TabGroup[]
 
+  // Shell integration state
+  terminalCwds: Map<string, string>
+  commandBlocks: Map<string, CommandBlock[]>
+
   // Tab actions
   addTab: (profileId?: string, title?: string, workspaceId?: string) => string
   removeTab: (tabId: string) => void
@@ -53,6 +57,18 @@ interface TerminalStore {
   // Broadcast actions
   toggleBroadcastMode: () => void
 
+  // Tab activity tracking
+  tabActivity: Map<string, boolean>
+  setTabActivity: (tabId: string, hasActivity: boolean) => void
+  clearTabActivity: (tabId: string) => void
+
+  // Shell integration actions
+  setTerminalCwd: (terminalId: string, cwd: string) => void
+  getTerminalCwd: (terminalId: string) => string | undefined
+  addCommandBlock: (terminalId: string, block: CommandBlock) => void
+  updateCommandBlock: (terminalId: string, blockId: string, updates: Partial<CommandBlock>) => void
+  getCommandBlocks: (terminalId: string) => CommandBlock[]
+
   // Tab Group actions
   createTabGroup: (name?: string, tabIds?: string[]) => string
   removeTabGroup: (groupId: string) => void
@@ -72,6 +88,9 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   broadcastMode: false,
   closedTabs: [],
   tabGroups: [],
+  tabActivity: new Map(),
+  terminalCwds: new Map(),
+  commandBlocks: new Map(),
 
   addTab: (profileId = 'default', title?: string, workspaceId?: string) => {
     const tabId = uuidv4()
@@ -221,6 +240,22 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     set((state) => ({ broadcastMode: !state.broadcastMode }))
   },
 
+  setTabActivity: (tabId, hasActivity) => {
+    set((state) => {
+      const newActivity = new Map(state.tabActivity)
+      newActivity.set(tabId, hasActivity)
+      return { tabActivity: newActivity }
+    })
+  },
+
+  clearTabActivity: (tabId) => {
+    set((state) => {
+      const newActivity = new Map(state.tabActivity)
+      newActivity.delete(tabId)
+      return { tabActivity: newActivity }
+    })
+  },
+
   popClosedTab: () => {
     const state = get()
     if (state.closedTabs.length === 0) return undefined
@@ -228,6 +263,43 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     const [closedTab, ...rest] = state.closedTabs
     set({ closedTabs: rest })
     return closedTab
+  },
+
+  // Shell integration actions
+  setTerminalCwd: (terminalId: string, cwd: string) => {
+    set((state) => {
+      const cwds = new Map(state.terminalCwds)
+      cwds.set(terminalId, cwd)
+      return { terminalCwds: cwds }
+    })
+  },
+
+  getTerminalCwd: (terminalId: string) => {
+    return get().terminalCwds.get(terminalId)
+  },
+
+  addCommandBlock: (terminalId: string, block: CommandBlock) => {
+    set((state) => {
+      const blocks = new Map(state.commandBlocks)
+      const existing = blocks.get(terminalId) || []
+      blocks.set(terminalId, [...existing, block])
+      return { commandBlocks: blocks }
+    })
+  },
+
+  updateCommandBlock: (terminalId: string, blockId: string, updates: Partial<CommandBlock>) => {
+    set((state) => {
+      const blocks = new Map(state.commandBlocks)
+      const existing = blocks.get(terminalId)
+      if (existing) {
+        blocks.set(terminalId, existing.map(b => b.id === blockId ? { ...b, ...updates } : b))
+      }
+      return { commandBlocks: blocks }
+    })
+  },
+
+  getCommandBlocks: (terminalId: string) => {
+    return get().commandBlocks.get(terminalId) || []
   },
 
   // Tab Group Actions
@@ -302,6 +374,8 @@ export const useTerminalPanes = () => useTerminalStore(useShallow((state) => sta
 export const useBroadcastMode = () => useTerminalStore((state) => state.broadcastMode)
 export const useClosedTabs = () => useTerminalStore(useShallow((state) => state.closedTabs))
 export const useTabGroups = () => useTerminalStore(useShallow((state) => state.tabGroups))
+export const useTerminalCwds = () => useTerminalStore(useShallow((state) => state.terminalCwds))
+export const useCommandBlocks = () => useTerminalStore(useShallow((state) => state.commandBlocks))
 export const useTerminalActions = () => useTerminalStore(useShallow((state) => ({
   addTab: state.addTab,
   removeTab: state.removeTab,
@@ -314,7 +388,14 @@ export const useTerminalActions = () => useTerminalStore(useShallow((state) => (
   updateTerminalTitle: state.updateTerminalTitle,
   setPane: state.setPane,
   toggleBroadcastMode: state.toggleBroadcastMode,
+  setTabActivity: state.setTabActivity,
+  clearTabActivity: state.clearTabActivity,
   popClosedTab: state.popClosedTab,
+  setTerminalCwd: state.setTerminalCwd,
+  getTerminalCwd: state.getTerminalCwd,
+  addCommandBlock: state.addCommandBlock,
+  updateCommandBlock: state.updateCommandBlock,
+  getCommandBlocks: state.getCommandBlocks,
   createTabGroup: state.createTabGroup,
   removeTabGroup: state.removeTabGroup,
   updateTabGroup: state.updateTabGroup,

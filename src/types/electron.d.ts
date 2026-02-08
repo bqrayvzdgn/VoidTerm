@@ -11,6 +11,15 @@ export interface Session {
   tabs: SessionTab[]
   activeTabId: string | null
   activeWorkspaceId?: string
+  buffers?: Record<string, string>
+}
+
+export interface DeepLinkAction {
+  type: 'open' | 'ssh' | 'run'
+  cwd?: string
+  host?: string
+  user?: string
+  cmd?: string
 }
 
 export interface BackupInfo {
@@ -126,6 +135,28 @@ export interface ElectronAPI {
   onTerminalCopy: (callback: () => void) => () => void
   onTerminalPaste: (callback: () => void) => () => void
   onTerminalClear: (callback: () => void) => () => void
+
+  // Terminal output
+  saveTerminalOutput: (content: string) => Promise<string | null>
+
+  // Shell validation
+  shellExists: (shellPath: string) => Promise<boolean>
+
+  // Notifications (Phase A)
+  showNotification: (title: string, body: string) => void
+
+  // OS theme tracking (Phase A)
+  onThemeChanged: (callback: (isDark: boolean) => void) => () => void
+
+  // Deep links (Phase A)
+  onDeepLink: (callback: (action: DeepLinkAction) => void) => () => void
+
+  // Buffer persistence (Phase A)
+  saveBuffers: (buffers: Record<string, string>) => Promise<void>
+  getBuffers: () => Promise<Record<string, string>>
+
+  // Editor integration (Phase C)
+  openInEditor: (file: string, line: number, col: number) => void
 
   // Config operations
   config: ConfigAPI

@@ -37,7 +37,12 @@ const SHORTCUT_CONFIGS: ShortcutConfig[] = [
   { key: 'toggleSidebar', category: 'general' },
   { key: 'openSettings', category: 'general' },
   { key: 'openCommandPalette', category: 'general' },
-  { key: 'openSSHManager', category: 'general' }
+  { key: 'openSSHManager', category: 'general' },
+  // Navigation (shell integration)
+  { key: 'prevCommand', category: 'navigation' },
+  { key: 'nextCommand', category: 'navigation' },
+  { key: 'hintsMode', category: 'terminal' },
+  { key: 'viMode', category: 'terminal' }
 ]
 
 /**
@@ -90,7 +95,11 @@ export const ShortcutsSettings: React.FC = memo(() => {
       copyText: t.settings.shortcuts.copyText,
       pasteText: t.settings.shortcuts.pasteText,
       openCommandPalette: t.settings.shortcuts.openCommandPalette,
-      openSSHManager: t.settings.shortcuts.openSSHManager
+      openSSHManager: t.settings.shortcuts.openSSHManager,
+      prevCommand: 'Previous Command',
+      nextCommand: 'Next Command',
+      hintsMode: 'Hints Mode',
+      viMode: 'Vi Mode'
     }
     return labels[key]
   }
