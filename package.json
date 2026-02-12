@@ -28,7 +28,7 @@
     "dev:vite": "vite",
     "dev:electron": "npm run build:electron && wait-on http://localhost:5173 && node scripts/launch-electron.js",
     "build": "npm run build:electron && vite build && electron-builder",
-    "build:electron": "tsc -p electron/tsconfig.json",
+    "build:electron": "npx tsc -p electron/tsconfig.json",
     "build:win": "npm run build -- --win",
     "build:mac": "npm run build -- --mac",
     "build:linux": "npm run build -- --linux",
@@ -113,7 +113,8 @@
         "nsis"
       ],
       "icon": "assets/icons/icon.ico",
-      "publisherName": "bqrayvzdgn"
+      "publisherName": "bqrayvzdgn",
+      "signAndEditExecutable": false
     },
     "mac": {
       "target": [
