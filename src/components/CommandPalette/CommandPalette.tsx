@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
+import { Search, ChevronRight } from 'lucide-react'
 import { useSettingsStore } from '../../store/settingsStore'
 import { TerminalIcon } from '../Icons/TerminalIcons'
 
@@ -229,10 +230,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = memo(({
       <div className="command-palette-overlay" onClick={onClose} />
       <div className="command-palette">
         <div className="command-palette-input-wrapper">
-          <svg className="command-palette-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
+          <Search className="command-palette-search-icon" size={16} strokeWidth={1.5} />
           <input
             ref={inputRef}
             type="text"
@@ -258,10 +256,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = memo(({
                   {command.icon ? (
                     <TerminalIcon icon={command.icon} size={18} />
                   ) : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="4 17 10 11 4 5" />
-                      <line x1="12" y1="19" x2="20" y2="19" />
-                    </svg>
+                    <ChevronRight size={18} strokeWidth={1.5} />
                   )}
                 </div>
                 <div className="command-palette-item-content">

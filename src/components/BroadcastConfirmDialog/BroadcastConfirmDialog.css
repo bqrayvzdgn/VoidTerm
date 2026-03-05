@@ -3,15 +3,15 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
   padding: 24px;
   min-width: 360px;
   max-width: 420px;
   z-index: 1001;
   text-align: center;
   animation: dialog-appear 0.15s ease-out;
+  box-shadow: var(--shadow-lg);
 }
 
 @keyframes dialog-appear {
@@ -32,9 +32,9 @@
   width: 56px;
   height: 56px;
   margin: 0 auto 16px;
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(234, 179, 8, 0.15);
   border-radius: 50%;
-  color: #f59e0b;
+  color: var(--yellow);
 }
 
 .broadcast-confirm-title {
@@ -46,7 +46,7 @@
 
 .broadcast-confirm-message {
   margin: 0 0 16px;
-  font-size: 14px;
+  font-size: var(--font-size-lg);
   color: var(--text-secondary);
   line-height: 1.5;
 }
@@ -60,9 +60,9 @@
   margin-bottom: 20px;
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 8px;
-  color: #ef4444;
-  font-size: 13px;
+  border-radius: var(--radius-lg);
+  color: var(--red);
+  font-size: var(--font-size-base);
   font-weight: 500;
 }
 
@@ -79,36 +79,35 @@
 .broadcast-confirm-cancel,
 .broadcast-confirm-enable {
   padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-lg);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-normal);
   min-width: 100px;
 }
 
 .broadcast-confirm-cancel {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
   color: var(--text-primary);
 }
 
 .broadcast-confirm-cancel:hover {
-  background: var(--bg-hover);
+  background: var(--bg-overlay);
 }
 
 .broadcast-confirm-enable {
-  background: #f59e0b;
-  border: 1px solid #f59e0b;
-  color: #000;
+  background: var(--yellow);
+  border: 1px solid var(--yellow);
+  color: var(--text-inverse);
 }
 
 .broadcast-confirm-enable:hover {
-  background: #d97706;
-  border-color: #d97706;
+  filter: brightness(0.9);
 }
 
 .broadcast-confirm-enable:focus {
-  outline: 2px solid rgba(245, 158, 11, 0.5);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.5);
 }

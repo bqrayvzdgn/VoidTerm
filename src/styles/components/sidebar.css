@@ -1,0 +1,534 @@
+/* VoidTerm - Workspace Sidebar Styles */
+
+.workspace-sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.workspace-sidebar-header {
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.workspace-sidebar-title {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.workspace-sidebar-add {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.workspace-sidebar-add:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Sidebar Add Button Wrapper with Dropdown */
+.workspace-sidebar-add-wrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.workspace-sidebar-add-dropdown {
+  width: 16px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-sm);
+  margin-left: 2px;
+}
+
+.workspace-sidebar-add-dropdown:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Workspace Tree Add Wrapper */
+.workspace-tree-add-wrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-left: auto;
+}
+
+.workspace-tree-add-dropdown {
+  width: 14px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  border-radius: 3px;
+  opacity: 0;
+}
+
+.workspace-tree-section-header:hover .workspace-tree-add-dropdown {
+  opacity: 1;
+}
+
+.workspace-tree-add-dropdown:hover {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+/* Sidebar Profile Dropdown */
+.sidebar-profile-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 220px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-modal);
+  padding: 6px;
+  margin-top: 4px;
+}
+
+.sidebar-profile-dropdown.workspace-level {
+  min-width: 200px;
+}
+
+.sidebar-profile-dropdown-header {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 10px 6px;
+}
+
+.sidebar-profile-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.sidebar-profile-dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+.sidebar-profile-dropdown-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-profile-dropdown-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.sidebar-profile-dropdown-name {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+}
+
+.sidebar-profile-dropdown-path {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+/* Workspace Tree */
+.workspace-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.workspace-tree-section {
+  margin-bottom: 8px;
+}
+
+.workspace-tree-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.workspace-tree-section-header.clickable {
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  margin: 2px 6px;
+}
+
+.workspace-tree-section-header.clickable:hover {
+  background: var(--bg-hover);
+}
+
+.workspace-tree-section-header.clickable.active {
+  background: var(--accent-muted);
+}
+
+.workspace-tree-expand {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-normal);
+}
+
+.workspace-tree-expand:hover {
+  color: var(--text-primary);
+}
+
+.workspace-tree-add {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition-normal), color var(--transition-normal);
+  border-radius: var(--radius-sm);
+  margin-left: 4px;
+}
+
+.workspace-tree-section-header:hover .workspace-tree-add {
+  opacity: 1;
+}
+
+.workspace-tree-add:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.workspace-tree-section-header svg {
+  opacity: 0.7;
+}
+
+.workspace-tree-section-header .workspace-tree-count {
+  margin-left: auto;
+}
+
+.workspace-tree-item {
+  user-select: none;
+}
+
+.workspace-tree-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.workspace-tree-header:hover {
+  background: var(--bg-hover);
+}
+
+.workspace-tree-header.active {
+  background: var(--bg-active);
+}
+
+.workspace-tree-toggle {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.workspace-tree-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.workspace-tree-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.workspace-tree-name {
+  flex: 1;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-tree-count {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  background: var(--bg-overlay);
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.workspace-tree-children {
+  padding-left: 8px;
+}
+
+.workspace-tree-empty {
+  padding: 8px 12px 8px 20px;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Terminal Tree Item */
+.terminal-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-sm);
+  margin: 1px 4px;
+  outline: none;
+}
+
+.terminal-tree-item:hover {
+  background: var(--bg-hover);
+}
+
+.terminal-tree-item.active {
+  background: var(--accent-muted);
+}
+
+.terminal-tree-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.terminal-tree-icon-wrapper {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+}
+
+.terminal-tree-icon-wrapper svg {
+  width: 18px;
+  height: 18px;
+}
+
+.terminal-tree-name {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-tree-item.active .terminal-tree-name {
+  color: var(--text-primary);
+}
+
+.terminal-tree-close {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  opacity: 0;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.terminal-tree-item:hover .terminal-tree-close {
+  opacity: 1;
+}
+
+.terminal-tree-close:hover {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+.workspace-edit-input {
+  flex: 1;
+  background: var(--bg-base);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  outline: none;
+}
+
+/* Quick Start */
+.workspace-quickstart {
+  padding: 8px;
+}
+
+.workspace-quickstart-header {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 8px 8px;
+}
+
+.workspace-quickstart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.workspace-quickstart-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.workspace-quickstart-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.workspace-quickstart-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  font-size: 9px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.workspace-quickstart-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-sidebar-footer {
+  padding: 8px;
+}
+
+.workspace-settings-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.workspace-settings-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}

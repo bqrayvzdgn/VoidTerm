@@ -4,6 +4,9 @@
 if ($env:VOIDTERM_SHELL_INTEGRATION) { return }
 $env:VOIDTERM_SHELL_INTEGRATION = "1"
 
+# Reset legacy PowerShell console colors so xterm.js theme shows through
+try { [Console]::ResetColor() } catch {}
+
 $Global:__voidterm_last_exit = 0
 
 function Global:prompt {

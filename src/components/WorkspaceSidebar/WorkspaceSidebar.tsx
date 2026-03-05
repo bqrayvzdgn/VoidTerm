@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { ChevronRight, Plus, Settings, Terminal, X, Pencil, Trash2 } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
 import { useTerminalStore } from '../../store/terminalStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -183,9 +184,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             title="New"
             aria-label="Create new workspace or terminal"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <Plus size={14} strokeWidth={1.5} />
           </button>
         </div>
 
@@ -220,14 +219,11 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                       toggleWorkspace(workspace.id)
                     }}
                   >
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 10 10"
+                    <ChevronRight
+                      size={10}
+                      strokeWidth={1.5}
                       style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
-                    >
-                      <path d="M3 1L7 5L3 9" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    />
                   </button>
                   <span
                     className="terminal-tree-icon"
@@ -263,9 +259,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                       }}
                       title="Add terminal to workspace"
                     >
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M6 2V10M2 6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      </svg>
+                      <Plus size={12} strokeWidth={1.5} />
                     </button>
                     {profileDropdownId === workspace.id && (
                       <div className="sidebar-profile-dropdown workspace-level">
@@ -338,9 +332,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                             }}
                             title="Close"
                           >
-                            <svg width="10" height="10" viewBox="0 0 10 10">
-                              <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                            </svg>
+                            <X size={10} strokeWidth={1.5} />
                           </button>
                         </div>
                       )
@@ -358,9 +350,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           {tabs.filter(t => !t.workspaceId).length > 0 && (
             <div className="workspace-tree-section">
               <div className="workspace-tree-section-header">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 17l6-6-6-6M12 19h8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <Terminal size={14} strokeWidth={1.5} />
                 <span>Unassigned</span>
                 <span className="workspace-tree-count">
                   {tabs.filter(t => !t.workspaceId).length}
@@ -401,9 +391,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                         }}
                         title="Close"
                       >
-                        <svg width="10" height="10" viewBox="0 0 10 10">
-                          <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                        </svg>
+                        <X size={10} strokeWidth={1.5} />
                       </button>
                     </div>
                   )
@@ -430,10 +418,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         {/* Footer */}
         <div className="workspace-sidebar-footer">
           <button className="workspace-settings-btn" onClick={onOpenSettings}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <circle cx="8" cy="8" r="2" />
-              <path d="M8 1v2M8 13v2M2.93 2.93l1.41 1.41M11.66 11.66l1.41 1.41M1 8h2M13 8h2M2.93 13.07l1.41-1.41M11.66 4.34l1.41-1.41" />
-            </svg>
+            <Settings size={16} strokeWidth={1.5} />
             <span>Settings</span>
           </button>
         </div>
@@ -456,15 +441,11 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             {contextMenu.type === 'workspace' && (
               <>
                 <button className="context-menu-item" onClick={handleAddTerminalToWorkspace}>
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M8 3V13M3 8H13" strokeLinecap="round" />
-                  </svg>
+                  <Plus size={14} strokeWidth={1.5} />
                   <span>Add Terminal</span>
                 </button>
                 <button className="context-menu-item" onClick={handleRename}>
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M11.5 1.5l3 3L5 14H2v-3l9.5-9.5z" />
-                  </svg>
+                  <Pencil size={14} strokeWidth={1.5} />
                   <span>Rename</span>
                 </button>
                 <button
@@ -476,9 +457,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                     style={{ backgroundColor: workspaces.find(w => w.id === contextMenu.id)?.color }}
                   />
                   <span>Change Color</span>
-                  <svg width="10" height="10" viewBox="0 0 10 10" style={{ marginLeft: 'auto' }}>
-                    <path d="M3 2L7 5L3 8" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-                  </svg>
+                  <ChevronRight size={10} strokeWidth={1.5} style={{ marginLeft: 'auto' }} />
                 </button>
                 {colorPicker && (
                   <div className="context-menu-colors">
@@ -498,9 +477,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             {contextMenu.type === 'terminal' && (
               <>
                 <button className="context-menu-item" onClick={handleRename}>
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M11.5 1.5l3 3L5 14H2v-3l9.5-9.5z" />
-                  </svg>
+                  <Pencil size={14} strokeWidth={1.5} />
                   <span>Rename</span>
                 </button>
                 <div className="context-menu-divider" />
@@ -540,9 +517,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
               className="context-menu-item delete"
               onClick={handleDelete}
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M5.5 2V1h5v1h4v1h-1v11H2.5V3h-1V2h4zm1 2v9h1V4h-1zm3 0v9h1V4h-1z" />
-              </svg>
+              <Trash2 size={14} strokeWidth={1.5} />
               <span>Delete</span>
             </button>
           </div>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { X } from 'lucide-react'
 import { TerminalIcon } from '../Icons/TerminalIcons'
 import type { Tab, Profile } from '../../types'
 
@@ -113,9 +114,7 @@ export const TabItem: React.FC<TabItemProps> = ({
         onKeyDown={handleCloseKeyDown}
         title="Close tab"
       >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-          <path d="M9.5 3.5L8.5 2.5L6 5L3.5 2.5L2.5 3.5L5 6L2.5 8.5L3.5 9.5L6 7L8.5 9.5L9.5 8.5L7 6L9.5 3.5Z" />
-        </svg>
+        <X size={12} strokeWidth={1.5} />
       </span>
     </div>
   )

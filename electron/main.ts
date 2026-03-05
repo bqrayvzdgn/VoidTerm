@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, Menu, shell, globalShortcut, screen, session, dialog, Notification, nativeTheme } from 'electron'
-import { exec } from 'child_process'
+import { execFile } from 'child_process'
 import path from 'path'
 import os from 'os'
 import fs from 'fs'
@@ -33,11 +33,16 @@ function createWindow() {
   const isWindows = process.platform === 'win32'
   const isMac = process.platform === 'darwin'
 
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'icon.png')
+    : path.join(app.getAppPath(), 'assets', 'icons', isWindows ? 'icon.ico' : 'icon.png')
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 600,
     minHeight: 400,
+    icon: iconPath,
     frame: false,
     titleBarStyle: isMac ? 'hiddenInset' : 'hidden',
     // Windows 11 provides rounded corners automatically for frameless windows
@@ -200,7 +205,17 @@ function createWindow() {
 
   // System info (moved from preload for sandbox compatibility)
   ipcMain.handle('get-homedir', () => os.homedir())
-  ipcMain.handle('path-join', (_, args: string[]) => path.join(...args))
+  ipcMain.handle('path-join', (_, args: string[]) => {
+    // Validate segments: reject path traversal attempts
+    for (const segment of args) {
+      if (typeof segment !== 'string') throw new Error('Invalid path segment: not a string')
+      const normalized = path.normalize(segment)
+      if (normalized.includes('..')) {
+        throw new Error('Path traversal not allowed')
+      }
+    }
+    return path.join(...args)
+  })
   ipcMain.handle('shell-exists', (_, shellPath: string) => {
     try {
       fs.accessSync(shellPath, fs.constants.F_OK)
@@ -302,13 +317,37 @@ function createWindow() {
 
   // Editor integration (Phase C)
   ipcMain.on('open-in-editor', (_, { file, line, col }: { file: string; line: number; col: number }) => {
-    const settings = configManager.getSettings()
-    const cmd = (settings.editorCommand || 'code --goto {file}:{line}:{col}')
-      .replace('{file}', file)
-      .replace('{line}', String(line))
-      .replace('{col}', String(col))
+    if (!isAllowed('open-in-editor', RATE_LIMITS.config)) {
+      logger.warn('open-in-editor rate limited')
+      return
+    }
 
-    exec(cmd, (error) => {
+    // Validate file path to prevent command injection
+    const resolvedFile = path.resolve(file)
+    if (!resolvedFile || resolvedFile.includes('\0')) {
+      logger.warn('Invalid file path for editor:', file)
+      return
+    }
+
+    const safeLine = Math.max(1, Math.floor(Number(line) || 1))
+    const safeCol = Math.max(1, Math.floor(Number(col) || 1))
+
+    const settings = configManager.getSettings()
+    const editorCommand = settings.editorCommand || 'code --goto {file}:{line}:{col}'
+
+    // Parse the editor command into executable and arguments
+    // The command template uses {file}, {line}, {col} placeholders
+    const parts = editorCommand.split(/\s+/)
+    const executable = parts[0]
+    const args = parts.slice(1).map(arg =>
+      arg
+        .replace('{file}', resolvedFile)
+        .replace('{line}', String(safeLine))
+        .replace('{col}', String(safeCol))
+    )
+
+    // Use execFile instead of exec to prevent shell injection
+    execFile(executable, args, (error) => {
       if (error) {
         logger.error('Failed to open editor:', error)
       }
@@ -414,6 +453,7 @@ function setupPtyHandlers() {
   })
 
   ipcMain.on('pty-kill', (_, id: string) => {
+    if (!isAllowed('pty-kill', RATE_LIMITS.ptyCreate)) return
     ptyManager.kill(id)
   })
 
@@ -680,7 +720,8 @@ function handleDeepLink(url: string) {
       dialog.showMessageBox(mainWindow, {
         type: 'warning',
         title: 'Deep Link Command',
-        message: `An external application wants to run a command:\n\n${action.cmd}\n\nAllow this?`,
+        message: 'An external application wants to run a command:',
+        detail: action.cmd,
         buttons: ['Cancel', 'Allow'],
         defaultId: 0,
         cancelId: 0

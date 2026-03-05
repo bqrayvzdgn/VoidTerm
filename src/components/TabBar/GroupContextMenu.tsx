@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 
 interface GroupContextMenuProps {
@@ -27,17 +28,13 @@ export function GroupContextMenu({
       >
         <button className="context-menu-item" onClick={onRename}>
           <span className="context-menu-icon edit">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <path d="M8.5 1.5L10.5 3.5L4 10H2V8L8.5 1.5Z" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <Pencil size={12} strokeWidth={1.5} />
           </span>
           <span>{t.tabbar.renameGroup}</span>
         </button>
         <button className="context-menu-item danger" onClick={onDelete}>
           <span className="context-menu-icon delete">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <path d="M2 3H10M4 3V2H8V3M5 5V9M7 5V9M3 3L4 10H8L9 3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <Trash2 size={12} strokeWidth={1.5} />
           </span>
           <span>{t.tabbar.deleteGroup}</span>
         </button>

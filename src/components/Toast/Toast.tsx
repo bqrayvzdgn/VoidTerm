@@ -1,5 +1,6 @@
 import React, { memo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react'
 import { useToastStore, type Toast as ToastType, type ToastType as ToastVariant } from '../../store/toastStore'
 
 /**
@@ -8,32 +9,13 @@ import { useToastStore, type Toast as ToastType, type ToastType as ToastVariant 
 const ToastIcon: React.FC<{ type: ToastVariant }> = memo(({ type }) => {
   switch (type) {
     case 'success':
-      return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M3 8.5L6.5 12L13 4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )
+      return <CheckCircle size={16} strokeWidth={1.5} />
     case 'error':
-      return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="8" cy="8" r="6" />
-          <path d="M8 5v4M8 11v.5" strokeLinecap="round" />
-        </svg>
-      )
+      return <XCircle size={16} strokeWidth={1.5} />
     case 'warning':
-      return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M8 2L14 13H2L8 2Z" strokeLinejoin="round" />
-          <path d="M8 6v3M8 11v.5" strokeLinecap="round" />
-        </svg>
-      )
+      return <AlertTriangle size={16} strokeWidth={1.5} />
     case 'info':
-      return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="8" cy="8" r="6" />
-          <path d="M8 7v4M8 5v.5" strokeLinecap="round" />
-        </svg>
-      )
+      return <Info size={16} strokeWidth={1.5} />
   }
 })
 
@@ -72,9 +54,7 @@ const ToastItem: React.FC<{ toast: ToastType }> = memo(({ toast }) => {
         onClick={handleClose}
         aria-label="Close notification"
       >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M2 2L10 10M10 2L2 10" strokeLinecap="round" />
-        </svg>
+        <X size={12} strokeWidth={1.5} />
       </button>
     </div>
   )

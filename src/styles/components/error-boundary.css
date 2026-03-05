@@ -1,0 +1,116 @@
+/* VoidTerm - Error Boundary Styles */
+
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  padding: 40px;
+}
+
+.error-boundary-content {
+  text-align: center;
+  max-width: 500px;
+}
+
+.error-boundary-icon {
+  color: var(--red);
+  margin-bottom: 24px;
+}
+
+.error-boundary-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.error-boundary-message {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.error-boundary-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.error-boundary-btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  border: none;
+}
+
+.error-boundary-btn.primary {
+  background: var(--accent-gradient);
+  color: white;
+}
+
+.error-boundary-btn.primary:hover {
+  filter: brightness(1.1);
+}
+
+.error-boundary-btn.secondary {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.error-boundary-btn.secondary:hover {
+  background: var(--bg-overlay);
+}
+
+.error-boundary-details {
+  text-align: left;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.error-boundary-details summary {
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.error-boundary-details pre {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.error-boundary-secondary-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.error-boundary-btn-link {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px 8px;
+}
+
+.error-boundary-btn-link:hover {
+  color: var(--text-primary);
+}

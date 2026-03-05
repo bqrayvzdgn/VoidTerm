@@ -89,13 +89,30 @@ export class PtyManager {
     return process.env.SHELL || '/bin/bash'
   }
 
-  private getShellArgs(shell: string): string[] {
-    if (process.platform !== 'win32') return ['--login']
+  private getShellArgs(shell: string, integrationScript?: { scriptPath: string; type: 'ps1' | 'fish' | 'sh' } | null): string[] {
     const name = shell.toLowerCase()
-    if (name.includes('powershell') || name.includes('pwsh')) {
-      return ['-NoLogo']
+
+    if (process.platform === 'win32') {
+      if (name.includes('powershell') || name.includes('pwsh')) {
+        if (integrationScript) {
+          // Load integration via -Command so nothing is echoed to the terminal
+          const escaped = integrationScript.scriptPath.replace(/\\/g, '\\\\')
+          return ['-NoLogo', '-NoExit', '-ExecutionPolicy', 'Bypass', '-Command', `. "${escaped}"`]
+        }
+        return ['-NoLogo']
+      }
+      return []
     }
-    return []
+
+    // Unix shells
+    if (integrationScript && integrationScript.type === 'sh') {
+      if (name.includes('bash')) {
+        // --rcfile sources the script instead of .bashrc, but our script can source .bashrc itself
+        return ['--login', '-c', `. "${integrationScript.scriptPath}" 2>/dev/null; exec ${shell} --login`]
+      }
+    }
+
+    return ['--login']
   }
 
   /**
@@ -111,27 +128,31 @@ export class PtyManager {
   }
 
   /**
-   * Detect shell type from shell path and return the source command for integration.
+   * Resolve the shell integration script path for a given shell.
    */
-  private getShellIntegrationCommand(shell: string): string | null {
+  private getShellIntegrationScriptPath(shell: string): { scriptPath: string; type: 'ps1' | 'fish' | 'sh' } | null {
     if (!this.shellIntegrationEnabled) return null
 
     const shellName = shell.toLowerCase()
     let scriptFile: string | null = null
+    let type: 'ps1' | 'fish' | 'sh' = 'sh'
 
     if (shellName.includes('bash')) {
       scriptFile = 'bash.sh'
+      type = 'sh'
     } else if (shellName.includes('zsh')) {
       scriptFile = 'zsh.sh'
+      type = 'sh'
     } else if (shellName.includes('pwsh') || shellName.includes('powershell')) {
       scriptFile = 'powershell.ps1'
+      type = 'ps1'
     } else if (shellName.includes('fish')) {
       scriptFile = 'fish.fish'
+      type = 'fish'
     }
 
     if (!scriptFile) return null
 
-    // Determine the path to shell integration scripts
     let scriptDir: string
     if (app.isPackaged) {
       scriptDir = path.join(process.resourcesPath, 'assets', 'shell-integration')
@@ -141,7 +162,6 @@ export class PtyManager {
 
     const scriptPath = path.join(scriptDir, scriptFile)
 
-    // Verify script exists
     try {
       fs.accessSync(scriptPath, fs.constants.R_OK)
     } catch {
@@ -149,20 +169,30 @@ export class PtyManager {
       return null
     }
 
-    // Return the source/dot command to inject the script
-    if (scriptFile.endsWith('.ps1')) {
-      return `. "${scriptPath.replace(/\\/g, '\\\\')}"\r`
-    } else if (scriptFile.endsWith('.fish')) {
-      return `source "${scriptPath}"\r`
-    } else {
-      return `. "${scriptPath}"\r`
-    }
+    return { scriptPath, type }
   }
 
   create(options: PtyCreateOptions = {}): string {
     const id = uuidv4()
     const shell = options.shell || this.getDefaultShell()
-    const cwd = options.cwd || os.homedir()
+    let cwd = options.cwd || os.homedir()
+
+    // Validate cwd: must be an absolute path to an existing directory
+    if (!path.isAbsolute(cwd)) {
+      logger.warn(`Invalid cwd (not absolute): ${cwd}, falling back to homedir`)
+      cwd = os.homedir()
+    } else {
+      try {
+        const stat = fs.statSync(cwd)
+        if (!stat.isDirectory()) {
+          logger.warn(`Invalid cwd (not a directory): ${cwd}, falling back to homedir`)
+          cwd = os.homedir()
+        }
+      } catch {
+        logger.warn(`Invalid cwd (does not exist): ${cwd}, falling back to homedir`)
+        cwd = os.homedir()
+      }
+    }
 
     const env = buildSafeEnv(options.env)
 
@@ -171,7 +201,12 @@ export class PtyManager {
       env['VOIDTERM_SHELL_INTEGRATION'] = '1'
     }
 
-    const shellArgs = this.getShellArgs(shell)
+    // Resolve shell integration script (if enabled)
+    const integration = options.shellIntegration !== false
+      ? this.getShellIntegrationScriptPath(shell)
+      : null
+
+    const shellArgs = this.getShellArgs(shell, integration)
 
     const ptyProcess = pty.spawn(shell, shellArgs, {
       name: 'xterm-256color',
@@ -182,24 +217,29 @@ export class PtyManager {
     })
 
     // Legacy Windows PowerShell defaults to a blue (#012456) background.
-    // Send a command to reset console colors so the xterm.js theme shows through.
-    if (this.isLegacyPowerShell(shell)) {
+    // ResetColor is included in the -Command startup args when integration is active.
+    if (this.isLegacyPowerShell(shell) && !integration) {
       ptyProcess.write('[Console]::ResetColor(); Clear-Host\r')
     }
 
-    // Inject shell integration script
-    if (options.shellIntegration !== false) {
-      const integrationCmd = this.getShellIntegrationCommand(shell)
-      if (integrationCmd) {
-        // Small delay to let the shell initialize
-        setTimeout(() => {
-          try {
-            ptyProcess.write(integrationCmd)
-          } catch {
-            // PTY may have already exited
-          }
-        }, 200)
-      }
+    // For shells where args-based integration isn't supported, fall back to stdin write
+    if (integration && integration.type === 'fish') {
+      setTimeout(() => {
+        try {
+          ptyProcess.write(`source "${integration.scriptPath}"; clear\r`)
+        } catch {
+          // PTY may have already exited
+        }
+      }, 200)
+    } else if (integration && integration.type === 'sh' && !shell.toLowerCase().includes('bash')) {
+      // zsh and other sh-compatible shells: fall back to stdin
+      setTimeout(() => {
+        try {
+          ptyProcess.write(`. "${integration.scriptPath}" && clear\r`)
+        } catch {
+          // PTY may have already exited
+        }
+      }, 200)
     }
 
     ptyProcess.onData((data) => {

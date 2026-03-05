@@ -70,12 +70,20 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
   const fitAddonRef = useRef<FitAddon | null>(null)
   const searchAddonRef = useRef<SearchAddon | null>(null)
   const serializeAddonRef = useRef<SerializeAddon | null>(null)
+  const webglAddonRef = useRef<WebglAddon | null>(null)
+  const imageAddonRef = useRef<ImageAddon | null>(null)
+  const clipboardAddonRef = useRef<ClipboardAddon | null>(null)
+  const ligaturesAddonRef = useRef<LigaturesAddon | null>(null)
   const shellIntegrationRef = useRef<ShellIntegrationState>(createInitialState())
   const lastDataTimeRef = useRef<number>(0)
   const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isActiveRef = useRef(isActive)
   const { settings, currentTheme } = useSettingsStore()
   const { setTerminalCwd, addCommandBlock } = useTerminalStore()
   const [isAtBottom, setIsAtBottom] = useState(true)
+
+  // Keep isActive ref in sync without re-creating terminal
+  isActiveRef.current = isActive
 
   const { scrollToCommand, navigateCommand, currentCommand } = useCommandBlocks(terminalId || null)
   const viMode = useViMode(terminalRef.current)
@@ -210,8 +218,10 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       const webglAddon = new WebglAddon()
       webglAddon.onContextLoss(() => {
         webglAddon.dispose()
+        webglAddonRef.current = null
       })
       terminal.loadAddon(webglAddon)
+      webglAddonRef.current = webglAddon
     } catch {
       terminalLogger.warn('WebGL addon failed to load, falling back to canvas renderer')
       useToastStore.getState().info('WebGL unavailable, using canvas renderer. Performance may be reduced.')
@@ -226,6 +236,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
           sixelPaletteLimit: 4096
         })
         terminal.loadAddon(imageAddon)
+        imageAddonRef.current = imageAddon
       } catch {
         terminalLogger.warn('Image addon failed to load')
       }
@@ -236,6 +247,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
       try {
         const clipboardAddon = new ClipboardAddon()
         terminal.loadAddon(clipboardAddon)
+        clipboardAddonRef.current = clipboardAddon
       } catch {
         terminalLogger.warn('Clipboard addon failed to load')
       }
@@ -244,6 +256,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
     try {
       const ligaturesAddon = new LigaturesAddon()
       terminal.loadAddon(ligaturesAddon)
+      ligaturesAddonRef.current = ligaturesAddon
     } catch {
       // Ligatures addon requires specific font support
     }
@@ -283,6 +296,10 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
     fitAddonRef.current = fitAddon
     searchAddonRef.current = searchAddon
     terminalRegistry.register(ptyId, terminal)
+    // Also register by terminalId so useCommandBlocks can look up by either key
+    if (terminalId) {
+      terminalRegistry.registerAlias(terminalId, terminal)
+    }
 
     terminal.attachCustomKeyEventHandler((e: KeyboardEvent) => {
       const isCtrl = e.ctrlKey || e.metaKey
@@ -382,6 +399,17 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
         return false
       }
 
+      // Let app-level shortcuts pass through to window handler but don't write to terminal
+      if (isCtrl && !e.shiftKey && (e.key === 't' || e.key === 'w' || e.key === ',')) {
+        return false
+      }
+      if (isCtrl && e.shiftKey) {
+        const shiftKeys = ['d', 'e', 'b', 's', 'p', 't', 'm', 'h', 'x']
+        if (shiftKeys.includes(e.key.toLowerCase())) {
+          return false
+        }
+      }
+
       return true
     })
 
@@ -411,7 +439,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
         terminal.write(data)
 
         // Track data timing for notification idle detection (Phase A)
-        if (settings.notifications && !isActive) {
+        if (settings.notifications && !isActiveRef.current) {
           const now = Date.now()
           const elapsed = now - lastDataTimeRef.current
           if (elapsed > settings.notificationDelay && lastDataTimeRef.current > 0) {
@@ -444,23 +472,36 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(({
     terminal.focus()
 
     return () => {
-      removeDataListener()
-      removeExitListener()
-      resizeObserver.disconnect()
-      if (resizeTimeoutRef.current) {
-        clearTimeout(resizeTimeoutRef.current)
-      }
-      if (copyFeedbackTimeoutRef.current) {
-        clearTimeout(copyFeedbackTimeoutRef.current)
-      }
-      if (notificationTimeoutRef.current) {
-        clearTimeout(notificationTimeoutRef.current)
-      }
+      // Wrap each cleanup step in try-catch to ensure all steps run
+      try { removeDataListener() } catch (e) { terminalLogger.warn('Cleanup: removeDataListener failed', e) }
+      try { removeExitListener() } catch (e) { terminalLogger.warn('Cleanup: removeExitListener failed', e) }
+      try { resizeObserver.disconnect() } catch (e) { terminalLogger.warn('Cleanup: resizeObserver failed', e) }
+
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current)
+      if (copyFeedbackTimeoutRef.current) clearTimeout(copyFeedbackTimeoutRef.current)
+      if (notificationTimeoutRef.current) clearTimeout(notificationTimeoutRef.current)
+
+      // Dispose all addons to prevent memory leaks
+      try { webglAddonRef.current?.dispose() } catch { /* may already be disposed on context loss */ }
+      try { imageAddonRef.current?.dispose() } catch (e) { terminalLogger.warn('Cleanup: imageAddon failed', e) }
+      try { clipboardAddonRef.current?.dispose() } catch (e) { terminalLogger.warn('Cleanup: clipboardAddon failed', e) }
+      try { ligaturesAddonRef.current?.dispose() } catch (e) { terminalLogger.warn('Cleanup: ligaturesAddon failed', e) }
+      webglAddonRef.current = null
+      imageAddonRef.current = null
+      clipboardAddonRef.current = null
+      ligaturesAddonRef.current = null
       serializeAddonRef.current = null
-      terminalRegistry.unregister(ptyId)
-      terminal.dispose()
+
+      try { terminalRegistry.unregister(ptyId) } catch (e) { terminalLogger.warn('Cleanup: unregister failed', e) }
+      if (terminalId) {
+        try { terminalRegistry.unregisterAlias(terminalId) } catch (e) { terminalLogger.warn('Cleanup: unregisterAlias failed', e) }
+      }
+      try { terminal.dispose() } catch (e) { terminalLogger.warn('Cleanup: terminal.dispose failed', e) }
     }
-  }, [ptyId, terminalId, onTitleChange, handleResize, triggerCopyFeedback, settings.enableImages, settings.enableClipboard, settings.shellIntegration, settings.notifications, settings.notificationDelay, isActive, setTerminalCwd, addCommandBlock])
+  // Note: isActive is intentionally excluded — it's tracked via isActiveRef to avoid
+  // re-creating the entire terminal (and losing buffer) on panel focus changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ptyId, terminalId, onTitleChange, handleResize, triggerCopyFeedback, settings.enableImages, settings.enableClipboard, settings.shellIntegration, settings.notifications, settings.notificationDelay, setTerminalCwd, addCommandBlock])
 
   useEffect(() => {
     if (isActive && terminalRef.current && !showSearch) {

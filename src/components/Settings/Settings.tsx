@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Palette, Terminal, Keyboard, User, Download, Info, X } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import {
   AppearanceSettings,
@@ -26,61 +27,32 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
     {
       id: 'appearance',
       label: t.settings.tabs.appearance,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="8" cy="8" r="6" />
-          <path d="M8 2v12M2 8h12" strokeOpacity="0.5" />
-        </svg>
-      )
+      icon: <Palette size={16} strokeWidth={1.5} />
     },
     {
       id: 'terminal',
       label: t.settings.tabs.terminal,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="2" y="2" width="12" height="12" rx="2" />
-          <path d="M5 6l2 2-2 2M8 10h3" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )
+      icon: <Terminal size={16} strokeWidth={1.5} />
     },
     {
       id: 'shortcuts',
       label: t.settings.tabs.shortcuts,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="1" y="4" width="14" height="9" rx="1" />
-          <path d="M4 7h1M7 7h2M11 7h1M3 10h10" strokeLinecap="round" />
-        </svg>
-      )
+      icon: <Keyboard size={16} strokeWidth={1.5} />
     },
     {
       id: 'profiles',
       label: t.settings.tabs.profiles,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="8" cy="5" r="3" />
-          <path d="M3 14c0-3 2-5 5-5s5 2 5 5" strokeLinecap="round" />
-        </svg>
-      )
+      icon: <User size={16} strokeWidth={1.5} />
     },
     {
       id: 'backup',
       label: t.settings.tabs.backup,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M8 2v8M5 7l3 3 3-3M3 12h10" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )
+      icon: <Download size={16} strokeWidth={1.5} />
     },
     {
       id: 'about',
       label: t.settings.tabs.about,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="8" cy="8" r="6" />
-          <path d="M8 7v4M8 5v.5" strokeLinecap="round" />
-        </svg>
-      )
+      icon: <Info size={16} strokeWidth={1.5} />
     }
   ]
 
@@ -109,9 +81,7 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
         <div className="modal-header">
           <h2 className="modal-title" id="settings-title">{t.settings.title}</h2>
           <button className="modal-close" onClick={onClose} aria-label={t.common.close}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
-              <path d="M13 1L1 13M1 1L13 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+            <X size={14} strokeWidth={1.5} aria-hidden="true" />
           </button>
         </div>
 

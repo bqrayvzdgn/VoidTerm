@@ -61,6 +61,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
       set({ settings: newSettings, currentTheme: resolveTheme(newSettings.theme) })
     } catch (error) {
       logger.error('Failed to update settings:', error)
+      useToastStore.getState().error('Failed to save settings.')
     }
   },
 
@@ -70,6 +71,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
       set({ settings, currentTheme: resolveTheme(settings.theme) })
     } catch (error) {
       logger.error('Failed to reset settings:', error)
+      useToastStore.getState().error('Failed to reset settings.')
     }
   },
 
@@ -87,6 +89,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
       set({ profiles })
     } catch (error) {
       logger.error('Failed to add profile:', error)
+      useToastStore.getState().error('Failed to add profile.')
     }
   },
 
@@ -96,6 +99,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
       set({ profiles })
     } catch (error) {
       logger.error('Failed to update profile:', error)
+      useToastStore.getState().error('Failed to update profile.')
     }
   },
 
@@ -105,6 +109,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
       set({ profiles })
     } catch (error) {
       logger.error('Failed to remove profile:', error)
+      useToastStore.getState().error('Failed to remove profile.')
     }
   },
 

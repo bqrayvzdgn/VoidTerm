@@ -1,0 +1,85 @@
+/* VoidTerm - Split Pane Styles */
+
+.split-pane {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.split-pane.horizontal {
+  flex-direction: column;
+}
+
+.split-pane.vertical {
+  flex-direction: row;
+}
+
+.split-pane-panel {
+  display: flex;
+  overflow: hidden;
+  min-width: 100px;
+  min-height: 100px;
+}
+
+.split-pane-divider {
+  background: var(--border);
+  flex-shrink: 0;
+  transition: background var(--transition-normal);
+  position: relative;
+}
+
+.split-pane.vertical > .split-pane-divider {
+  width: 1px;
+  cursor: col-resize;
+}
+
+.split-pane.horizontal > .split-pane-divider {
+  height: 1px;
+  cursor: row-resize;
+}
+
+.split-pane-divider:hover {
+  background: var(--accent);
+}
+
+.split-pane-divider:focus {
+  outline: none;
+  background: var(--accent);
+}
+
+.split-pane-divider.dragging {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.split-pane.vertical > .split-pane-divider.dragging {
+  width: 3px;
+  margin-left: -1px;
+  margin-right: -1px;
+}
+
+.split-pane.horizontal > .split-pane-divider.dragging {
+  height: 3px;
+  margin-top: -1px;
+  margin-bottom: -1px;
+}
+
+.split-pane-divider::before {
+  content: '';
+  position: absolute;
+  z-index: 5;
+}
+
+.split-pane.vertical > .split-pane-divider::before {
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  right: -4px;
+}
+
+.split-pane.horizontal > .split-pane-divider::before {
+  left: 0;
+  right: 0;
+  top: -4px;
+  bottom: -4px;
+}

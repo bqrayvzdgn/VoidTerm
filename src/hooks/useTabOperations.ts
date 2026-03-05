@@ -63,12 +63,12 @@ export const useTabOperations = ({
     }
   }, [tabs, activeWorkspaceId, activeTabId, setActiveTab, panes, setActivePaneTerminalId])
 
-  // Reopen last closed tab
+  // Reopen last closed tab (restore workspace assignment)
   const handleReopenClosedTab = useCallback(async () => {
     const closedTab = popClosedTab()
     if (!closedTab) return
 
-    await handleCreateTab(closedTab.profileId)
+    await handleCreateTab(closedTab.profileId, closedTab.workspaceId)
   }, [popClosedTab, handleCreateTab])
 
   return {

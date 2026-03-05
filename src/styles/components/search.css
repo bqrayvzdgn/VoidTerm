@@ -1,0 +1,159 @@
+/* VoidTerm - Search Bar Styles */
+
+.terminal-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg-surface);
+  animation: searchSlideDown 0.15s ease;
+}
+
+@keyframes searchSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.terminal-search-input-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.terminal-search-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition-normal);
+}
+
+.terminal-search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.terminal-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Search History Dropdown */
+.terminal-search-history {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-dropdown);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.terminal-search-history-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  transition: background var(--transition-fast);
+}
+
+.terminal-search-history-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.terminal-search-history-item:first-child {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.terminal-search-history-item:last-child {
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.terminal-search-history-item:only-child {
+  border-radius: var(--radius-md);
+}
+
+.terminal-search-history-item svg {
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.terminal-search-history-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-search-history-remove {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  opacity: 0;
+  transition: all var(--transition-fast);
+}
+
+.terminal-search-history-item:hover .terminal-search-history-remove {
+  opacity: 1;
+}
+
+.terminal-search-history-remove:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--red);
+}
+
+.terminal-search-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.terminal-search-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.terminal-search-btn:active {
+  background: var(--bg-active);
+}
+
+.terminal-search-count {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  padding: 0 8px;
+  white-space: nowrap;
+}

@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom'
+import { Plus } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import type { TabGroup, Workspace } from '../../types'
 
@@ -41,9 +42,7 @@ export function TabContextMenu({
 
         <button className="context-menu-item" onClick={onCreateGroup}>
           <span className="context-menu-icon add">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M6 2V10M2 6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <Plus size={12} strokeWidth={1.5} />
           </span>
           <span>{t.tabbar.createGroup}</span>
         </button>

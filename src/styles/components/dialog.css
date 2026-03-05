@@ -1,0 +1,233 @@
+/* VoidTerm - Dialog Styles (Create, Broadcast Confirm) */
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+  animation: modalOverlayIn 0.15s ease;
+}
+
+.create-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  z-index: 2001;
+  min-width: 360px;
+  box-shadow: var(--shadow-lg);
+  animation: dialogIn 0.15s ease;
+}
+
+@keyframes dialogIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.98); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.create-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+.create-dialog-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.create-dialog-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-elevated);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-align: left;
+}
+
+.create-dialog-option:hover {
+  background: var(--bg-overlay);
+  border-color: var(--accent);
+}
+
+.create-dialog-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.create-dialog-icon.workspace {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+}
+
+.create-dialog-icon.terminal {
+  background: linear-gradient(135deg, #22c55e, #06b6d4);
+  color: white;
+}
+
+.create-dialog-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.create-dialog-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.create-dialog-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.create-dialog-back {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-normal);
+}
+
+.create-dialog-back:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.create-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.create-dialog-label {
+  font-size: var(--font-size-base);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.create-dialog-input {
+  padding: 12px 14px;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  outline: none;
+  transition: border-color var(--transition-normal);
+}
+
+.create-dialog-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.create-dialog-input::placeholder {
+  color: var(--text-muted);
+}
+
+.create-dialog-submit {
+  padding: 12px 20px;
+  background: var(--accent-gradient);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: white;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  margin-top: 8px;
+}
+
+.create-dialog-submit:hover {
+  filter: brightness(1.1);
+}
+
+.create-dialog-submit:active {
+  transform: scale(0.97);
+}
+
+/* Create Dialog - Profile Selection */
+.create-dialog-profiles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.create-dialog-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.create-dialog-profile:hover {
+  background: var(--bg-overlay);
+  border-color: var(--border-light);
+}
+
+.create-dialog-profile-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-base);
+  border-radius: var(--radius-lg);
+}
+
+.create-dialog-profile-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.create-dialog-profile-name {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.create-dialog-profile-path {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}

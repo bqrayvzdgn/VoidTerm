@@ -79,6 +79,7 @@ interface TerminalStore {
 }
 
 const MAX_CLOSED_TABS = 10 // Keep last 10 closed tabs
+const MAX_COMMAND_BLOCKS = 500 // Limit per-terminal command blocks to prevent memory growth
 
 export const useTerminalStore = create<TerminalStore>((set, get) => ({
   tabs: [],
@@ -115,32 +116,37 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     const tabToClose = state.tabs.find(t => t.id === tabId)
     const tabs = state.tabs.filter(t => t.id !== tabId)
 
-    // Save closed tab info for reopening later
+    // Build new closed tabs list
+    let closedTabs = state.closedTabs
     if (tabToClose) {
-      const closedTabs = [
-        { 
-          profileId: tabToClose.profileId, 
-          title: tabToClose.title, 
+      closedTabs = [
+        {
+          profileId: tabToClose.profileId,
+          title: tabToClose.title,
           workspaceId: tabToClose.workspaceId,
           closedAt: Date.now()
         },
         ...state.closedTabs
       ].slice(0, MAX_CLOSED_TABS)
-      set({ closedTabs })
     }
 
-    // Clean up terminals for this tab
+    // Clean up terminals and panes for this tab
+    const terminals = new Map(state.terminals)
+    const panes = new Map(state.panes)
+    const tabActivity = new Map(state.tabActivity)
+    const terminalCwds = new Map(state.terminalCwds)
+    const commandBlocks = new Map(state.commandBlocks)
     const pane = state.panes.get(tabId)
     if (pane) {
       const terminalIds = collectTerminalIds(pane)
-      const terminals = new Map(state.terminals)
-      terminalIds.forEach(id => terminals.delete(id))
-
-      const panes = new Map(state.panes)
+      terminalIds.forEach(id => {
+        terminals.delete(id)
+        terminalCwds.delete(id)
+        commandBlocks.delete(id)
+      })
       panes.delete(tabId)
-
-      set({ terminals, panes })
     }
+    tabActivity.delete(tabId)
 
     // Set new active tab
     let newActiveTabId = state.activeTabId
@@ -149,9 +155,16 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       newActiveTabId = tabs[Math.max(0, index - 1)]?.id || null
     }
 
+    // Single atomic state update to avoid intermediate renders
     set({
       tabs: tabs.map(t => ({ ...t, isActive: t.id === newActiveTabId })),
-      activeTabId: newActiveTabId
+      activeTabId: newActiveTabId,
+      closedTabs,
+      terminals,
+      panes,
+      tabActivity,
+      terminalCwds,
+      commandBlocks
     })
   },
 
@@ -282,7 +295,11 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     set((state) => {
       const blocks = new Map(state.commandBlocks)
       const existing = blocks.get(terminalId) || []
-      blocks.set(terminalId, [...existing, block])
+      // Trim oldest blocks if exceeding limit
+      const updated = [...existing, block]
+      blocks.set(terminalId, updated.length > MAX_COMMAND_BLOCKS
+        ? updated.slice(updated.length - MAX_COMMAND_BLOCKS)
+        : updated)
       return { commandBlocks: blocks }
     })
   },

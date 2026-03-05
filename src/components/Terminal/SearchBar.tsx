@@ -1,6 +1,7 @@
-import { useCallback, useRef, useState, useEffect } from 'react'
+import { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import type { SearchAddon } from '@xterm/addon-search'
 import type { Terminal } from '@xterm/xterm'
+import { Clock, X, ChevronUp, ChevronDown } from 'lucide-react'
 import { useSearchHistory } from '../../hooks/useSearchHistory'
 
 interface SearchBarProps {
@@ -29,30 +30,46 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
     searchInputRef.current?.focus()
   }, [])
 
-  // Count matches in terminal buffer
-  const countSearchMatches = useCallback((text: string): number => {
-    if (!terminal || !text) return 0
+  const countDebounceRef = useRef<NodeJS.Timeout | null>(null)
 
-    const buffer = terminal.buffer.active
-    let count = 0
-    const searchLower = text.toLowerCase()
+  // Count matches in terminal buffer (debounced to avoid blocking UI)
+  const countSearchMatches = useCallback((text: string, onCount: (count: number) => void): void => {
+    if (!terminal || !text) {
+      onCount(0)
+      return
+    }
 
-    // Limit iteration for performance (max 10000 lines)
-    const maxLines = Math.min(buffer.length, 10000)
+    // Skip counting for very short search terms (too many matches)
+    if (text.length < 2) {
+      onCount(-1) // signal "not counted"
+      return
+    }
 
-    for (let i = 0; i < maxLines; i++) {
-      const line = buffer.getLine(i)
-      if (line) {
-        const lineText = line.translateToString().toLowerCase()
-        let pos = 0
-        while ((pos = lineText.indexOf(searchLower, pos)) !== -1) {
-          count++
-          pos += searchLower.length
+    // Debounce the count calculation
+    if (countDebounceRef.current) clearTimeout(countDebounceRef.current)
+    countDebounceRef.current = setTimeout(() => {
+      const buffer = terminal.buffer.active
+      let count = 0
+      const searchLower = text.toLowerCase()
+      const maxLines = Math.min(buffer.length, 10000)
+
+      for (let i = 0; i < maxLines; i++) {
+        const line = buffer.getLine(i)
+        if (line) {
+          const lineText = line.translateToString().toLowerCase()
+          let pos = 0
+          while ((pos = lineText.indexOf(searchLower, pos)) !== -1) {
+            count++
+            pos += searchLower.length
+          }
         }
       }
-    }
-    return count
+      onCount(count)
+    }, 150)
   }, [terminal])
+
+  // Cleanup debounce timer
+  useMemo(() => () => { if (countDebounceRef.current) clearTimeout(countDebounceRef.current) }, [])
 
   const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -102,8 +119,10 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
     if (searchAddon) {
       if (text) {
         const found = searchAddon.findNext(text, { caseSensitive: false })
-        const total = countSearchMatches(text)
-        setSearchMatchInfo(found ? { current: 1, total } : { current: 0, total })
+        setSearchMatchInfo(found ? { current: 1, total: -1 } : { current: 0, total: 0 })
+        countSearchMatches(text, (total) => {
+          setSearchMatchInfo(prev => prev ? { ...prev, total } : { current: 0, total })
+        })
         setShowSearchHistory(false)
       } else {
         searchAddon.clearDecorations()
@@ -123,8 +142,10 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
     setShowSearchHistory(false)
     if (searchAddon) {
       const found = searchAddon.findNext(term, { caseSensitive: false })
-      const total = countSearchMatches(term)
-      setSearchMatchInfo(found ? { current: 1, total } : { current: 0, total })
+      setSearchMatchInfo(found ? { current: 1, total: -1 } : { current: 0, total: 0 })
+      countSearchMatches(term, (total) => {
+        setSearchMatchInfo(prev => prev ? { ...prev, total } : { current: 0, total })
+      })
     }
   }, [searchAddon, countSearchMatches])
 
@@ -177,20 +198,14 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
                 className="terminal-search-history-item"
                 onClick={() => handleSelectFromHistory(term)}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
+                <Clock size={12} strokeWidth={1.5} />
                 <span className="terminal-search-history-text">{term}</span>
                 <button
                   className="terminal-search-history-remove"
                   onClick={(e) => handleRemoveFromHistory(e, term)}
                   title="Remove from history"
                 >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  <X size={10} strokeWidth={1.5} />
                 </button>
               </div>
             ))}
@@ -199,9 +214,11 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
       </div>
       {searchMatchInfo && (
         <span className="terminal-search-count">
-          {searchMatchInfo.total > 0
-            ? `${searchMatchInfo.current}/${searchMatchInfo.total}`
-            : 'No results'}
+          {searchMatchInfo.total === -1
+            ? `${searchMatchInfo.current}/...`
+            : searchMatchInfo.total > 0
+              ? `${searchMatchInfo.current}/${searchMatchInfo.total}`
+              : 'No results'}
         </span>
       )}
       <button
@@ -209,28 +226,21 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
         onClick={handleFindPrevious}
         title="Previous (Shift+Enter)"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="18 15 12 9 6 15" />
-        </svg>
+        <ChevronUp size={14} strokeWidth={1.5} />
       </button>
       <button
         className="terminal-search-btn"
         onClick={handleFindNext}
         title="Next (Enter)"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <ChevronDown size={14} strokeWidth={1.5} />
       </button>
       <button
         className="terminal-search-btn"
         onClick={handleClose}
         title="Close (Esc)"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
+        <X size={14} strokeWidth={1.5} />
       </button>
     </div>
   )

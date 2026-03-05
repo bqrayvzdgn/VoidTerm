@@ -238,21 +238,25 @@ const App: React.FC = () => {
 
   return (
     <div className={`app-container ${isMaximized ? 'maximized' : ''}`}>
-      <TabBar
-        onNewTab={openCreateDialog}
-        onCreateTab={handleCreateTab}
-        onCloseTab={handleCloseTab}
-        onToggleSidebar={toggleSidebar}
-        sidebarExpanded={sidebarExpanded}
-      />
+      <PanelErrorBoundary panelName="Tab Bar" onReset={() => {}}>
+        <TabBar
+          onNewTab={openCreateDialog}
+          onCreateTab={handleCreateTab}
+          onCloseTab={handleCloseTab}
+          onToggleSidebar={toggleSidebar}
+          sidebarExpanded={sidebarExpanded}
+        />
+      </PanelErrorBoundary>
 
       <div className="app-main">
-        <WorkspaceSidebar
-          expanded={sidebarExpanded}
-          onNewTab={openCreateDialog}
-          onCreateTerminal={handleCreateTab}
-          onOpenSettings={() => setSettingsOpen(true)}
-        />
+        <PanelErrorBoundary panelName="Workspace Sidebar" onReset={() => setSidebarExpanded(false)}>
+          <WorkspaceSidebar
+            expanded={sidebarExpanded}
+            onNewTab={openCreateDialog}
+            onCreateTerminal={handleCreateTab}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+        </PanelErrorBoundary>
 
         <div className="terminal-container">
           {activePane ? (

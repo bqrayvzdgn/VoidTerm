@@ -4,6 +4,8 @@ import { TerminalView } from '../Terminal/TerminalView'
 
 // Minimum panel boyutu (piksel cinsinden)
 const MIN_PANEL_SIZE = 100
+// Divider width in pixels (must match CSS)
+const DIVIDER_SIZE = 4
 // Resize adımı (keyboard ile)
 const RESIZE_STEP = 0.05
 
@@ -74,11 +76,12 @@ export const SplitPane: React.FC<SplitPaneProps> = memo(({
       ? e.clientX - rect.left 
       : e.clientY - rect.top
 
-    // Minimum piksel bazlı sınır
-    const minRatio = MIN_PANEL_SIZE / totalSize
+    // Minimum piksel bazlı sınır (account for divider width)
+    const usableSize = totalSize - DIVIDER_SIZE
+    const minRatio = MIN_PANEL_SIZE / usableSize
     const maxRatio = 1 - minRatio
 
-    let newRatio = position / totalSize
+    const newRatio = position / totalSize
     return Math.max(minRatio, Math.min(maxRatio, newRatio))
   }, [pane.direction])
 

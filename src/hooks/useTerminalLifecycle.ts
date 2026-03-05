@@ -4,7 +4,6 @@ import { useTerminalStore } from '../store/terminalStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useWorkspaceStore } from '../store/workspaceStore'
 import { collectTerminalIds } from '../utils/pane'
-import { TERMINAL_STARTUP_DELAY } from '../constants'
 import { createLogger } from '../utils/logger'
 
 const logger = createLogger('TerminalLifecycle')
@@ -38,11 +37,18 @@ export const useTerminalLifecycle = () => {
         return newMap
       })
 
-      // Execute startup command if defined
+      // Execute startup command after shell is ready (wait for first PTY output)
       if (profile.startupCommand) {
-        setTimeout(() => {
-          window.electronAPI.ptyWrite(ptyId, profile.startupCommand + '\r')
-        }, TERMINAL_STARTUP_DELAY)
+        const startupCmd = profile.startupCommand
+        const removeListener = window.electronAPI.onPtyData((id, _data) => {
+          if (id === ptyId) {
+            removeListener()
+            // Small delay after first output to ensure prompt is ready
+            setTimeout(() => {
+              window.electronAPI.ptyWrite(ptyId, startupCmd + '\r')
+            }, 100)
+          }
+        })
       }
 
       return { terminalId, ptyId }
@@ -91,20 +97,23 @@ export const useTerminalLifecycle = () => {
   const handleCloseTab = useCallback((tabId: string) => {
     const pane = panes.get(tabId)
     if (pane) {
-      collectTerminalIds(pane).forEach(terminalId => {
-        const ptyId = ptyIds.get(terminalId)
+      const terminalIds = collectTerminalIds(pane)
+      // Kill all PTYs first, then update state
+      for (const tid of terminalIds) {
+        const ptyId = ptyIds.get(tid)
         if (ptyId) {
           try {
             window.electronAPI.ptyKill(ptyId)
           } catch (error) {
             logger.error('Failed to kill PTY:', error)
           }
-          setPtyIds(prev => {
-            const newMap = new Map(prev)
-            newMap.delete(terminalId)
-            return newMap
-          })
         }
+      }
+      // Batch state update: remove all PTY mappings at once
+      setPtyIds(prev => {
+        const newMap = new Map(prev)
+        terminalIds.forEach(tid => newMap.delete(tid))
+        return newMap
       })
     }
     removeTab(tabId)

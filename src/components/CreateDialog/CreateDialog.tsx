@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { LayoutGrid, Terminal } from 'lucide-react'
 import { useSettingsStore } from '../../store/settingsStore'
 import { TerminalIcon } from '../Icons/TerminalIcons'
 
@@ -71,12 +72,7 @@ export const CreateDialog: React.FC<CreateDialogProps> = ({
             <div className="create-dialog-options">
               <button className="create-dialog-option" onClick={handleWorkspaceClick}>
                 <div className="create-dialog-icon workspace">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="7" height="7" rx="1" />
-                    <rect x="14" y="3" width="7" height="7" rx="1" />
-                    <rect x="3" y="14" width="7" height="7" rx="1" />
-                    <rect x="14" y="14" width="7" height="7" rx="1" />
-                  </svg>
+                  <LayoutGrid size={20} strokeWidth={1.5} />
                 </div>
                 <div className="create-dialog-text">
                   <span className="create-dialog-title">Workspace</span>
@@ -85,9 +81,7 @@ export const CreateDialog: React.FC<CreateDialogProps> = ({
               </button>
               <button className="create-dialog-option" onClick={handleTerminalClick}>
                 <div className="create-dialog-icon terminal">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 17l6-6-6-6M12 19h8" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                  <Terminal size={20} strokeWidth={1.5} />
                 </div>
                 <div className="create-dialog-text">
                   <span className="create-dialog-title">Terminal</span>

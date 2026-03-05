@@ -680,10 +680,30 @@ export class ConfigManager {
 
       // Validate profiles
       if (config.profiles && Array.isArray(config.profiles)) {
+        // Shell metacharacters that could enable command injection in startup commands
+        const shellMetachars = /[;&|`$(){}[\]<>!]/
+
         for (const profile of config.profiles) {
           if (!profile.id || typeof profile.id !== 'string') throw new Error('Invalid profile: missing or invalid id')
           if (!profile.name || typeof profile.name !== 'string') throw new Error('Invalid profile: missing or invalid name')
           if (!profile.shell || typeof profile.shell !== 'string') throw new Error('Invalid profile: missing or invalid shell')
+
+          // Validate shell path: must be absolute or a known shell name
+          const shellLower = profile.shell.toLowerCase()
+          const isKnownShell = ['powershell.exe', 'pwsh.exe', 'cmd.exe', 'bash.exe', 'wsl.exe',
+            '/bin/bash', '/bin/zsh', '/bin/sh', '/usr/bin/zsh', '/usr/bin/fish', '/usr/bin/bash',
+            '/usr/local/bin/bash', '/usr/local/bin/zsh', '/usr/local/bin/fish'
+          ].some(known => shellLower === known || shellLower.endsWith(path.sep + known))
+          if (!isKnownShell && !path.isAbsolute(profile.shell)) {
+            throw new Error(`Invalid profile shell: "${profile.shell}" must be an absolute path or a known shell`)
+          }
+
+          // Validate startup command: reject shell metacharacters
+          if (profile.startupCommand && typeof profile.startupCommand === 'string') {
+            if (shellMetachars.test(profile.startupCommand)) {
+              throw new Error(`Invalid profile startupCommand: contains shell metacharacters`)
+            }
+          }
         }
         store.set('profiles', config.profiles)
       }

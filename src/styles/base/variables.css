@@ -1,57 +1,91 @@
-/* VoidTerm - CSS Variables */
+/* VoidTerm - Design Tokens (Warp/Fig-inspired) */
 
 :root {
-  /* Background Colors */
-  --bg-terminal: #0c0c0c;
-  --bg-tabbar: #202020;
+  /* Background — layered depth */
+  --bg-base: #0a0a0f;
+  --bg-surface: #12121a;
+  --bg-elevated: #1a1a25;
+  --bg-overlay: #22222e;
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-active: rgba(255, 255, 255, 0.08);
+
+  /* Terminal background (separate for theme compat) */
+  --bg-terminal: #0a0a0f;
+
+  /* Tab bar */
+  --bg-tabbar: #0e0e15;
   --bg-tab: transparent;
-  --bg-tab-hover: #2d2d2d;
-  --bg-tab-active: #0c0c0c;
-  --bg-secondary: #1a1a1a;
-  --bg-tertiary: #252525;
-  
-  /* Text Colors */
-  --text-primary: #cccccc;
-  --text-secondary: #999999;
-  --text-muted: #666666;
-  
-  /* Accent Colors */
-  --accent: #0078d4;
-  --accent-hover: #1084d8;
-  --accent-active: #006cbd;
-  
-  /* Semantic Colors */
-  --red: #e81123;
+  --bg-tab-hover: rgba(255, 255, 255, 0.05);
+  --bg-tab-active: #1a1a25;
+
+  /* Legacy aliases for backward compat */
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a25;
+
+  /* Accent — indigo/violet gradient palette */
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-active: #4f46e5;
+  --accent-muted: rgba(99, 102, 241, 0.15);
+  --accent-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --accent-glow: 0 0 12px rgba(99, 102, 241, 0.2);
+
+  /* Text */
+  --text-primary: #e4e4e7;
+  --text-secondary: #a1a1aa;
+  --text-muted: #52525b;
+  --text-inverse: #0a0a0f;
+
+  /* Semantic */
+  --red: #ef4444;
   --green: #22c55e;
-  --yellow: #f59e0b;
+  --yellow: #eab308;
   --blue: #3b82f6;
-  
-  /* Border Colors */
-  --border: #333333;
-  --border-color: #333333;
-  --border-light: #404040;
-  
-  /* Shadow */
+  --orange: #f97316;
+  --pink: #ec4899;
+  --cyan: #06b6d4;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.06);
+  --border-color: rgba(255, 255, 255, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.03);
+  --border-light: rgba(255, 255, 255, 0.12);
+  --border-accent: rgba(99, 102, 241, 0.4);
+
+  /* Shadows */
   --shadow: rgba(0, 0, 0, 0.3);
-  --shadow-lg: rgba(0, 0, 0, 0.5);
-  
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.35);
+  --shadow-accent: 0 0 0 1px rgba(99, 102, 241, 0.3), 0 0 16px rgba(99, 102, 241, 0.15);
+
+  /* Typography */
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-lg: 14px;
+  --font-size-xl: 16px;
+
   /* Dimensions */
-  --tabbar-height: 40px;
-  --sidebar-width: 260px;
+  --tabbar-height: 38px;
+  --sidebar-width: 240px;
   --sidebar-collapsed-width: 0px;
-  
-  /* Border Radius */
+
+  /* Radius */
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 12px;
-  
+  --radius-full: 9999px;
+
   /* Transitions */
   --transition-fast: 0.1s ease;
-  --transition-normal: 0.2s ease;
-  --transition-slow: 0.3s ease;
-  
-  /* Z-Index Scale */
+  --transition-normal: 0.15s ease;
+  --transition-slow: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-Index */
   --z-dropdown: 100;
   --z-modal: 1000;
   --z-toast: 10000;

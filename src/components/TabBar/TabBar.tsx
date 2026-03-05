@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { PanelLeftClose, PanelLeftOpen, ChevronRight, ChevronDown, Plus, ChevronDown as DropdownArrow } from 'lucide-react'
 import { useTerminalTabs, useTabGroups, useTerminalActions } from '../../store/terminalStore'
 import { useProfiles } from '../../store/settingsStore'
 import { useWorkspaces, useActiveWorkspaceId, useWorkspaceActions } from '../../store/workspaceStore'
@@ -203,13 +204,11 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
           onContextMenu={(e) => handleGroupContextMenu(e, group.id)}
         >
           <span className="tab-group-collapse-icon">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5">
-              {isCollapsed ? (
-                <path d="M3 1L7 5L3 9" strokeLinecap="round" strokeLinejoin="round" />
-              ) : (
-                <path d="M1 3L5 7L9 3" strokeLinecap="round" strokeLinejoin="round" />
-              )}
-            </svg>
+            {isCollapsed ? (
+              <ChevronRight size={10} strokeWidth={1.5} />
+            ) : (
+              <ChevronDown size={10} strokeWidth={1.5} />
+            )}
           </span>
           {editingGroupId === group.id ? (
             <input
@@ -294,17 +293,9 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
         aria-expanded={sidebarExpanded}
       >
         {sidebarExpanded ? (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-            <rect x="1" y="2" width="14" height="12" rx="1" />
-            <line x1="5" y1="2" x2="5" y2="14" />
-            <path d="M8 8L11 6V10L8 8Z" fill="currentColor" stroke="none" />
-          </svg>
+          <PanelLeftClose size={16} strokeWidth={1.5} />
         ) : (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-            <rect x="1" y="2" width="14" height="12" rx="1" />
-            <line x1="5" y1="2" x2="5" y2="14" />
-            <path d="M11 8L8 6V10L11 8Z" fill="currentColor" stroke="none" />
-          </svg>
+          <PanelLeftOpen size={16} strokeWidth={1.5} />
         )}
       </button>
 
@@ -322,9 +313,7 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
             >
               {activeWorkspace?.icon || 'W'}
             </span>
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-              <path d="M1 2.5L4 5.5L7 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <DropdownArrow size={8} strokeWidth={1.5} />
           </button>
 
           {workspaceDropdownOpen && (
@@ -357,9 +346,7 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
                 }}
               >
                 <span className="workspace-dropdown-add">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path d="M6 1V11M1 6H11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
+                  <Plus size={12} strokeWidth={1.5} />
                 </span>
                 <span className="workspace-dropdown-name">New Workspace</span>
               </button>
@@ -427,18 +414,14 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
           onClick={() => onNewTab()}
           title="New tab (Ctrl+T)"
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+          <Plus size={14} strokeWidth={1.5} />
         </button>
         <button
           className="tab-dropdown"
           onClick={() => setDropdownOpen(!dropdownOpen)}
           title="Select terminal type"
         >
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-            <path d="M1 2.5L4 5.5L7 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <DropdownArrow size={8} strokeWidth={1.5} />
         </button>
 
         {dropdownOpen && (
