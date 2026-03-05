@@ -389,10 +389,7 @@ export const useTerminalTabs = () => useTerminalStore(useShallow((state) => stat
 export const useActiveTabId = () => useTerminalStore((state) => state.activeTabId)
 export const useTerminalPanes = () => useTerminalStore(useShallow((state) => state.panes))
 export const useBroadcastMode = () => useTerminalStore((state) => state.broadcastMode)
-export const useClosedTabs = () => useTerminalStore(useShallow((state) => state.closedTabs))
 export const useTabGroups = () => useTerminalStore(useShallow((state) => state.tabGroups))
-export const useTerminalCwds = () => useTerminalStore(useShallow((state) => state.terminalCwds))
-export const useCommandBlocks = () => useTerminalStore(useShallow((state) => state.commandBlocks))
 export const useTerminalActions = () => useTerminalStore(useShallow((state) => ({
   addTab: state.addTab,
   removeTab: state.removeTab,

@@ -122,7 +122,7 @@
       "target": [
         "dmg"
       ],
-      "icon": "assets/icons/icon.icns"
+      "icon": "assets/icons/icon.png"
     },
     "linux": {
       "target": [
