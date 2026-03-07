@@ -14,6 +14,8 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
   const [searchText, setSearchText] = useState('')
   const [searchMatchInfo, setSearchMatchInfo] = useState<{ current: number; total: number } | null>(null)
   const [showSearchHistory, setShowSearchHistory] = useState(false)
+  const [useRegex, setUseRegex] = useState(false)
+  const [caseSensitive, setCaseSensitive] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const {
@@ -25,6 +27,8 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
     removeFromHistory
   } = useSearchHistory()
 
+  const searchOptions = useMemo(() => ({ caseSensitive, regex: useRegex }), [caseSensitive, useRegex])
+
   // Focus input on mount
   useEffect(() => {
     searchInputRef.current?.focus()
@@ -33,103 +37,146 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
   const countDebounceRef = useRef<NodeJS.Timeout | null>(null)
 
   // Count matches in terminal buffer (debounced to avoid blocking UI)
-  const countSearchMatches = useCallback((text: string, onCount: (count: number) => void): void => {
-    if (!terminal || !text) {
-      onCount(0)
-      return
-    }
+  const countSearchMatches = useCallback(
+    (text: string, onCount: (count: number) => void): void => {
+      if (!terminal || !text) {
+        onCount(0)
+        return
+      }
 
-    // Skip counting for very short search terms (too many matches)
-    if (text.length < 2) {
-      onCount(-1) // signal "not counted"
-      return
-    }
+      // Skip counting for very short search terms (too many matches)
+      if (text.length < 2) {
+        onCount(-1) // signal "not counted"
+        return
+      }
 
-    // Debounce the count calculation
-    if (countDebounceRef.current) clearTimeout(countDebounceRef.current)
-    countDebounceRef.current = setTimeout(() => {
-      const buffer = terminal.buffer.active
-      let count = 0
-      const searchLower = text.toLowerCase()
-      const maxLines = Math.min(buffer.length, 10000)
+      // Debounce the count calculation
+      if (countDebounceRef.current) clearTimeout(countDebounceRef.current)
+      countDebounceRef.current = setTimeout(() => {
+        const buffer = terminal.buffer.active
+        let count = 0
+        const maxLines = Math.min(buffer.length, 10000)
 
-      for (let i = 0; i < maxLines; i++) {
-        const line = buffer.getLine(i)
-        if (line) {
-          const lineText = line.translateToString().toLowerCase()
-          let pos = 0
-          while ((pos = lineText.indexOf(searchLower, pos)) !== -1) {
-            count++
-            pos += searchLower.length
+        if (useRegex) {
+          try {
+            const regex = new RegExp(text, caseSensitive ? 'g' : 'gi')
+            for (let i = 0; i < maxLines; i++) {
+              const line = buffer.getLine(i)
+              if (line) {
+                const lineText = line.translateToString()
+                const matches = lineText.match(regex)
+                if (matches) count += matches.length
+              }
+            }
+          } catch {
+            // Invalid regex - show 0 matches
+            onCount(0)
+            return
+          }
+        } else {
+          const searchStr = caseSensitive ? text : text.toLowerCase()
+          for (let i = 0; i < maxLines; i++) {
+            const line = buffer.getLine(i)
+            if (line) {
+              const lineText = caseSensitive ? line.translateToString() : line.translateToString().toLowerCase()
+              let pos = 0
+              while ((pos = lineText.indexOf(searchStr, pos)) !== -1) {
+                count++
+                pos += searchStr.length
+              }
+            }
           }
         }
-      }
-      onCount(count)
-    }, 150)
-  }, [terminal])
+        onCount(count)
+      }, 150)
+    },
+    [terminal, useRegex, caseSensitive]
+  )
 
   // Cleanup debounce timer
-  useMemo(() => () => { if (countDebounceRef.current) clearTimeout(countDebounceRef.current) }, [])
+  useMemo(
+    () => () => {
+      if (countDebounceRef.current) clearTimeout(countDebounceRef.current)
+    },
+    []
+  )
 
-  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      setSearchText('')
-      setSearchMatchInfo(null)
-      searchAddon?.clearDecorations()
-      resetIndex()
-      onClose()
-    } else if (e.key === 'Enter') {
-      if (searchAddon && searchText) {
-        addToHistory(searchText)
-        setShowSearchHistory(false)
+  // Re-search when options change
+  useEffect(() => {
+    if (searchAddon && searchText) {
+      const found = searchAddon.findNext(searchText, searchOptions)
+      setSearchMatchInfo(found ? { current: 1, total: -1 } : { current: 0, total: 0 })
+      countSearchMatches(searchText, (total) => {
+        setSearchMatchInfo((prev) => (prev ? { ...prev, total } : { current: 0, total }))
+      })
+    }
+  }, [useRegex, caseSensitive]) // eslint-disable-line react-hooks/exhaustive-deps
 
-        if (e.shiftKey) {
-          searchAddon.findPrevious(searchText, { caseSensitive: false })
-          setSearchMatchInfo(prev => prev && prev.total > 0
-            ? { ...prev, current: prev.current > 1 ? prev.current - 1 : prev.total }
-            : prev)
-        } else {
-          searchAddon.findNext(searchText, { caseSensitive: false })
-          setSearchMatchInfo(prev => prev && prev.total > 0
-            ? { ...prev, current: prev.current < prev.total ? prev.current + 1 : 1 }
-            : prev)
+  const handleSearchKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSearchText('')
+        setSearchMatchInfo(null)
+        searchAddon?.clearDecorations()
+        resetIndex()
+        onClose()
+      } else if (e.key === 'Enter') {
+        if (searchAddon && searchText) {
+          addToHistory(searchText)
+          setShowSearchHistory(false)
+
+          if (e.shiftKey) {
+            searchAddon.findPrevious(searchText, searchOptions)
+            setSearchMatchInfo((prev) =>
+              prev && prev.total > 0 ? { ...prev, current: prev.current > 1 ? prev.current - 1 : prev.total } : prev
+            )
+          } else {
+            searchAddon.findNext(searchText, searchOptions)
+            setSearchMatchInfo((prev) =>
+              prev && prev.total > 0 ? { ...prev, current: prev.current < prev.total ? prev.current + 1 : 1 } : prev
+            )
+          }
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        const prevSearch = navigatePrevious()
+        if (prevSearch !== null) {
+          setSearchText(prevSearch)
+          setShowSearchHistory(false)
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        const nextSearch = navigateNext()
+        if (nextSearch !== null) {
+          setSearchText(nextSearch)
+          setShowSearchHistory(false)
         }
       }
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      const prevSearch = navigatePrevious()
-      if (prevSearch !== null) {
-        setSearchText(prevSearch)
-        setShowSearchHistory(false)
-      }
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      const nextSearch = navigateNext()
-      if (nextSearch !== null) {
-        setSearchText(nextSearch)
-        setShowSearchHistory(false)
-      }
-    }
-  }, [searchText, searchAddon, addToHistory, navigatePrevious, navigateNext, resetIndex, onClose])
+    },
+    [searchText, searchAddon, searchOptions, addToHistory, navigatePrevious, navigateNext, resetIndex, onClose]
+  )
 
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const text = e.target.value
-    setSearchText(text)
-    resetIndex()
-    if (searchAddon) {
-      if (text) {
-        const found = searchAddon.findNext(text, { caseSensitive: false })
-        setSearchMatchInfo(found ? { current: 1, total: -1 } : { current: 0, total: 0 })
-        countSearchMatches(text, (total) => {
-          setSearchMatchInfo(prev => prev ? { ...prev, total } : { current: 0, total })
-        })
-        setShowSearchHistory(false)
-      } else {
-        searchAddon.clearDecorations()
-        setSearchMatchInfo(null)
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const text = e.target.value
+      setSearchText(text)
+      resetIndex()
+      if (searchAddon) {
+        if (text) {
+          const found = searchAddon.findNext(text, searchOptions)
+          setSearchMatchInfo(found ? { current: 1, total: -1 } : { current: 0, total: 0 })
+          countSearchMatches(text, (total) => {
+            setSearchMatchInfo((prev) => (prev ? { ...prev, total } : { current: 0, total }))
+          })
+          setShowSearchHistory(false)
+        } else {
+          searchAddon.clearDecorations()
+          setSearchMatchInfo(null)
+        }
       }
-    }
-  }, [searchAddon, countSearchMatches, resetIndex])
+    },
+    [searchAddon, searchOptions, countSearchMatches, resetIndex]
+  )
 
   const handleSearchFocus = useCallback(() => {
     if (searchHistory.length > 0 && !searchText) {
@@ -137,37 +184,43 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
     }
   }, [searchHistory.length, searchText])
 
-  const handleSelectFromHistory = useCallback((term: string) => {
-    setSearchText(term)
-    setShowSearchHistory(false)
-    if (searchAddon) {
-      const found = searchAddon.findNext(term, { caseSensitive: false })
-      setSearchMatchInfo(found ? { current: 1, total: -1 } : { current: 0, total: 0 })
-      countSearchMatches(term, (total) => {
-        setSearchMatchInfo(prev => prev ? { ...prev, total } : { current: 0, total })
-      })
-    }
-  }, [searchAddon, countSearchMatches])
+  const handleSelectFromHistory = useCallback(
+    (term: string) => {
+      setSearchText(term)
+      setShowSearchHistory(false)
+      if (searchAddon) {
+        const found = searchAddon.findNext(term, searchOptions)
+        setSearchMatchInfo(found ? { current: 1, total: -1 } : { current: 0, total: 0 })
+        countSearchMatches(term, (total) => {
+          setSearchMatchInfo((prev) => (prev ? { ...prev, total } : { current: 0, total }))
+        })
+      }
+    },
+    [searchAddon, searchOptions, countSearchMatches]
+  )
 
-  const handleRemoveFromHistory = useCallback((e: React.MouseEvent, term: string) => {
-    e.stopPropagation()
-    removeFromHistory(term)
-  }, [removeFromHistory])
+  const handleRemoveFromHistory = useCallback(
+    (e: React.MouseEvent, term: string) => {
+      e.stopPropagation()
+      removeFromHistory(term)
+    },
+    [removeFromHistory]
+  )
 
   const handleFindPrevious = useCallback(() => {
-    searchAddon?.findPrevious(searchText, { caseSensitive: false })
-    setSearchMatchInfo(prev => prev && prev.total > 0
-      ? { ...prev, current: prev.current > 1 ? prev.current - 1 : prev.total }
-      : prev)
-  }, [searchAddon, searchText])
+    searchAddon?.findPrevious(searchText, searchOptions)
+    setSearchMatchInfo((prev) =>
+      prev && prev.total > 0 ? { ...prev, current: prev.current > 1 ? prev.current - 1 : prev.total } : prev
+    )
+  }, [searchAddon, searchText, searchOptions])
 
   const handleFindNext = useCallback(() => {
     if (searchText) addToHistory(searchText)
-    searchAddon?.findNext(searchText, { caseSensitive: false })
-    setSearchMatchInfo(prev => prev && prev.total > 0
-      ? { ...prev, current: prev.current < prev.total ? prev.current + 1 : 1 }
-      : prev)
-  }, [searchAddon, searchText, addToHistory])
+    searchAddon?.findNext(searchText, searchOptions)
+    setSearchMatchInfo((prev) =>
+      prev && prev.total > 0 ? { ...prev, current: prev.current < prev.total ? prev.current + 1 : 1 } : prev
+    )
+  }, [searchAddon, searchText, searchOptions, addToHistory])
 
   const handleClose = useCallback(() => {
     setSearchText('')
@@ -193,11 +246,7 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
         {showSearchHistory && searchHistory.length > 0 && (
           <div className="terminal-search-history">
             {searchHistory.slice(0, 10).map((term, index) => (
-              <div
-                key={index}
-                className="terminal-search-history-item"
-                onClick={() => handleSelectFromHistory(term)}
-              >
+              <div key={index} className="terminal-search-history-item" onClick={() => handleSelectFromHistory(term)}>
                 <Clock size={12} strokeWidth={1.5} />
                 <span className="terminal-search-history-text">{term}</span>
                 <button
@@ -222,24 +271,26 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
         </span>
       )}
       <button
-        className="terminal-search-btn"
-        onClick={handleFindPrevious}
-        title="Previous (Shift+Enter)"
+        className={`terminal-search-toggle ${useRegex ? 'active' : ''}`}
+        onClick={() => setUseRegex((prev) => !prev)}
+        title="Use Regular Expression"
       >
+        .*
+      </button>
+      <button
+        className={`terminal-search-toggle ${caseSensitive ? 'active' : ''}`}
+        onClick={() => setCaseSensitive((prev) => !prev)}
+        title="Match Case"
+      >
+        Aa
+      </button>
+      <button className="terminal-search-btn" onClick={handleFindPrevious} title="Previous (Shift+Enter)">
         <ChevronUp size={14} strokeWidth={1.5} />
       </button>
-      <button
-        className="terminal-search-btn"
-        onClick={handleFindNext}
-        title="Next (Enter)"
-      >
+      <button className="terminal-search-btn" onClick={handleFindNext} title="Next (Enter)">
         <ChevronDown size={14} strokeWidth={1.5} />
       </button>
-      <button
-        className="terminal-search-btn"
-        onClick={handleClose}
-        title="Close (Esc)"
-      >
+      <button className="terminal-search-btn" onClick={handleClose} title="Close (Esc)">
         <X size={14} strokeWidth={1.5} />
       </button>
     </div>

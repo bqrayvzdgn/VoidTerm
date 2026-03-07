@@ -3,32 +3,34 @@ import { TabBar } from './components/TabBar/TabBar'
 import { WorkspaceSidebar } from './components/WorkspaceSidebar/WorkspaceSidebar'
 import { SplitPane } from './components/SplitPane/SplitPane'
 import { CreateDialog } from './components/CreateDialog/CreateDialog'
-import { BroadcastConfirmDialog } from './components/BroadcastConfirmDialog/BroadcastConfirmDialog'
 import { ToastContainer } from './components/Toast/Toast'
+import { SessionRestoreDialog } from './components/SessionRestoreDialog/SessionRestoreDialog'
+import { PerfMonitor } from './components/DevTools/PerfMonitor'
 import { TerminalErrorBoundary } from './components/ErrorBoundary/TerminalErrorBoundary'
 import { PanelErrorBoundary } from './components/ErrorBoundary/PanelErrorBoundary'
-import {
-  useTerminalTabs,
-  useActiveTabId,
-  useTerminalPanes,
-  useBroadcastMode,
-  useTerminalActions
-} from './store/terminalStore'
+import { useTerminalTabs, useActiveTabId, useTerminalPanes, useTerminalActions } from './store/terminalStore'
 import { useActiveWorkspaceId, useWorkspaceActions } from './store/workspaceStore'
+import { getActivePaneId } from './store/activePaneStore'
 import {
   useKeyboardShortcuts,
   useMenuEvents,
   useWindowState,
   useTerminalManager,
   useSessionManager,
-  useThemeManager,
-  useSSHManager
+  useThemeManager
 } from './hooks'
 
-// Lazy loaded modal bileşenler
-const Settings = lazy(() => import('./components/Settings/Settings').then(m => ({ default: m.Settings })))
-const CommandPalette = lazy(() => import('./components/CommandPalette/CommandPalette').then(m => ({ default: m.CommandPalette })))
-const SSHManager = lazy(() => import('./components/SSHManager/SSHManager').then(m => ({ default: m.SSHManager })))
+// Lazy loaded modal components
+const Settings = lazy(() => import('./components/Settings/Settings').then((m) => ({ default: m.Settings })))
+const CommandPalette = lazy(() =>
+  import('./components/CommandPalette/CommandPalette').then((m) => ({ default: m.CommandPalette }))
+)
+const UpdateDialog = lazy(() =>
+  import('./components/UpdateDialog/UpdateDialog').then((m) => ({ default: m.UpdateDialog }))
+)
+const SnippetManager = lazy(() =>
+  import('./components/SnippetManager/SnippetManager').then((m) => ({ default: m.SnippetManager }))
+)
 
 const App: React.FC = () => {
   // UI State
@@ -36,38 +38,30 @@ const App: React.FC = () => {
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [createDialog, setCreateDialog] = useState<{ open: boolean; profileId?: string }>({ open: false })
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
-  const [broadcastConfirmOpen, setBroadcastConfirmOpen] = useState(false)
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false)
+  const [snippetManagerOpen, setSnippetManagerOpen] = useState(false)
 
-  // Stores - using selectors for optimized re-renders
+  // Stores
   const tabs = useTerminalTabs()
   const activeTabId = useActiveTabId()
   const panes = useTerminalPanes()
-  const broadcastMode = useBroadcastMode()
-  const { setActiveTab, toggleBroadcastMode } = useTerminalActions()
+  const { setActiveTab } = useTerminalActions()
   const activeWorkspaceId = useActiveWorkspaceId()
   const { addWorkspace } = useWorkspaceActions()
 
   // When workspace changes, ensure active tab belongs to that workspace
   useEffect(() => {
-    // Skip if no active tab (already cleared)
     if (!activeTabId) return
 
-    const activeTab = tabs.find(t => t.id === activeTabId)
-
-    // Check if active tab belongs to current workspace view
-    const tabBelongsToView = activeTab && (activeWorkspaceId
-      ? activeTab.workspaceId === activeWorkspaceId
-      : !activeTab.workspaceId)
+    const activeTab = tabs.find((t) => t.id === activeTabId)
+    const tabBelongsToView =
+      activeTab && (activeWorkspaceId ? activeTab.workspaceId === activeWorkspaceId : !activeTab.workspaceId)
 
     if (!tabBelongsToView) {
-      // Find a tab that belongs to the current workspace view
-      const validTab = tabs.find(t =>
-        activeWorkspaceId ? t.workspaceId === activeWorkspaceId : !t.workspaceId
-      )
+      const validTab = tabs.find((t) => (activeWorkspaceId ? t.workspaceId === activeWorkspaceId : !t.workspaceId))
       if (validTab) {
         setActiveTab(validTab.id)
       }
-      // If no valid tab, don't change - let the UI show empty state
     }
   }, [activeWorkspaceId, tabs, activeTabId, setActiveTab])
 
@@ -78,31 +72,23 @@ const App: React.FC = () => {
   // Terminal Manager
   const {
     ptyIds,
-    activePaneTerminalId,
     maximizedPaneId,
     handleCreateTab,
     handleCloseTab,
     handleSplit,
+    handleApplyLayout,
     handleNavigatePane,
     handleClosePane,
-    handleTerminalFocus,
-    handleBroadcastInput,
     handleNextTab,
     handlePrevTab,
     handleReopenClosedTab,
     handleToggleMaximize,
-    setActivePaneTerminalId,
-    setPtyIds
+    setActivePaneTerminalId
   } = useTerminalManager()
 
   // Session Manager
-  const { isConfigLoaded, isWorkspacesLoaded } = useSessionManager({ handleCreateTab })
-
-  // SSH Manager
-  const { sshManagerOpen, setSSHManagerOpen, handleSSHConnect } = useSSHManager({
-    setPtyIds,
-    setActivePaneTerminalId
-  })
+  const { isConfigLoaded, isWorkspacesLoaded, showRestoreDialog, savedTabCount, handleRestore, handleDismiss } =
+    useSessionManager({ handleCreateTab })
 
   // Dialog handlers
   const openCreateDialog = useCallback((profileId?: string) => {
@@ -113,40 +99,20 @@ const App: React.FC = () => {
     setCreateDialog({ open: false })
   }, [])
 
-  // Workspace handler
-  const handleCreateWorkspace = useCallback((name: string) => {
-    addWorkspace(name)
-    closeCreateDialog()
-  }, [addWorkspace, closeCreateDialog])
+  const handleCreateWorkspace = useCallback(
+    (name: string) => {
+      addWorkspace(name)
+      closeCreateDialog()
+    },
+    [addWorkspace, closeCreateDialog]
+  )
 
-  // Sidebar handler
   const toggleSidebar = useCallback(() => {
-    setSidebarExpanded(prev => !prev)
+    setSidebarExpanded((prev) => !prev)
   }, [])
 
-  // Command palette toggle
   const toggleCommandPalette = useCallback(() => {
-    setCommandPaletteOpen(prev => !prev)
-  }, [])
-
-  // Broadcast mode handlers
-  const handleToggleBroadcast = useCallback(() => {
-    if (broadcastMode) {
-      // If already ON, turn OFF directly without confirmation
-      toggleBroadcastMode()
-    } else {
-      // If OFF, show confirmation dialog before turning ON
-      setBroadcastConfirmOpen(true)
-    }
-  }, [broadcastMode, toggleBroadcastMode])
-
-  const handleBroadcastConfirm = useCallback(() => {
-    toggleBroadcastMode()
-    setBroadcastConfirmOpen(false)
-  }, [toggleBroadcastMode])
-
-  const handleBroadcastCancel = useCallback(() => {
-    setBroadcastConfirmOpen(false)
+    setCommandPaletteOpen((prev) => !prev)
   }, [])
 
   // Tab title change handler (disabled - keeps profile names)
@@ -155,49 +121,64 @@ const App: React.FC = () => {
   }, [])
 
   // Keyboard shortcut handlers
-  const keyboardHandlers = useMemo(() => ({
-    onNewTab: () => openCreateDialog(),
-    onCloseTab: () => activeTabId && handleCloseTab(activeTabId),
-    onSplitVertical: () => handleSplit('vertical'),
-    onSplitHorizontal: () => handleSplit('horizontal'),
-    onToggleSidebar: toggleSidebar,
-    onOpenSettings: () => setSettingsOpen(true),
-    onNextTab: handleNextTab,
-    onPrevTab: handlePrevTab,
-    onNavigatePane: handleNavigatePane,
-    onClosePane: handleClosePane,
-    onCommandPalette: toggleCommandPalette,
-    onToggleBroadcast: handleToggleBroadcast,
-    onReopenClosedTab: handleReopenClosedTab,
-    onToggleMaximize: handleToggleMaximize
-  }), [
-    openCreateDialog, activeTabId, handleCloseTab, handleSplit, toggleSidebar,
-    handleNextTab, handlePrevTab, handleNavigatePane, handleClosePane,
-    toggleCommandPalette, handleToggleBroadcast, handleReopenClosedTab, handleToggleMaximize
-  ])
+  const keyboardHandlers = useMemo(
+    () => ({
+      onNewTab: () => openCreateDialog(),
+      onCloseTab: () => activeTabId && handleCloseTab(activeTabId),
+      onSplitVertical: () => handleSplit('vertical'),
+      onSplitHorizontal: () => handleSplit('horizontal'),
+      onToggleSidebar: toggleSidebar,
+      onOpenSettings: () => setSettingsOpen(true),
+      onNextTab: handleNextTab,
+      onPrevTab: handlePrevTab,
+      onNavigatePane: handleNavigatePane,
+      onClosePane: handleClosePane,
+      onCommandPalette: toggleCommandPalette,
+      onReopenClosedTab: handleReopenClosedTab,
+      onToggleMaximize: handleToggleMaximize,
+      onOpenSnippets: () => setSnippetManagerOpen(true)
+    }),
+    [
+      openCreateDialog,
+      activeTabId,
+      handleCloseTab,
+      handleSplit,
+      toggleSidebar,
+      handleNextTab,
+      handlePrevTab,
+      handleNavigatePane,
+      handleClosePane,
+      toggleCommandPalette,
+      handleReopenClosedTab,
+      handleToggleMaximize
+    ]
+  )
 
   useKeyboardShortcuts(keyboardHandlers)
 
   // Menu event handlers
-  const menuHandlers = useMemo(() => ({
-    onNewTab: () => openCreateDialog(),
-    onCloseTab: () => activeTabId && handleCloseTab(activeTabId),
-    onOpenSettings: () => setSettingsOpen(true),
-    onSplitVertical: () => handleSplit('vertical'),
-    onSplitHorizontal: () => handleSplit('horizontal'),
-    onNextTab: handleNextTab,
-    onPrevTab: handlePrevTab
-  }), [openCreateDialog, activeTabId, handleCloseTab, handleSplit, handleNextTab, handlePrevTab])
+  const menuHandlers = useMemo(
+    () => ({
+      onNewTab: () => openCreateDialog(),
+      onCloseTab: () => activeTabId && handleCloseTab(activeTabId),
+      onOpenSettings: () => setSettingsOpen(true),
+      onSplitVertical: () => handleSplit('vertical'),
+      onSplitHorizontal: () => handleSplit('horizontal'),
+      onNextTab: handleNextTab,
+      onPrevTab: handlePrevTab
+    }),
+    [openCreateDialog, activeTabId, handleCloseTab, handleSplit, handleNextTab, handlePrevTab]
+  )
 
   useMenuEvents(menuHandlers)
 
   // Switch to first tab when workspace changes
   useEffect(() => {
-    const workspaceTabs = tabs.filter(tab =>
+    const workspaceTabs = tabs.filter((tab) =>
       activeWorkspaceId ? tab.workspaceId === activeWorkspaceId : !tab.workspaceId
     )
 
-    const currentTabInWorkspace = workspaceTabs.find(t => t.id === activeTabId)
+    const currentTabInWorkspace = workspaceTabs.find((t) => t.id === activeTabId)
     if (!currentTabInWorkspace && workspaceTabs.length > 0) {
       setActiveTab(workspaceTabs[0].id)
       const pane = panes.get(workspaceTabs[0].id)
@@ -209,7 +190,7 @@ const App: React.FC = () => {
 
   // Update window title when active tab changes
   useEffect(() => {
-    const activeTab = tabs.find(t => t.id === activeTabId)
+    const activeTab = tabs.find((t) => t.id === activeTabId)
     if (activeTab && window.electronAPI?.setWindowTitle) {
       window.electronAPI.setWindowTitle(`${activeTab.title} - VoidTerm`)
     } else if (window.electronAPI?.setWindowTitle) {
@@ -217,11 +198,27 @@ const App: React.FC = () => {
     }
   }, [tabs, activeTabId])
 
+  // Check for updates after a short delay
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (window.electronAPI?.updates) {
+        try {
+          const result = await window.electronAPI.updates.checkForUpdates()
+          if (result.updateAvailable) {
+            setUpdateDialogOpen(true)
+          }
+        } catch {
+          /* ignore in dev */
+        }
+      }
+    }, 5000)
+    return () => clearTimeout(timer)
+  }, [])
+
   // Only show terminal if active tab belongs to current workspace view
-  const activeTab = tabs.find(t => t.id === activeTabId)
-  const activeTabBelongsToView = activeTab && (activeWorkspaceId
-    ? activeTab.workspaceId === activeWorkspaceId
-    : !activeTab.workspaceId)
+  const activeTab = tabs.find((t) => t.id === activeTabId)
+  const activeTabBelongsToView =
+    activeTab && (activeWorkspaceId ? activeTab.workspaceId === activeWorkspaceId : !activeTab.workspaceId)
   const activePane = activeTabBelongsToView && activeTabId ? panes.get(activeTabId) : null
 
   // Show loading state while config is being loaded
@@ -245,6 +242,7 @@ const App: React.FC = () => {
           onCloseTab={handleCloseTab}
           onToggleSidebar={toggleSidebar}
           sidebarExpanded={sidebarExpanded}
+          onApplyLayout={handleApplyLayout}
         />
       </PanelErrorBoundary>
 
@@ -258,36 +256,34 @@ const App: React.FC = () => {
           />
         </PanelErrorBoundary>
 
-        <div className="terminal-container">
-          {activePane ? (
-            <TerminalErrorBoundary terminalId={activePaneTerminalId || undefined}>
-              <SplitPane
-                pane={activePane}
-                onTerminalTitleChange={handleTerminalTitleChange}
-                onTerminalFocus={handleTerminalFocus}
-                ptyIds={ptyIds}
-                activeTerminalId={activePaneTerminalId}
-                onNavigatePane={handleNavigatePane}
-                onClosePane={handleClosePane}
-                onNextTab={handleNextTab}
-                onPrevTab={handlePrevTab}
-                broadcastMode={broadcastMode}
-                onBroadcastInput={handleBroadcastInput}
-                maximizedPaneId={maximizedPaneId}
-                onToggleMaximize={handleToggleMaximize}
-              />
-            </TerminalErrorBoundary>
-          ) : (
-            <div className="terminal-placeholder">
-              <div className="terminal-placeholder-content">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M4 17l6-6-6-6M12 19h8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <p>No terminal open</p>
-                <span>Use Quick Start or press Ctrl+T</span>
+        <div className="terminal-area">
+          <div className="terminal-container">
+            {activePane ? (
+              <TerminalErrorBoundary>
+                <SplitPane
+                  pane={activePane}
+                  onTerminalTitleChange={handleTerminalTitleChange}
+                  ptyIds={ptyIds}
+                  onNavigatePane={handleNavigatePane}
+                  onClosePane={handleClosePane}
+                  onNextTab={handleNextTab}
+                  onPrevTab={handlePrevTab}
+                  maximizedPaneId={maximizedPaneId}
+                  onToggleMaximize={handleToggleMaximize}
+                />
+              </TerminalErrorBoundary>
+            ) : (
+              <div className="terminal-placeholder">
+                <div className="terminal-placeholder-content">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M4 17l6-6-6-6M12 19h8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <p>No terminal open</p>
+                  <span>Use Quick Start or press Ctrl+T</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -321,31 +317,39 @@ const App: React.FC = () => {
               onOpenSettings={() => setSettingsOpen(true)}
               onNextTab={handleNextTab}
               onPrevTab={handlePrevTab}
-              onOpenSSHManager={() => setSSHManagerOpen(true)}
+              onOpenSnippets={() => setSnippetManagerOpen(true)}
             />
           </Suspense>
         </PanelErrorBoundary>
       )}
 
-      {sshManagerOpen && (
-        <PanelErrorBoundary panelName="SSH Manager" onReset={() => setSSHManagerOpen(false)}>
+      {snippetManagerOpen && (
+        <PanelErrorBoundary panelName="Snippet Manager" onReset={() => setSnippetManagerOpen(false)}>
           <Suspense fallback={null}>
-            <SSHManager
-              isOpen={sshManagerOpen}
-              onClose={() => setSSHManagerOpen(false)}
-              onConnect={handleSSHConnect}
+            <SnippetManager
+              isOpen={snippetManagerOpen}
+              onClose={() => setSnippetManagerOpen(false)}
+              activePtyId={ptyIds.get(getActivePaneId() || '')}
             />
           </Suspense>
         </PanelErrorBoundary>
       )}
 
-      <BroadcastConfirmDialog
-        open={broadcastConfirmOpen}
-        onConfirm={handleBroadcastConfirm}
-        onCancel={handleBroadcastCancel}
+      {updateDialogOpen && (
+        <Suspense fallback={null}>
+          <UpdateDialog isOpen={updateDialogOpen} onClose={() => setUpdateDialogOpen(false)} />
+        </Suspense>
+      )}
+
+      <SessionRestoreDialog
+        isOpen={showRestoreDialog}
+        tabCount={savedTabCount}
+        onRestore={handleRestore}
+        onDismiss={handleDismiss}
       />
 
       <ToastContainer />
+      {import.meta.env.DEV && <PerfMonitor />}
     </div>
   )
 }

@@ -2,7 +2,8 @@ import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import { v4 as uuidv4 } from 'uuid'
 import type { Workspace } from '../types'
-import { WORKSPACE_COLORS, WORKSPACE_ICONS } from '../constants'
+import { WORKSPACE_COLORS } from '../constants'
+import { useToastStore } from './toastStore'
 import { createLogger } from '../utils/logger'
 
 const logger = createLogger('WorkspaceStore')
@@ -46,7 +47,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
     const workspace: Workspace = {
       id,
       name: name || `Workspace ${workspaceCount + 1}`,
-      icon: WORKSPACE_ICONS[workspaceCount % WORKSPACE_ICONS.length],
+      icon: '',
       color: WORKSPACE_COLORS[workspaceCount % WORKSPACE_COLORS.length],
       isActive: true
     }
@@ -54,11 +55,13 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
     try {
       const workspaces = await window.electronAPI.config.addWorkspace(workspace)
       set({
-        workspaces: workspaces.map(w => ({ ...w, isActive: w.id === id })),
+        workspaces: workspaces.map((w) => ({ ...w, isActive: w.id === id })),
         activeWorkspaceId: id
       })
+      useToastStore.getState().success(`Workspace "${workspace.name}" created`)
     } catch (error) {
       logger.error('Failed to add workspace:', error)
+      useToastStore.getState().error('Failed to create workspace')
     }
 
     return id
@@ -80,14 +83,16 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
         ),
         activeWorkspaceId: newActiveId
       })
+      useToastStore.getState().success('Workspace removed')
     } catch (error) {
       logger.error('Failed to remove workspace:', error)
+      useToastStore.getState().error('Failed to remove workspace')
     }
   },
 
   setActiveWorkspace: (id) => {
     set((state) => ({
-      workspaces: state.workspaces.map(w => ({
+      workspaces: state.workspaces.map((w) => ({
         ...w,
         isActive: id ? w.id === id : false
       })),
@@ -106,7 +111,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
 
   getActiveWorkspace: () => {
     const state = get()
-    return state.workspaces.find(w => w.id === state.activeWorkspaceId)
+    return state.workspaces.find((w) => w.id === state.activeWorkspaceId)
   }
 }))
 
@@ -114,11 +119,14 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
 export const useWorkspaces = () => useWorkspaceStore(useShallow((state) => state.workspaces))
 export const useActiveWorkspaceId = () => useWorkspaceStore((state) => state.activeWorkspaceId)
 export const useIsWorkspacesLoaded = () => useWorkspaceStore((state) => state.isLoaded)
-export const useWorkspaceActions = () => useWorkspaceStore(useShallow((state) => ({
-  loadFromConfig: state.loadFromConfig,
-  addWorkspace: state.addWorkspace,
-  removeWorkspace: state.removeWorkspace,
-  setActiveWorkspace: state.setActiveWorkspace,
-  updateWorkspace: state.updateWorkspace,
-  getActiveWorkspace: state.getActiveWorkspace
-})))
+export const useWorkspaceActions = () =>
+  useWorkspaceStore(
+    useShallow((state) => ({
+      loadFromConfig: state.loadFromConfig,
+      addWorkspace: state.addWorkspace,
+      removeWorkspace: state.removeWorkspace,
+      setActiveWorkspace: state.setActiveWorkspace,
+      updateWorkspace: state.updateWorkspace,
+      getActiveWorkspace: state.getActiveWorkspace
+    }))
+  )

@@ -1,4 +1,5 @@
-import { Component, ErrorInfo, ReactNode } from 'react'
+import type { ErrorInfo, ReactNode } from 'react'
+import { Component } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { useI18n, type TranslationKeys } from '../../i18n'
 
@@ -16,7 +17,7 @@ interface State {
 /**
  * Uygulama genelinde hataları yakalayan ve kullanıcıya anlamlı
  * mesajlar gösteren Error Boundary bileşeni.
- * 
+ *
  * i18n desteği ile çoklu dil destekler.
  */
 export class ErrorBoundary extends Component<Props, State> {
@@ -80,9 +81,12 @@ Component Stack: ${this.state.errorInfo?.componentStack}
 Timestamp: ${new Date().toISOString()}
     `.trim()
 
-    navigator.clipboard.writeText(errorText).then(() => {
-      alert(t.errorBoundary.errorCopied)
-    }).catch(console.error)
+    navigator.clipboard
+      .writeText(errorText)
+      .then(() => {
+        alert(t.errorBoundary.errorCopied)
+      })
+      .catch(console.error)
   }
 
   render() {
@@ -98,34 +102,20 @@ Timestamp: ${new Date().toISOString()}
           <div className="error-boundary-content">
             <AlertTriangle size={48} strokeWidth={1.5} className="error-boundary-icon" />
             <h2 className="error-boundary-title">{t.errorBoundary.title}</h2>
-            <p className="error-boundary-message">
-              {this.state.error?.message || t.errorBoundary.message}
-            </p>
+            <p className="error-boundary-message">{this.state.error?.message || t.errorBoundary.message}</p>
             <div className="error-boundary-actions">
-              <button
-                className="error-boundary-btn primary"
-                onClick={this.handleReload}
-              >
+              <button className="error-boundary-btn primary" onClick={this.handleReload}>
                 {t.errorBoundary.reload}
               </button>
-              <button
-                className="error-boundary-btn secondary"
-                onClick={this.handleReset}
-              >
+              <button className="error-boundary-btn secondary" onClick={this.handleReset}>
                 {t.errorBoundary.tryAgain}
               </button>
             </div>
             <div className="error-boundary-secondary-actions">
-              <button
-                className="error-boundary-btn-link"
-                onClick={this.handleResetConfig}
-              >
+              <button className="error-boundary-btn-link" onClick={this.handleResetConfig}>
                 {t.errorBoundary.resetConfig}
               </button>
-              <button
-                className="error-boundary-btn-link"
-                onClick={this.handleCopyError}
-              >
+              <button className="error-boundary-btn-link" onClick={this.handleCopyError}>
                 {t.errorBoundary.copyError}
               </button>
             </div>

@@ -1,5 +1,13 @@
 /* VoidTerm - Terminal Styles */
 
+.terminal-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
 .terminal-container {
   flex: 1;
   display: flex;
@@ -47,37 +55,7 @@
   color: var(--text-muted);
 }
 
-/* Terminal Wrapper Active State */
-.terminal-wrapper.active {
-  box-shadow: inset 0 1px 0 0 var(--accent);
-}
-
-/* Broadcast Mode Indicator */
-.terminal-wrapper.broadcast {
-  box-shadow: inset 0 0 0 2px var(--red);
-}
-
-.terminal-wrapper.broadcast.active {
-  box-shadow: inset 0 0 0 2px var(--red), inset 0 1px 0 0 var(--accent);
-}
-
-.terminal-broadcast-indicator {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--red);
-  color: white;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  z-index: 10;
-  pointer-events: none;
-}
+/* Terminal Wrapper Active State — no visual indicator to avoid repaint flicker */
 
 /* Terminal Zoom Indicator */
 .terminal-zoom-indicator {

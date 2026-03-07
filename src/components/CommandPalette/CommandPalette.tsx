@@ -10,7 +10,7 @@ interface Command {
   shortcut?: string
   icon?: string
   action: () => void
-  category: 'terminal' | 'view' | 'settings' | 'profile' | 'window'
+  category: 'terminal' | 'view' | 'settings' | 'profile'
 }
 
 interface CommandPaletteProps {
@@ -25,256 +25,255 @@ interface CommandPaletteProps {
   onOpenSettings: () => void
   onNextTab: () => void
   onPrevTab: () => void
-  onOpenSSHManager?: () => void
+  onOpenSnippets?: () => void
 }
 
-export const CommandPalette: React.FC<CommandPaletteProps> = memo(({
-  isOpen,
-  onClose,
-  onNewTab,
-  onSplitVertical,
-  onSplitHorizontal,
-  onCloseTab,
-  onClosePane,
-  onToggleSidebar,
-  onOpenSettings,
-  onNextTab,
-  onPrevTab,
-  onOpenSSHManager
-}) => {
-  const [query, setQuery] = useState('')
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const listRef = useRef<HTMLDivElement>(null)
-  const { profiles } = useSettingsStore()
+export const CommandPalette: React.FC<CommandPaletteProps> = memo(
+  ({
+    isOpen,
+    onClose,
+    onNewTab,
+    onSplitVertical,
+    onSplitHorizontal,
+    onCloseTab,
+    onClosePane,
+    onToggleSidebar,
+    onOpenSettings,
+    onNextTab,
+    onPrevTab,
+    onOpenSnippets
+  }) => {
+    const [query, setQuery] = useState('')
+    const [selectedIndex, setSelectedIndex] = useState(0)
+    const inputRef = useRef<HTMLInputElement>(null)
+    const listRef = useRef<HTMLDivElement>(null)
+    const { profiles } = useSettingsStore()
 
-  const commands = useMemo<Command[]>(() => [
-    // Terminal commands
-    {
-      id: 'new-tab',
-      label: 'New Terminal',
-      description: 'Open a new terminal tab',
-      shortcut: 'Ctrl+T',
-      icon: 'terminal',
-      action: () => onNewTab(),
-      category: 'terminal'
-    },
-    {
-      id: 'close-tab',
-      label: 'Close Tab',
-      description: 'Close the current tab',
-      shortcut: 'Ctrl+W',
-      action: () => onCloseTab(),
-      category: 'terminal'
-    },
-    {
-      id: 'close-pane',
-      label: 'Close Pane',
-      description: 'Close the current pane',
-      shortcut: 'Ctrl+Shift+W',
-      action: () => onClosePane(),
-      category: 'terminal'
-    },
-    {
-      id: 'split-vertical',
-      label: 'Split Vertical',
-      description: 'Split the terminal vertically',
-      shortcut: 'Ctrl+Shift+D',
-      action: () => onSplitVertical(),
-      category: 'terminal'
-    },
-    {
-      id: 'split-horizontal',
-      label: 'Split Horizontal',
-      description: 'Split the terminal horizontally',
-      shortcut: 'Ctrl+Shift+E',
-      action: () => onSplitHorizontal(),
-      category: 'terminal'
-    },
-    {
-      id: 'next-tab',
-      label: 'Next Tab',
-      description: 'Switch to the next tab',
-      shortcut: 'Ctrl+Tab',
-      action: () => onNextTab(),
-      category: 'terminal'
-    },
-    {
-      id: 'prev-tab',
-      label: 'Previous Tab',
-      description: 'Switch to the previous tab',
-      shortcut: 'Ctrl+Shift+Tab',
-      action: () => onPrevTab(),
-      category: 'terminal'
-    },
-    // View commands
-    {
-      id: 'toggle-sidebar',
-      label: 'Toggle Sidebar',
-      description: 'Show or hide the sidebar',
-      shortcut: 'Ctrl+Shift+S',
-      action: () => onToggleSidebar(),
-      category: 'view'
-    },
-    // Window commands
-    {
-      id: 'toggle-quake-mode',
-      label: 'Toggle Quake Mode',
-      description: 'Toggle dropdown terminal mode',
-      shortcut: 'Ctrl+`',
-      action: () => window.electronAPI?.toggleQuakeMode?.(),
-      category: 'window'
-    },
-    {
-      id: 'toggle-visibility',
-      label: 'Hide/Show Window',
-      description: 'Toggle window visibility',
-      shortcut: 'F12',
-      action: () => {}, // Handled by global shortcut
-      category: 'window'
-    },
-    // Settings commands
-    {
-      id: 'open-settings',
-      label: 'Open Settings',
-      description: 'Open the settings panel',
-      shortcut: 'Ctrl+,',
-      action: () => onOpenSettings(),
-      category: 'settings'
-    },
-    {
-      id: 'open-ssh-manager',
-      label: 'SSH Manager',
-      description: 'Manage SSH connections',
-      action: () => onOpenSSHManager?.(),
-      category: 'settings'
-    },
-    // Profile commands
-    ...profiles.map(profile => ({
-      id: `profile-${profile.id}`,
-      label: `New ${profile.name}`,
-      description: profile.shell,
-      icon: profile.icon,
-      action: () => onNewTab(profile.id),
-      category: 'profile' as const
-    }))
-  ], [profiles, onNewTab, onCloseTab, onClosePane, onSplitVertical, onSplitHorizontal, onNextTab, onPrevTab, onToggleSidebar, onOpenSettings])
-
-  const filteredCommands = useMemo(() => {
-    if (!query.trim()) return commands
-    
-    const lowerQuery = query.toLowerCase()
-    return commands.filter(cmd => 
-      cmd.label.toLowerCase().includes(lowerQuery) ||
-      cmd.description?.toLowerCase().includes(lowerQuery) ||
-      cmd.category.toLowerCase().includes(lowerQuery)
+    const commands = useMemo<Command[]>(
+      () => [
+        {
+          id: 'new-tab',
+          label: 'New Terminal',
+          description: 'Open a new terminal tab',
+          shortcut: 'Ctrl+T',
+          icon: 'terminal',
+          action: () => onNewTab(),
+          category: 'terminal'
+        },
+        {
+          id: 'close-tab',
+          label: 'Close Tab',
+          description: 'Close the current tab',
+          shortcut: 'Ctrl+W',
+          action: () => onCloseTab(),
+          category: 'terminal'
+        },
+        {
+          id: 'close-pane',
+          label: 'Close Pane',
+          description: 'Close the current pane',
+          shortcut: 'Ctrl+Shift+W',
+          action: () => onClosePane(),
+          category: 'terminal'
+        },
+        {
+          id: 'split-vertical',
+          label: 'Split Vertical',
+          description: 'Split the terminal vertically',
+          shortcut: 'Ctrl+Shift+D',
+          action: () => onSplitVertical(),
+          category: 'terminal'
+        },
+        {
+          id: 'split-horizontal',
+          label: 'Split Horizontal',
+          description: 'Split the terminal horizontally',
+          shortcut: 'Ctrl+Shift+E',
+          action: () => onSplitHorizontal(),
+          category: 'terminal'
+        },
+        {
+          id: 'next-tab',
+          label: 'Next Tab',
+          description: 'Switch to the next tab',
+          shortcut: 'Ctrl+Tab',
+          action: () => onNextTab(),
+          category: 'terminal'
+        },
+        {
+          id: 'prev-tab',
+          label: 'Previous Tab',
+          description: 'Switch to the previous tab',
+          shortcut: 'Ctrl+Shift+Tab',
+          action: () => onPrevTab(),
+          category: 'terminal'
+        },
+        {
+          id: 'toggle-sidebar',
+          label: 'Toggle Sidebar',
+          description: 'Show or hide the sidebar',
+          shortcut: 'Ctrl+Shift+B',
+          action: () => onToggleSidebar(),
+          category: 'view'
+        },
+        {
+          id: 'open-settings',
+          label: 'Open Settings',
+          description: 'Open the settings panel',
+          shortcut: 'Ctrl+,',
+          action: () => onOpenSettings(),
+          category: 'settings'
+        },
+        {
+          id: 'open-snippets',
+          label: 'Snippets',
+          description: 'Manage and run saved snippets',
+          shortcut: 'Ctrl+Shift+N',
+          action: () => onOpenSnippets?.(),
+          category: 'settings'
+        },
+        ...profiles.map((profile) => ({
+          id: `profile-${profile.id}`,
+          label: `New ${profile.name}`,
+          description: profile.shell,
+          icon: profile.icon,
+          action: () => onNewTab(profile.id),
+          category: 'profile' as const
+        }))
+      ],
+      [
+        profiles,
+        onNewTab,
+        onCloseTab,
+        onClosePane,
+        onSplitVertical,
+        onSplitHorizontal,
+        onNextTab,
+        onPrevTab,
+        onToggleSidebar,
+        onOpenSettings,
+        onOpenSnippets
+      ]
     )
-  }, [commands, query])
 
-  // Reset selection when filtered results change
-  useEffect(() => {
-    setSelectedIndex(0)
-  }, [filteredCommands])
+    const filteredCommands = useMemo(() => {
+      if (!query.trim()) return commands
 
-  // Focus input when opened
-  useEffect(() => {
-    if (isOpen) {
-      setQuery('')
+      const lowerQuery = query.toLowerCase()
+      return commands.filter(
+        (cmd) =>
+          cmd.label.toLowerCase().includes(lowerQuery) ||
+          cmd.description?.toLowerCase().includes(lowerQuery) ||
+          cmd.category.toLowerCase().includes(lowerQuery)
+      )
+    }, [commands, query])
+
+    useEffect(() => {
       setSelectedIndex(0)
-      setTimeout(() => inputRef.current?.focus(), 0)
-    }
-  }, [isOpen])
+    }, [filteredCommands])
 
-  // Scroll selected item into view
-  useEffect(() => {
-    if (listRef.current) {
-      const selectedElement = listRef.current.children[selectedIndex] as HTMLElement
-      if (selectedElement) {
-        selectedElement.scrollIntoView({ block: 'nearest' })
+    useEffect(() => {
+      if (isOpen) {
+        setQuery('')
+        setSelectedIndex(0)
+        setTimeout(() => inputRef.current?.focus(), 0)
       }
-    }
-  }, [selectedIndex])
+    }, [isOpen])
 
-  const executeCommand = useCallback((command: Command) => {
-    onClose()
-    command.action()
-  }, [onClose])
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault()
-        setSelectedIndex(i => Math.min(i + 1, filteredCommands.length - 1))
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        setSelectedIndex(i => Math.max(i - 1, 0))
-        break
-      case 'Enter':
-        e.preventDefault()
-        if (filteredCommands[selectedIndex]) {
-          executeCommand(filteredCommands[selectedIndex])
+    useEffect(() => {
+      if (listRef.current) {
+        const selectedElement = listRef.current.children[selectedIndex] as HTMLElement
+        if (selectedElement) {
+          selectedElement.scrollIntoView({ block: 'nearest' })
         }
-        break
-      case 'Escape':
-        e.preventDefault()
+      }
+    }, [selectedIndex])
+
+    const executeCommand = useCallback(
+      (command: Command) => {
         onClose()
-        break
-    }
-  }, [filteredCommands, selectedIndex, executeCommand, onClose])
+        command.action()
+      },
+      [onClose]
+    )
 
-  if (!isOpen) return null
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        switch (e.key) {
+          case 'ArrowDown':
+            e.preventDefault()
+            setSelectedIndex((i) => Math.min(i + 1, filteredCommands.length - 1))
+            break
+          case 'ArrowUp':
+            e.preventDefault()
+            setSelectedIndex((i) => Math.max(i - 1, 0))
+            break
+          case 'Enter':
+            e.preventDefault()
+            if (filteredCommands[selectedIndex]) {
+              executeCommand(filteredCommands[selectedIndex])
+            }
+            break
+          case 'Escape':
+            e.preventDefault()
+            onClose()
+            break
+        }
+      },
+      [filteredCommands, selectedIndex, executeCommand, onClose]
+    )
 
-  return (
-    <>
-      <div className="command-palette-overlay" onClick={onClose} />
-      <div className="command-palette">
-        <div className="command-palette-input-wrapper">
-          <Search className="command-palette-search-icon" size={16} strokeWidth={1.5} />
-          <input
-            ref={inputRef}
-            type="text"
-            className="command-palette-input"
-            placeholder="Type a command..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
+    if (!isOpen) return null
+
+    return (
+      <>
+        <div className="command-palette-overlay" onClick={onClose} />
+        <div className="command-palette">
+          <div className="command-palette-input-wrapper">
+            <Search className="command-palette-search-icon" size={16} strokeWidth={1.5} />
+            <input
+              ref={inputRef}
+              type="text"
+              className="command-palette-input"
+              placeholder="Type a command..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+          </div>
+          <div className="command-palette-list" ref={listRef}>
+            {filteredCommands.length === 0 ? (
+              <div className="command-palette-empty">No commands found</div>
+            ) : (
+              filteredCommands.map((command, index) => (
+                <button
+                  key={command.id}
+                  className={`command-palette-item ${index === selectedIndex ? 'selected' : ''}`}
+                  onClick={() => executeCommand(command)}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                >
+                  <div className="command-palette-item-icon">
+                    {command.icon ? (
+                      <TerminalIcon icon={command.icon} size={18} />
+                    ) : (
+                      <ChevronRight size={18} strokeWidth={1.5} />
+                    )}
+                  </div>
+                  <div className="command-palette-item-content">
+                    <span className="command-palette-item-label">{command.label}</span>
+                    {command.description && (
+                      <span className="command-palette-item-description">{command.description}</span>
+                    )}
+                  </div>
+                  {command.shortcut && <span className="command-palette-item-shortcut">{command.shortcut}</span>}
+                </button>
+              ))
+            )}
+          </div>
         </div>
-        <div className="command-palette-list" ref={listRef}>
-          {filteredCommands.length === 0 ? (
-            <div className="command-palette-empty">No commands found</div>
-          ) : (
-            filteredCommands.map((command, index) => (
-              <button
-                key={command.id}
-                className={`command-palette-item ${index === selectedIndex ? 'selected' : ''}`}
-                onClick={() => executeCommand(command)}
-                onMouseEnter={() => setSelectedIndex(index)}
-              >
-                <div className="command-palette-item-icon">
-                  {command.icon ? (
-                    <TerminalIcon icon={command.icon} size={18} />
-                  ) : (
-                    <ChevronRight size={18} strokeWidth={1.5} />
-                  )}
-                </div>
-                <div className="command-palette-item-content">
-                  <span className="command-palette-item-label">{command.label}</span>
-                  {command.description && (
-                    <span className="command-palette-item-description">{command.description}</span>
-                  )}
-                </div>
-                {command.shortcut && (
-                  <span className="command-palette-item-shortcut">{command.shortcut}</span>
-                )}
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-    </>
-  )
-})
+      </>
+    )
+  }
+)
 
 CommandPalette.displayName = 'CommandPalette'

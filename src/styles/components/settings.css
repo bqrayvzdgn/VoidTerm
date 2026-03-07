@@ -16,8 +16,12 @@
 }
 
 @keyframes modalOverlayIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal {
@@ -34,8 +38,14 @@
 }
 
 @keyframes modalIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .modal-header {
@@ -132,8 +142,8 @@
 }
 
 /* Toggle Switch — replaces native checkbox */
-.settings-input[type="checkbox"],
-.settings-item input[type="checkbox"] {
+.settings-input[type='checkbox'],
+.settings-item input[type='checkbox'] {
   -webkit-appearance: none;
   appearance: none;
   width: 36px;
@@ -147,8 +157,8 @@
   flex-shrink: 0;
 }
 
-.settings-input[type="checkbox"]::before,
-.settings-item input[type="checkbox"]::before {
+.settings-input[type='checkbox']::before,
+.settings-item input[type='checkbox']::before {
   content: '';
   position: absolute;
   top: 2px;
@@ -160,20 +170,20 @@
   transition: all var(--transition-normal);
 }
 
-.settings-input[type="checkbox"]:checked,
-.settings-item input[type="checkbox"]:checked {
+.settings-input[type='checkbox']:checked,
+.settings-item input[type='checkbox']:checked {
   background: var(--accent);
   border-color: var(--accent);
 }
 
-.settings-input[type="checkbox"]:checked::before,
-.settings-item input[type="checkbox"]:checked::before {
+.settings-input[type='checkbox']:checked::before,
+.settings-item input[type='checkbox']:checked::before {
   left: 18px;
   background: white;
 }
 
-.settings-input[type="checkbox"]:focus-visible,
-.settings-item input[type="checkbox"]:focus-visible {
+.settings-input[type='checkbox']:focus-visible,
+.settings-item input[type='checkbox']:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
 }
@@ -379,7 +389,7 @@
   gap: 8px;
 }
 
-.color-input-wrapper input[type="color"] {
+.color-input-wrapper input[type='color'] {
   width: 40px;
   height: 36px;
   padding: 2px;
@@ -389,7 +399,7 @@
   cursor: pointer;
 }
 
-.color-input-wrapper input[type="text"] {
+.color-input-wrapper input[type='text'] {
   flex: 1;
 }
 
@@ -566,8 +576,13 @@
 }
 
 @keyframes conflict-flash {
-  0%, 100% { background: transparent; }
-  50% { background: rgba(239, 68, 68, 0.2); }
+  0%,
+  100% {
+    background: transparent;
+  }
+  50% {
+    background: rgba(239, 68, 68, 0.2);
+  }
 }
 
 .shortcut-input-wrapper {
@@ -664,8 +679,14 @@
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Backup Section */

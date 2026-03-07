@@ -32,7 +32,11 @@ export const ProfilesSettings: React.FC = memo(() => {
       icon: profile.icon || '',
       color: profile.color || '#666666',
       cwd: profile.cwd || '',
-      env: profile.env ? Object.entries(profile.env).map(([k, v]) => `${k}=${v}`).join('\n') : '',
+      env: profile.env
+        ? Object.entries(profile.env)
+            .map(([k, v]) => `${k}=${v}`)
+            .join('\n')
+        : '',
       startupCommand: profile.startupCommand || ''
     })
   }
@@ -57,7 +61,7 @@ export const ProfilesSettings: React.FC = memo(() => {
 
     const envObj: Record<string, string> = {}
     if (editingProfile.env.trim()) {
-      editingProfile.env.split('\n').forEach(line => {
+      editingProfile.env.split('\n').forEach((line) => {
         const [key, ...valueParts] = line.split('=')
         if (key && valueParts.length > 0) {
           envObj[key.trim()] = valueParts.join('=').trim()
@@ -69,7 +73,7 @@ export const ProfilesSettings: React.FC = memo(() => {
       id: editingProfile.id,
       name: editingProfile.name,
       shell: editingProfile.shell,
-      args: editingProfile.args ? editingProfile.args.split(' ').filter(a => a) : undefined,
+      args: editingProfile.args ? editingProfile.args.split(' ').filter((a) => a) : undefined,
       icon: editingProfile.icon,
       color: editingProfile.color,
       cwd: editingProfile.cwd || undefined,
@@ -136,7 +140,9 @@ export const ProfilesSettings: React.FC = memo(() => {
               <input
                 type="text"
                 value={editingProfile.icon}
-                onChange={(e) => setEditingProfile({ ...editingProfile, icon: e.target.value.toUpperCase().slice(0, 4) })}
+                onChange={(e) =>
+                  setEditingProfile({ ...editingProfile, icon: e.target.value.toUpperCase().slice(0, 4) })
+                }
                 placeholder={t.settings.profiles.iconPlaceholder}
                 maxLength={4}
               />
@@ -228,14 +234,12 @@ export const ProfilesSettings: React.FC = memo(() => {
               </div>
               <div className="profile-info">
                 <div className="profile-name">{profile.name}</div>
-                <div className="profile-path">{profile.shell} {profile.args?.join(' ')}</div>
+                <div className="profile-path">
+                  {profile.shell} {profile.args?.join(' ')}
+                </div>
               </div>
               <div className="profile-actions">
-                <button
-                  className="profile-action-btn"
-                  onClick={() => handleEditProfile(profile)}
-                  title={t.common.edit}
-                >
+                <button className="profile-action-btn" onClick={() => handleEditProfile(profile)} title={t.common.edit}>
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M11.5 1.5l3 3L5 14H2v-3l9.5-9.5z" />
                   </svg>

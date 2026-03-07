@@ -22,56 +22,65 @@ export const AppearanceSettings: React.FC = memo(() => {
     fileInputRef.current?.click()
   }, [])
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const content = event.target?.result as string
-      const result = importTheme(content)
-      
-      if (result.success) {
-        toast.success(t.settings.appearance.themeImportSuccess)
-        // Optionally switch to the imported theme
-        if (result.themeId) {
-          setTheme(result.themeId)
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const content = event.target?.result as string
+        const result = importTheme(content)
+
+        if (result.success) {
+          toast.success(t.settings.appearance.themeImportSuccess)
+          // Optionally switch to the imported theme
+          if (result.themeId) {
+            setTheme(result.themeId)
+          }
+        } else {
+          toast.error(`${t.settings.appearance.themeImportError}: ${result.error}`)
         }
-      } else {
-        toast.error(`${t.settings.appearance.themeImportError}: ${result.error}`)
       }
-    }
-    reader.readAsText(file)
-    
-    // Reset input
-    e.target.value = ''
-  }, [importTheme, setTheme, toast, t])
+      reader.readAsText(file)
 
-  const handleExportTheme = useCallback((id: string) => {
-    const json = exportTheme(id)
-    if (!json) return
+      // Reset input
+      e.target.value = ''
+    },
+    [importTheme, setTheme, toast, t]
+  )
 
-    const theme = customThemes.find(th => th.id === id)
-    const filename = `${theme?.name || 'theme'}.json`.replace(/[^a-z0-9.-]/gi, '_')
-    
-    const blob = new Blob([json], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
-  }, [exportTheme, customThemes])
+  const handleExportTheme = useCallback(
+    (id: string) => {
+      const json = exportTheme(id)
+      if (!json) return
 
-  const handleDeleteTheme = useCallback((id: string) => {
-    if (confirm(t.settings.appearance.themeDeleteConfirm)) {
-      // If the deleted theme is currently active, switch to default
-      if (settings.theme === id) {
-        setTheme('catppuccin-mocha')
+      const theme = customThemes.find((th) => th.id === id)
+      const filename = `${theme?.name || 'theme'}.json`.replace(/[^a-z0-9.-]/gi, '_')
+
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+    },
+    [exportTheme, customThemes]
+  )
+
+  const handleDeleteTheme = useCallback(
+    (id: string) => {
+      if (confirm(t.settings.appearance.themeDeleteConfirm)) {
+        // If the deleted theme is currently active, switch to default
+        if (settings.theme === id) {
+          setTheme('dark')
+        }
+        removeCustomTheme(id)
       }
-      removeCustomTheme(id)
-    }
-  }, [removeCustomTheme, settings.theme, setTheme, t])
+    },
+    [removeCustomTheme, settings.theme, setTheme, t]
+  )
 
   return (
     <div className="settings-panel">
@@ -80,15 +89,14 @@ export const AppearanceSettings: React.FC = memo(() => {
       <div className="settings-group">
         <div className="settings-item">
           <span className="settings-label">{t.settings.appearance.theme}</span>
-          <select
-            className="settings-select"
-            value={settings.theme}
-            onChange={(e) => setTheme(e.target.value)}
-          >
+          <select className="settings-select" value={settings.theme} onChange={(e) => setTheme(e.target.value)}>
             <optgroup label={t.settings.appearance.builtInThemes}>
               {getThemeNames().map((name) => (
                 <option key={name} value={name}>
-                  {name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                  {name
+                    .split('-')
+                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(' ')}
                 </option>
               ))}
             </optgroup>
@@ -196,41 +204,17 @@ export const AppearanceSettings: React.FC = memo(() => {
 
         <div className="settings-item">
           <span className="settings-label">{t.settings.appearance.blur}</span>
-          <input
-            type="checkbox"
-            checked={settings.blur}
-            onChange={(e) => updateSettings({ blur: e.target.checked })}
-          />
-        </div>
-
-        <div className="settings-item">
-          <span className="settings-label">{t.settings.appearance.backgroundImage}</span>
-          <input
-            type="text"
-            className="settings-input"
-            value={settings.backgroundImage}
-            onChange={(e) => updateSettings({ backgroundImage: e.target.value })}
-            placeholder={t.settings.appearance.backgroundImagePlaceholder}
-          />
+          <input type="checkbox" checked={settings.blur} onChange={(e) => updateSettings({ blur: e.target.checked })} />
         </div>
       </div>
 
       <div className="settings-group">
         <h4 className="settings-subheading">{t.settings.appearance.customThemes}</h4>
-        
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-        />
-        
+
+        <input ref={fileInputRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleFileChange} />
+
         <div className="settings-item">
-          <button 
-            className="settings-button settings-button-primary"
-            onClick={handleImportClick}
-          >
+          <button className="settings-button settings-button-primary" onClick={handleImportClick}>
             {t.settings.appearance.importTheme}
           </button>
         </div>
@@ -241,23 +225,14 @@ export const AppearanceSettings: React.FC = memo(() => {
           <div className="custom-themes-list">
             {customThemes.map((theme) => (
               <div key={theme.id} className="custom-theme-item">
-                <div 
-                  className="custom-theme-preview"
-                  style={{ backgroundColor: theme.colors.background }}
-                >
+                <div className="custom-theme-preview" style={{ backgroundColor: theme.colors.background }}>
                   <span style={{ color: theme.colors.foreground }}>{theme.name}</span>
                 </div>
                 <div className="custom-theme-actions">
-                  <button
-                    className="settings-button settings-button-small"
-                    onClick={() => setTheme(theme.id)}
-                  >
+                  <button className="settings-button settings-button-small" onClick={() => setTheme(theme.id)}>
                     {t.common.save}
                   </button>
-                  <button
-                    className="settings-button settings-button-small"
-                    onClick={() => handleExportTheme(theme.id)}
-                  >
+                  <button className="settings-button settings-button-small" onClick={() => handleExportTheme(theme.id)}>
                     {t.settings.appearance.exportTheme}
                   </button>
                   <button

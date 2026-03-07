@@ -1,4 +1,4 @@
-import type { Settings, Profile, Workspace, AppConfig, SSHConnection } from './index'
+import type { Settings, Profile, Workspace, AppConfig } from './index'
 
 export interface SessionTab {
   id: string
@@ -11,15 +11,6 @@ export interface Session {
   tabs: SessionTab[]
   activeTabId: string | null
   activeWorkspaceId?: string
-  buffers?: Record<string, string>
-}
-
-export interface DeepLinkAction {
-  type: 'open' | 'ssh' | 'run'
-  cwd?: string
-  host?: string
-  user?: string
-  cmd?: string
 }
 
 export interface BackupInfo {
@@ -52,11 +43,6 @@ export interface ConfigAPI {
   addWorkspace: (workspace: Workspace) => Promise<Workspace[]>
   updateWorkspace: (id: string, updates: Partial<Workspace>) => Promise<Workspace[]>
   removeWorkspace: (id: string) => Promise<Workspace[]>
-
-  getSSHConnections: () => Promise<SSHConnection[]>
-  addSSHConnection: (connection: SSHConnection) => Promise<SSHConnection[]>
-  updateSSHConnection: (id: string, updates: Partial<SSHConnection>) => Promise<SSHConnection[]>
-  removeSSHConnection: (id: string) => Promise<SSHConnection[]>
 
   export: () => Promise<string>
   import: (jsonString: string) => Promise<AppConfig>
@@ -112,11 +98,6 @@ export interface ElectronAPI {
   setBackgroundBlur: (enabled: boolean) => void
   setWindowTitle: (title: string) => void
 
-  // Quake mode
-  toggleQuakeMode: () => void
-  setQuakeMode: (enabled: boolean) => void
-  onQuakeModeChanged: (callback: (enabled: boolean) => void) => () => void
-
   // Platform info
   platform: NodeJS.Platform
 
@@ -135,28 +116,40 @@ export interface ElectronAPI {
   onTerminalCopy: (callback: () => void) => () => void
   onTerminalPaste: (callback: () => void) => () => void
   onTerminalClear: (callback: () => void) => () => void
-
-  // Terminal output
-  saveTerminalOutput: (content: string) => Promise<string | null>
+  onTerminalSelectAll: (callback: () => void) => () => void
+  onTerminalSearch: (callback: () => void) => () => void
+  onTerminalSplitRight: (callback: () => void) => () => void
+  onTerminalSplitDown: (callback: () => void) => () => void
+  onTerminalReset: (callback: () => void) => () => void
 
   // Shell validation
   shellExists: (shellPath: string) => Promise<boolean>
 
-  // Notifications (Phase A)
-  showNotification: (title: string, body: string) => void
+  // PTY info
+  ptyGetCount: () => Promise<number>
+  ptyGetActiveIds: () => Promise<string[]>
 
-  // OS theme tracking (Phase A)
-  onThemeChanged: (callback: (isDark: boolean) => void) => () => void
-
-  // Deep links (Phase A)
-  onDeepLink: (callback: (action: DeepLinkAction) => void) => () => void
-
-  // Buffer persistence (Phase A)
-  saveBuffers: (buffers: Record<string, string>) => Promise<void>
-  getBuffers: () => Promise<Record<string, string>>
-
-  // Editor integration (Phase C)
-  openInEditor: (file: string, line: number, col: number) => void
+  // Auto-update operations
+  updates: {
+    checkForUpdates: () => Promise<{
+      updateAvailable: boolean
+      updateInfo: { version: string; releaseNotes?: string } | null
+    }>
+    downloadUpdate: () => Promise<boolean>
+    installUpdate: () => Promise<void>
+    getStatus: () => Promise<{
+      isUpdateAvailable: boolean
+      updateInfo: { version: string; releaseNotes?: string } | null
+    }>
+    onChecking: (callback: () => void) => () => void
+    onAvailable: (callback: (info: { version: string; releaseNotes?: string }) => void) => () => void
+    onNotAvailable: (callback: (info: { version: string }) => void) => () => void
+    onProgress: (
+      callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void
+    ) => () => void
+    onDownloaded: (callback: (info: { version: string; releaseNotes?: string }) => void) => () => void
+    onError: (callback: (error: { message: string }) => void) => () => void
+  }
 
   // Config operations
   config: ConfigAPI

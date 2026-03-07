@@ -10,12 +10,7 @@ interface CreateDialogProps {
   onCreateTerminal: (profileId?: string) => void
 }
 
-export const CreateDialog: React.FC<CreateDialogProps> = ({
-  open,
-  onClose,
-  onCreateWorkspace,
-  onCreateTerminal
-}) => {
+export const CreateDialog: React.FC<CreateDialogProps> = ({ open, onClose, onCreateWorkspace, onCreateTerminal }) => {
   const [step, setStep] = useState<'select' | 'workspace-name' | 'terminal-select'>('select')
   const [workspaceName, setWorkspaceName] = useState('')
   const { profiles } = useSettingsStore()
@@ -95,24 +90,24 @@ export const CreateDialog: React.FC<CreateDialogProps> = ({
             <div className="create-dialog-header">
               <button className="create-dialog-back" onClick={handleBack}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M10 12L6 8L10 4" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M10 12L6 8L10 4" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <span>Select Terminal Type</span>
             </div>
-            <div className="create-dialog-profiles">
+            <div className="create-dialog-options">
               {profiles.map((profile) => (
                 <button
                   key={profile.id}
-                  className="create-dialog-profile"
+                  className="create-dialog-option"
                   onClick={() => handleSelectProfile(profile.id)}
                 >
-                  <div className="create-dialog-profile-icon">
-                    <TerminalIcon icon={profile.icon} size={24} />
+                  <div className="create-dialog-icon">
+                    <TerminalIcon icon={profile.icon} size={20} />
                   </div>
-                  <div className="create-dialog-profile-info">
-                    <span className="create-dialog-profile-name">{profile.name}</span>
-                    <span className="create-dialog-profile-path">{profile.shell}</span>
+                  <div className="create-dialog-text">
+                    <span className="create-dialog-title">{profile.name}</span>
+                    <span className="create-dialog-desc">{profile.shell}</span>
                   </div>
                 </button>
               ))}
@@ -123,7 +118,7 @@ export const CreateDialog: React.FC<CreateDialogProps> = ({
             <div className="create-dialog-header">
               <button className="create-dialog-back" onClick={handleBack}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M10 12L6 8L10 4" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M10 12L6 8L10 4" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <span>Create Workspace</span>
@@ -139,10 +134,7 @@ export const CreateDialog: React.FC<CreateDialogProps> = ({
                 onKeyDown={handleKeyDown}
                 autoFocus
               />
-              <button
-                className="create-dialog-submit"
-                onClick={handleCreateWorkspace}
-              >
+              <button className="create-dialog-submit" onClick={handleCreateWorkspace}>
                 Create Workspace
               </button>
             </div>

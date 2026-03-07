@@ -32,17 +32,13 @@ export interface KeyboardShortcuts {
   toggleSidebar: string
   openSettings: string
   openCommandPalette: string
-  openSSHManager: string
   nextTab: string
   prevTab: string
   toggleSearch: string
   clearTerminal: string
   copyText: string
   pasteText: string
-  prevCommand: string
-  nextCommand: string
-  hintsMode: string
-  viMode: string
+  openSnippets: string
 }
 
 export interface Settings {
@@ -59,17 +55,9 @@ export interface Settings {
   defaultProfile: string
   opacity: number
   blur: boolean
-  backgroundImage: string
   enableImages: boolean
   enableClipboard: boolean
-  minimizeToTray: boolean
-  autoTheme: boolean
-  lightTheme: string
-  darkTheme: string
-  notifications: boolean
-  notificationDelay: number
   shellIntegration: boolean
-  editorCommand: string
   shortcuts: KeyboardShortcuts
 }
 
@@ -94,25 +82,10 @@ export interface Session {
   activeWorkspaceId?: string
 }
 
-export interface SSHConnection {
-  id: string
-  name: string
-  host: string
-  port: number
-  username: string
-  authMethod: 'password' | 'key' | 'agent'
-  privateKeyPath?: string
-  jumpHost?: string
-  color?: string
-  icon?: string
-  lastConnected?: string
-}
-
 export interface AppConfig {
   settings: Settings
   profiles: Profile[]
   workspaces: Workspace[]
-  sshConnections: SSHConnection[]
   session?: Session
   version: number
 }
@@ -138,22 +111,18 @@ const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
   toggleSidebar: 'Ctrl+Shift+B',
   openSettings: 'Ctrl+,',
   openCommandPalette: 'Ctrl+Shift+P',
-  openSSHManager: 'Ctrl+Shift+S',
   nextTab: 'Ctrl+Tab',
   prevTab: 'Ctrl+Shift+Tab',
   toggleSearch: 'Ctrl+F',
   clearTerminal: 'Ctrl+L',
   copyText: 'Ctrl+Shift+C',
   pasteText: 'Ctrl+Shift+V',
-  prevCommand: 'Ctrl+Shift+ArrowUp',
-  nextCommand: 'Ctrl+Shift+ArrowDown',
-  hintsMode: 'Ctrl+Shift+H',
-  viMode: 'Ctrl+Shift+X'
+  openSnippets: 'Ctrl+Shift+N'
 }
 
 const DEFAULT_SETTINGS: Settings = {
-  theme: 'catppuccin-mocha',
-  fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace",
+  theme: 'dark',
+  fontFamily: "'Cascadia Code', monospace",
   fontSize: 14,
   lineHeight: 1.2,
   letterSpacing: 0,
@@ -165,17 +134,9 @@ const DEFAULT_SETTINGS: Settings = {
   defaultProfile: 'powershell',
   opacity: 1,
   blur: false,
-  backgroundImage: '',
   enableImages: true,
   enableClipboard: true,
-  minimizeToTray: false,
-  autoTheme: false,
-  lightTheme: 'github-light',
-  darkTheme: 'catppuccin-mocha',
-  notifications: false,
-  notificationDelay: 5000,
   shellIntegration: true,
-  editorCommand: 'code --goto {file}:{line}:{col}',
   shortcuts: DEFAULT_SHORTCUTS
 }
 
@@ -271,13 +232,11 @@ function getDefaultProfiles(): Profile[] {
 }
 
 const DEFAULT_WORKSPACES: Workspace[] = []
-const DEFAULT_SSH_CONNECTIONS: SSHConnection[] = []
 
 const DEFAULT_CONFIG: AppConfig = {
   settings: DEFAULT_SETTINGS,
   profiles: getDefaultProfiles(),
   workspaces: DEFAULT_WORKSPACES,
-  sshConnections: DEFAULT_SSH_CONNECTIONS,
   version: 1
 }
 
@@ -287,10 +246,12 @@ const BACKUP_PREFIX = 'config.backup.'
 const BACKUP_FILENAME_REGEX = /^config\.backup\.\d+\.json$/
 
 function isValidBackupFilename(filename: string): boolean {
-  return BACKUP_FILENAME_REGEX.test(filename) &&
+  return (
+    BACKUP_FILENAME_REGEX.test(filename) &&
     !filename.includes('..') &&
     !filename.includes('/') &&
     !filename.includes('\\')
+  )
 }
 
 // Create store instance
@@ -299,14 +260,11 @@ const store = new Store<AppConfig>({
   defaults: DEFAULT_CONFIG,
   clearInvalidConfig: true,
   migrations: {
-    // Add migrations here for future config updates
     '1.0.0': (store) => {
-      // Initial migration - ensure all fields exist
       const config = store.store
       if (!config.settings) store.set('settings', DEFAULT_SETTINGS)
       if (!config.profiles) store.set('profiles', getDefaultProfiles())
       if (!config.workspaces) store.set('workspaces', DEFAULT_WORKSPACES)
-      if (!config.sshConnections) store.set('sshConnections', DEFAULT_SSH_CONNECTIONS)
     }
   }
 })
@@ -318,17 +276,14 @@ function getConfigDir(): string {
 
 // Config Manager class
 export class ConfigManager {
-  // Get entire config
   getConfig(): AppConfig {
     return store.store
   }
 
-  // Get settings
   getSettings(): Settings {
     return store.get('settings', DEFAULT_SETTINGS)
   }
 
-  // Update settings (partial update)
   updateSettings(updates: Partial<Settings>): Settings {
     const current = this.getSettings()
     const updated = { ...current, ...updates }
@@ -336,18 +291,15 @@ export class ConfigManager {
     return updated
   }
 
-  // Reset settings to defaults
   resetSettings(): Settings {
     store.set('settings', DEFAULT_SETTINGS)
     return DEFAULT_SETTINGS
   }
 
-  // Get profiles
   getProfiles(): Profile[] {
     return store.get('profiles', getDefaultProfiles())
   }
 
-  // Add profile
   addProfile(profile: Profile): Profile[] {
     const profiles = this.getProfiles()
     profiles.push(profile)
@@ -355,10 +307,9 @@ export class ConfigManager {
     return profiles
   }
 
-  // Update profile
   updateProfile(id: string, updates: Partial<Profile>): Profile[] {
     const profiles = this.getProfiles()
-    const index = profiles.findIndex(p => p.id === id)
+    const index = profiles.findIndex((p) => p.id === id)
     if (index !== -1) {
       profiles[index] = { ...profiles[index], ...updates }
       store.set('profiles', profiles)
@@ -366,19 +317,16 @@ export class ConfigManager {
     return profiles
   }
 
-  // Remove profile
   removeProfile(id: string): Profile[] {
-    const profiles = this.getProfiles().filter(p => p.id !== id)
+    const profiles = this.getProfiles().filter((p) => p.id !== id)
     store.set('profiles', profiles)
     return profiles
   }
 
-  // Get workspaces
   getWorkspaces(): Workspace[] {
     return store.get('workspaces', DEFAULT_WORKSPACES)
   }
 
-  // Add workspace
   addWorkspace(workspace: Workspace): Workspace[] {
     const workspaces = this.getWorkspaces()
     workspaces.push(workspace)
@@ -386,10 +334,9 @@ export class ConfigManager {
     return workspaces
   }
 
-  // Update workspace
   updateWorkspace(id: string, updates: Partial<Workspace>): Workspace[] {
     const workspaces = this.getWorkspaces()
-    const index = workspaces.findIndex(w => w.id === id)
+    const index = workspaces.findIndex((w) => w.id === id)
     if (index !== -1) {
       workspaces[index] = { ...workspaces[index], ...updates }
       store.set('workspaces', workspaces)
@@ -397,52 +344,18 @@ export class ConfigManager {
     return workspaces
   }
 
-  // Remove workspace
   removeWorkspace(id: string): Workspace[] {
-    const workspaces = this.getWorkspaces().filter(w => w.id !== id)
+    const workspaces = this.getWorkspaces().filter((w) => w.id !== id)
     store.set('workspaces', workspaces)
     return workspaces
   }
 
-  // Get SSH connections
-  getSSHConnections(): SSHConnection[] {
-    return store.get('sshConnections', DEFAULT_SSH_CONNECTIONS)
-  }
-
-  // Add SSH connection
-  addSSHConnection(connection: SSHConnection): SSHConnection[] {
-    const connections = this.getSSHConnections()
-    connections.push(connection)
-    store.set('sshConnections', connections)
-    return connections
-  }
-
-  // Update SSH connection
-  updateSSHConnection(id: string, updates: Partial<SSHConnection>): SSHConnection[] {
-    const connections = this.getSSHConnections()
-    const index = connections.findIndex(c => c.id === id)
-    if (index !== -1) {
-      connections[index] = { ...connections[index], ...updates }
-      store.set('sshConnections', connections)
-    }
-    return connections
-  }
-
-  // Remove SSH connection
-  removeSSHConnection(id: string): SSHConnection[] {
-    const connections = this.getSSHConnections().filter(c => c.id !== id)
-    store.set('sshConnections', connections)
-    return connections
-  }
-
-  // Reset entire config to defaults
   resetConfig(): AppConfig {
     store.clear()
     store.set(DEFAULT_CONFIG)
     return DEFAULT_CONFIG
   }
 
-  // Get config file path (for showing to user)
   getConfigPath(): string {
     return store.path
   }
@@ -461,11 +374,6 @@ export class ConfigManager {
   }
 
   // Backup methods
-
-  /**
-   * Create a backup of the current config
-   * Returns the backup filename
-   */
   createBackup(): string {
     const timestamp = Date.now()
     const filename = `${BACKUP_PREFIX}${timestamp}.json`
@@ -474,10 +382,7 @@ export class ConfigManager {
     try {
       const config = this.getConfig()
       fs.writeFileSync(backupPath, JSON.stringify(config, null, 2), 'utf-8')
-
-      // Clean up old backups (keep only MAX_BACKUPS)
       this.cleanupOldBackups()
-
       logger.info(`Backup created: ${filename}`)
       return filename
     } catch (error) {
@@ -486,9 +391,6 @@ export class ConfigManager {
     }
   }
 
-  /**
-   * List all available backups sorted by timestamp (newest first)
-   */
   listBackups(): BackupInfo[] {
     const configDir = getConfigDir()
 
@@ -500,8 +402,6 @@ export class ConfigManager {
         if (file.startsWith(BACKUP_PREFIX) && file.endsWith('.json')) {
           const filePath = path.join(configDir, file)
           const stats = fs.statSync(filePath)
-
-          // Extract timestamp from filename
           const timestampStr = file.replace(BACKUP_PREFIX, '').replace('.json', '')
           const timestamp = parseInt(timestampStr, 10)
 
@@ -516,7 +416,6 @@ export class ConfigManager {
         }
       }
 
-      // Sort by timestamp descending (newest first)
       return backups.sort((a, b) => b.timestamp - a.timestamp)
     } catch (error) {
       logger.error('Failed to list backups:', error)
@@ -524,9 +423,6 @@ export class ConfigManager {
     }
   }
 
-  /**
-   * Restore config from a backup file
-   */
   restoreBackup(filename: string): boolean {
     if (!isValidBackupFilename(filename)) {
       logger.error('Invalid backup filename:', filename)
@@ -541,7 +437,6 @@ export class ConfigManager {
         return false
       }
 
-      // Create a backup of current config before restoring
       try {
         this.createBackup()
       } catch {
@@ -551,7 +446,6 @@ export class ConfigManager {
       const backupContent = fs.readFileSync(backupPath, 'utf-8')
       const backupConfig = JSON.parse(backupContent) as AppConfig
 
-      // Validate and restore
       if (backupConfig.settings) {
         store.set('settings', { ...DEFAULT_SETTINGS, ...backupConfig.settings })
       }
@@ -560,9 +454,6 @@ export class ConfigManager {
       }
       if (backupConfig.workspaces && Array.isArray(backupConfig.workspaces)) {
         store.set('workspaces', backupConfig.workspaces)
-      }
-      if (backupConfig.sshConnections && Array.isArray(backupConfig.sshConnections)) {
-        store.set('sshConnections', backupConfig.sshConnections)
       }
 
       logger.info(`Config restored from: ${filename}`)
@@ -573,9 +464,6 @@ export class ConfigManager {
     }
   }
 
-  /**
-   * Delete a specific backup
-   */
   deleteBackup(filename: string): boolean {
     if (!isValidBackupFilename(filename)) {
       logger.error('Invalid backup filename:', filename)
@@ -597,9 +485,6 @@ export class ConfigManager {
     }
   }
 
-  /**
-   * Clean up old backups, keeping only the most recent MAX_BACKUPS
-   */
   private cleanupOldBackups(): void {
     const backups = this.listBackups()
 
@@ -611,21 +496,13 @@ export class ConfigManager {
     }
   }
 
-  /**
-   * Validate config integrity
-   * Returns true if config is valid, false if corrupted
-   */
   validateConfig(): boolean {
     try {
       const config = this.getConfig()
-
-      // Check required fields exist
       if (!config.settings || typeof config.settings !== 'object') return false
       if (!config.profiles || !Array.isArray(config.profiles)) return false
       if (!config.workspaces || !Array.isArray(config.workspaces)) return false
-      if (!config.sshConnections || !Array.isArray(config.sshConnections)) return false
 
-      // Check settings has required fields
       const requiredSettingsFields = ['theme', 'fontFamily', 'fontSize', 'cursorStyle']
       for (const field of requiredSettingsFields) {
         if (!(field in config.settings)) return false
@@ -637,29 +514,35 @@ export class ConfigManager {
     }
   }
 
-  // Export config as JSON string
   exportConfig(): string {
     return JSON.stringify(store.store, null, 2)
   }
 
-  // Import config from JSON string
   importConfig(jsonString: string): AppConfig {
     try {
       const config = JSON.parse(jsonString) as Partial<AppConfig>
 
-      // Validate settings field types and value ranges
       if (config.settings) {
         const s = config.settings
         if (s.fontSize !== undefined && (typeof s.fontSize !== 'number' || s.fontSize < 6 || s.fontSize > 72)) {
           throw new Error('Invalid fontSize: must be a number between 6 and 72')
         }
-        if (s.lineHeight !== undefined && (typeof s.lineHeight !== 'number' || s.lineHeight < 0.5 || s.lineHeight > 3)) {
+        if (
+          s.lineHeight !== undefined &&
+          (typeof s.lineHeight !== 'number' || s.lineHeight < 0.5 || s.lineHeight > 3)
+        ) {
           throw new Error('Invalid lineHeight: must be a number between 0.5 and 3')
         }
-        if (s.letterSpacing !== undefined && (typeof s.letterSpacing !== 'number' || s.letterSpacing < -5 || s.letterSpacing > 10)) {
+        if (
+          s.letterSpacing !== undefined &&
+          (typeof s.letterSpacing !== 'number' || s.letterSpacing < -5 || s.letterSpacing > 10)
+        ) {
           throw new Error('Invalid letterSpacing: must be a number between -5 and 10')
         }
-        if (s.scrollback !== undefined && (typeof s.scrollback !== 'number' || s.scrollback < 0 || s.scrollback > 100000)) {
+        if (
+          s.scrollback !== undefined &&
+          (typeof s.scrollback !== 'number' || s.scrollback < 0 || s.scrollback > 100000)
+        ) {
           throw new Error('Invalid scrollback: must be a number between 0 and 100000')
         }
         if (s.opacity !== undefined && (typeof s.opacity !== 'number' || s.opacity < 0.3 || s.opacity > 1)) {
@@ -678,27 +561,37 @@ export class ConfigManager {
         store.set('settings', validSettings)
       }
 
-      // Validate profiles
       if (config.profiles && Array.isArray(config.profiles)) {
-        // Shell metacharacters that could enable command injection in startup commands
         const shellMetachars = /[;&|`$(){}[\]<>!]/
 
         for (const profile of config.profiles) {
           if (!profile.id || typeof profile.id !== 'string') throw new Error('Invalid profile: missing or invalid id')
-          if (!profile.name || typeof profile.name !== 'string') throw new Error('Invalid profile: missing or invalid name')
-          if (!profile.shell || typeof profile.shell !== 'string') throw new Error('Invalid profile: missing or invalid shell')
+          if (!profile.name || typeof profile.name !== 'string')
+            throw new Error('Invalid profile: missing or invalid name')
+          if (!profile.shell || typeof profile.shell !== 'string')
+            throw new Error('Invalid profile: missing or invalid shell')
 
-          // Validate shell path: must be absolute or a known shell name
           const shellLower = profile.shell.toLowerCase()
-          const isKnownShell = ['powershell.exe', 'pwsh.exe', 'cmd.exe', 'bash.exe', 'wsl.exe',
-            '/bin/bash', '/bin/zsh', '/bin/sh', '/usr/bin/zsh', '/usr/bin/fish', '/usr/bin/bash',
-            '/usr/local/bin/bash', '/usr/local/bin/zsh', '/usr/local/bin/fish'
-          ].some(known => shellLower === known || shellLower.endsWith(path.sep + known))
+          const isKnownShell = [
+            'powershell.exe',
+            'pwsh.exe',
+            'cmd.exe',
+            'bash.exe',
+            'wsl.exe',
+            '/bin/bash',
+            '/bin/zsh',
+            '/bin/sh',
+            '/usr/bin/zsh',
+            '/usr/bin/fish',
+            '/usr/bin/bash',
+            '/usr/local/bin/bash',
+            '/usr/local/bin/zsh',
+            '/usr/local/bin/fish'
+          ].some((known) => shellLower === known || shellLower.endsWith(path.sep + known))
           if (!isKnownShell && !path.isAbsolute(profile.shell)) {
             throw new Error(`Invalid profile shell: "${profile.shell}" must be an absolute path or a known shell`)
           }
 
-          // Validate startup command: reject shell metacharacters
           if (profile.startupCommand && typeof profile.startupCommand === 'string') {
             if (shellMetachars.test(profile.startupCommand)) {
               throw new Error(`Invalid profile startupCommand: contains shell metacharacters`)
@@ -708,28 +601,14 @@ export class ConfigManager {
         store.set('profiles', config.profiles)
       }
 
-      // Validate workspaces
       if (config.workspaces && Array.isArray(config.workspaces)) {
         for (const workspace of config.workspaces) {
-          if (!workspace.id || typeof workspace.id !== 'string') throw new Error('Invalid workspace: missing or invalid id')
-          if (!workspace.name || typeof workspace.name !== 'string') throw new Error('Invalid workspace: missing or invalid name')
+          if (!workspace.id || typeof workspace.id !== 'string')
+            throw new Error('Invalid workspace: missing or invalid id')
+          if (!workspace.name || typeof workspace.name !== 'string')
+            throw new Error('Invalid workspace: missing or invalid name')
         }
         store.set('workspaces', config.workspaces)
-      }
-
-      // Validate SSH connections
-      if (config.sshConnections && Array.isArray(config.sshConnections)) {
-        for (const conn of config.sshConnections) {
-          if (!conn.id || typeof conn.id !== 'string') throw new Error('Invalid SSH connection: missing or invalid id')
-          if (!conn.host || typeof conn.host !== 'string') throw new Error('Invalid SSH connection: missing or invalid host')
-          if (conn.port !== undefined && (typeof conn.port !== 'number' || conn.port < 1 || conn.port > 65535)) {
-            throw new Error('Invalid SSH connection: port must be between 1 and 65535')
-          }
-          if (conn.authMethod && !['password', 'key', 'agent'].includes(conn.authMethod)) {
-            throw new Error('Invalid SSH connection: authMethod must be password, key, or agent')
-          }
-        }
-        store.set('sshConnections', config.sshConnections)
       }
 
       return this.getConfig()

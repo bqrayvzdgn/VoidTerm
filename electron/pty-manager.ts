@@ -13,23 +13,57 @@ const logger = createLogger('PtyManager')
  * This prevents leaking sensitive env vars (API keys, tokens, secrets) to child processes.
  */
 const ENV_WHITELIST_WIN32 = [
-  'COMSPEC', 'SYSTEMROOT', 'SYSTEMDRIVE', 'WINDIR',
-  'PATH', 'PATHEXT', 'TEMP', 'TMP',
-  'HOMEDRIVE', 'HOMEPATH', 'USERPROFILE', 'USERNAME',
-  'APPDATA', 'LOCALAPPDATA', 'PROGRAMDATA',
-  'PROGRAMFILES', 'PROGRAMFILES(X86)', 'COMMONPROGRAMFILES',
-  'NUMBER_OF_PROCESSORS', 'PROCESSOR_ARCHITECTURE', 'OS',
-  'LANG', 'LC_ALL', 'LC_CTYPE',
+  'COMSPEC',
+  'SYSTEMROOT',
+  'SYSTEMDRIVE',
+  'WINDIR',
+  'PATH',
+  'PATHEXT',
+  'TEMP',
+  'TMP',
+  'HOMEDRIVE',
+  'HOMEPATH',
+  'USERPROFILE',
+  'USERNAME',
+  'APPDATA',
+  'LOCALAPPDATA',
+  'PROGRAMDATA',
+  'PROGRAMFILES',
+  'PROGRAMFILES(X86)',
+  'COMMONPROGRAMFILES',
+  'NUMBER_OF_PROCESSORS',
+  'PROCESSOR_ARCHITECTURE',
+  'OS',
+  'LANG',
+  'LC_ALL',
+  'LC_CTYPE',
   'PSModulePath'
 ]
 
 const ENV_WHITELIST_UNIX = [
-  'PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL',
-  'LANG', 'LC_ALL', 'LC_CTYPE', 'LC_MESSAGES', 'LC_COLLATE',
-  'DISPLAY', 'WAYLAND_DISPLAY', 'XDG_RUNTIME_DIR', 'XDG_SESSION_TYPE',
-  'XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME',
-  'TMPDIR', 'EDITOR', 'VISUAL', 'PAGER',
-  'SSH_AUTH_SOCK', 'SSH_AGENT_PID',
+  'PATH',
+  'HOME',
+  'USER',
+  'LOGNAME',
+  'SHELL',
+  'LANG',
+  'LC_ALL',
+  'LC_CTYPE',
+  'LC_MESSAGES',
+  'LC_COLLATE',
+  'DISPLAY',
+  'WAYLAND_DISPLAY',
+  'XDG_RUNTIME_DIR',
+  'XDG_SESSION_TYPE',
+  'XDG_DATA_HOME',
+  'XDG_CONFIG_HOME',
+  'XDG_CACHE_HOME',
+  'TMPDIR',
+  'EDITOR',
+  'VISUAL',
+  'PAGER',
+  'SSH_AUTH_SOCK',
+  'SSH_AGENT_PID',
   'DBUS_SESSION_BUS_ADDRESS'
 ]
 
@@ -89,7 +123,10 @@ export class PtyManager {
     return process.env.SHELL || '/bin/bash'
   }
 
-  private getShellArgs(shell: string, integrationScript?: { scriptPath: string; type: 'ps1' | 'fish' | 'sh' } | null): string[] {
+  private getShellArgs(
+    shell: string,
+    integrationScript?: { scriptPath: string; type: 'ps1' | 'fish' | 'sh' } | null
+  ): string[] {
     const name = shell.toLowerCase()
 
     if (process.platform === 'win32') {
@@ -202,9 +239,7 @@ export class PtyManager {
     }
 
     // Resolve shell integration script (if enabled)
-    const integration = options.shellIntegration !== false
-      ? this.getShellIntegrationScriptPath(shell)
-      : null
+    const integration = options.shellIntegration !== false ? this.getShellIntegrationScriptPath(shell) : null
 
     const shellArgs = this.getShellArgs(shell, integration)
 
@@ -243,11 +278,11 @@ export class PtyManager {
     }
 
     ptyProcess.onData((data) => {
-      this.dataCallbacks.forEach(cb => cb(id, data))
+      this.dataCallbacks.forEach((cb) => cb(id, data))
     })
 
     ptyProcess.onExit(({ exitCode }) => {
-      this.exitCallbacks.forEach(cb => cb(id, exitCode))
+      this.exitCallbacks.forEach((cb) => cb(id, exitCode))
       this.processes.delete(id)
     })
 

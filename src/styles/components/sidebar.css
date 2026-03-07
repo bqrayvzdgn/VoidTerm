@@ -245,7 +245,9 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity var(--transition-normal), color var(--transition-normal);
+  transition:
+    opacity var(--transition-normal),
+    color var(--transition-normal);
   border-radius: var(--radius-sm);
   margin-left: 4px;
 }

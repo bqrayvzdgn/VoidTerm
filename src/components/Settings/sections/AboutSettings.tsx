@@ -10,10 +10,16 @@ export const AboutSettings: React.FC = memo(() => {
 
       <div className="about-content">
         <div className="about-logo">
-          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-            <rect x="4" y="4" width="56" height="56" rx="12" stroke="currentColor" strokeWidth="2" />
-            <path d="M16 24l8 8-8 8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M28 40h20" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          <svg width="64" height="64" viewBox="0 0 512 512" fill="none">
+            <rect width="512" height="512" rx="108" fill="#0b0b12" />
+            <path
+              d="M155 175 L265 256 L155 337"
+              stroke="#e4e4ec"
+              strokeWidth="34"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <line x1="300" y1="337" x2="368" y2="337" stroke="#8b8bf5" strokeWidth="34" strokeLinecap="round" />
           </svg>
         </div>
 

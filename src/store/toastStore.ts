@@ -18,7 +18,7 @@ interface ToastStore {
   addToast: (toast: Omit<Toast, 'id'>) => string
   removeToast: (id: string) => void
   clearAll: () => void
-  
+
   // Convenience methods
   success: (message: string, duration?: number) => string
   error: (message: string, duration?: number) => string

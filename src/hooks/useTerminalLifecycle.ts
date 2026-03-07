@@ -19,105 +19,110 @@ export const useTerminalLifecycle = () => {
   const { activeWorkspaceId } = useWorkspaceStore()
 
   // Create a new terminal process
-  const createTerminal = useCallback(async (profileId: string) => {
-    const profile = profiles.find(p => p.id === profileId) || profiles[0]
+  const createTerminal = useCallback(
+    async (profileId: string) => {
+      const profile = profiles.find((p) => p.id === profileId) || profiles[0]
 
-    try {
-      const ptyId = await window.electronAPI.ptyCreate({
-        shell: profile.shell,
-        cwd: profile.cwd,
-        env: profile.env
-      })
-
-      const terminalId = uuidv4()
-
-      setPtyIds(prev => {
-        const newMap = new Map(prev)
-        newMap.set(terminalId, ptyId)
-        return newMap
-      })
-
-      // Execute startup command after shell is ready (wait for first PTY output)
-      if (profile.startupCommand) {
-        const startupCmd = profile.startupCommand
-        const removeListener = window.electronAPI.onPtyData((id, _data) => {
-          if (id === ptyId) {
-            removeListener()
-            // Small delay after first output to ensure prompt is ready
-            setTimeout(() => {
-              window.electronAPI.ptyWrite(ptyId, startupCmd + '\r')
-            }, 100)
-          }
+      try {
+        const ptyId = await window.electronAPI.ptyCreate({
+          shell: profile.shell,
+          cwd: profile.cwd,
+          env: profile.env
         })
-      }
 
-      return { terminalId, ptyId }
-    } catch (error) {
-      logger.error('Failed to create terminal:', error)
-      throw new Error(`Failed to create terminal: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
-  }, [profiles])
+        const terminalId = uuidv4()
+
+        setPtyIds((prev) => {
+          const newMap = new Map(prev)
+          newMap.set(terminalId, ptyId)
+          return newMap
+        })
+
+        // Execute startup command after shell is ready (wait for first PTY output)
+        if (profile.startupCommand) {
+          const startupCmd = profile.startupCommand
+          const removeListener = window.electronAPI.onPtyData((id, _data) => {
+            if (id === ptyId) {
+              removeListener()
+              // Small delay after first output to ensure prompt is ready
+              setTimeout(() => {
+                window.electronAPI.ptyWrite(ptyId, startupCmd + '\r')
+              }, 100)
+            }
+          })
+        }
+
+        return { terminalId, ptyId }
+      } catch (error) {
+        logger.error('Failed to create terminal:', error)
+        throw new Error(`Failed to create terminal: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
+    },
+    [profiles]
+  )
 
   // Create a new tab with terminal
   // workspaceId: undefined = use active workspace, null = force no workspace, string = specific workspace
-  const handleCreateTab = useCallback(async (
-    profileId?: string,
-    workspaceId?: string | null,
-    onTerminalCreated?: (terminalId: string) => void
-  ) => {
-    const profileIdToUse = profileId || settings.defaultProfile
-    const profile = profiles.find(p => p.id === profileIdToUse) || profiles[0]
-    if (!profile) {
-      logger.error('No profile found for id:', profileIdToUse)
-      return
-    }
+  const handleCreateTab = useCallback(
+    async (profileId?: string, workspaceId?: string | null, onTerminalCreated?: (terminalId: string) => void) => {
+      const profileIdToUse = profileId || settings.defaultProfile
+      const profile = profiles.find((p) => p.id === profileIdToUse) || profiles[0]
+      if (!profile) {
+        logger.error('No profile found for id:', profileIdToUse)
+        return
+      }
 
-    // null = explicitly unassigned, undefined = use active workspace
-    const tabWorkspaceId = workspaceId === null ? undefined : (workspaceId ?? activeWorkspaceId ?? undefined)
-    const tabId = addTab(profileIdToUse, profile.name, tabWorkspaceId)
+      // null = explicitly unassigned, undefined = use active workspace
+      const tabWorkspaceId = workspaceId === null ? undefined : (workspaceId ?? activeWorkspaceId ?? undefined)
+      const tabId = addTab(profileIdToUse, profile.name, tabWorkspaceId)
 
-    try {
-      const { terminalId } = await createTerminal(profileIdToUse)
+      try {
+        const { terminalId } = await createTerminal(profileIdToUse)
 
-      setPane(tabId, {
-        id: uuidv4(),
-        type: 'terminal',
-        terminalId
-      })
+        setPane(tabId, {
+          id: uuidv4(),
+          type: 'terminal',
+          terminalId
+        })
 
-      onTerminalCreated?.(terminalId)
-      setActiveTab(tabId)
-    } catch (error) {
-      logger.error('Failed to create tab:', error)
-      removeTab(tabId)
-    }
-  }, [addTab, createTerminal, settings.defaultProfile, profiles, setPane, activeWorkspaceId, removeTab, setActiveTab])
+        onTerminalCreated?.(terminalId)
+        setActiveTab(tabId)
+      } catch (error) {
+        logger.error('Failed to create tab:', error)
+        removeTab(tabId)
+      }
+    },
+    [addTab, createTerminal, settings.defaultProfile, profiles, setPane, activeWorkspaceId, removeTab, setActiveTab]
+  )
 
   // Close a tab and cleanup
-  const handleCloseTab = useCallback((tabId: string) => {
-    const pane = panes.get(tabId)
-    if (pane) {
-      const terminalIds = collectTerminalIds(pane)
-      // Kill all PTYs first, then update state
-      for (const tid of terminalIds) {
-        const ptyId = ptyIds.get(tid)
-        if (ptyId) {
-          try {
-            window.electronAPI.ptyKill(ptyId)
-          } catch (error) {
-            logger.error('Failed to kill PTY:', error)
+  const handleCloseTab = useCallback(
+    (tabId: string) => {
+      const pane = panes.get(tabId)
+      if (pane) {
+        const terminalIds = collectTerminalIds(pane)
+        // Kill all PTYs first, then update state
+        for (const tid of terminalIds) {
+          const ptyId = ptyIds.get(tid)
+          if (ptyId) {
+            try {
+              window.electronAPI.ptyKill(ptyId)
+            } catch (error) {
+              logger.error('Failed to kill PTY:', error)
+            }
           }
         }
+        // Batch state update: remove all PTY mappings at once
+        setPtyIds((prev) => {
+          const newMap = new Map(prev)
+          terminalIds.forEach((tid) => newMap.delete(tid))
+          return newMap
+        })
       }
-      // Batch state update: remove all PTY mappings at once
-      setPtyIds(prev => {
-        const newMap = new Map(prev)
-        terminalIds.forEach(tid => newMap.delete(tid))
-        return newMap
-      })
-    }
-    removeTab(tabId)
-  }, [panes, ptyIds, removeTab])
+      removeTab(tabId)
+    },
+    [panes, ptyIds, removeTab]
+  )
 
   return {
     ptyIds,

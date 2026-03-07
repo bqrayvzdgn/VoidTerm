@@ -108,6 +108,7 @@ export const BackupSettings: React.FC = memo(() => {
       version: '1.0.0'
     }
     downloadJSON(exportData, `voidterm-settings-${getDateString()}.json`)
+    toast.success(t.toast.settingsExported)
   }
 
   /**
@@ -121,6 +122,7 @@ export const BackupSettings: React.FC = memo(() => {
       type: 'profiles'
     }
     downloadJSON(exportData, `voidterm-profiles-${getDateString()}.json`)
+    toast.success(t.toast.profilesExported)
   }
 
   /**
@@ -147,7 +149,7 @@ export const BackupSettings: React.FC = memo(() => {
   const validateProfile = (profile: unknown): Profile | null => {
     if (typeof profile !== 'object' || !profile) return null
     const p = profile as Record<string, unknown>
-    
+
     if (typeof p.id !== 'string' || !p.id) return null
     if (typeof p.name !== 'string' || !p.name) return null
     if (typeof p.shell !== 'string' || !p.shell) return null
@@ -181,12 +183,12 @@ export const BackupSettings: React.FC = memo(() => {
    */
   const importProfiles = (profilesData: unknown[]): number => {
     let importedCount = 0
-    
+
     for (const profile of profilesData) {
       const validProfile = validateProfile(profile)
       if (!validProfile) continue
 
-      const existing = profiles.find(p => p.id === validProfile.id)
+      const existing = profiles.find((p) => p.id === validProfile.id)
       if (existing) {
         updateProfile(validProfile.id, validProfile)
       } else {
@@ -194,7 +196,7 @@ export const BackupSettings: React.FC = memo(() => {
       }
       importedCount++
     }
-    
+
     return importedCount
   }
 
@@ -229,25 +231,40 @@ export const BackupSettings: React.FC = memo(() => {
           if (typeof data.settings.fontSize === 'number') validSettings.fontSize = data.settings.fontSize
           if (typeof data.settings.lineHeight === 'number') validSettings.lineHeight = data.settings.lineHeight
           if (typeof data.settings.letterSpacing === 'number') validSettings.letterSpacing = data.settings.letterSpacing
-          if (['block', 'underline', 'bar'].includes(data.settings.cursorStyle)) validSettings.cursorStyle = data.settings.cursorStyle
+          if (['block', 'underline', 'bar'].includes(data.settings.cursorStyle))
+            validSettings.cursorStyle = data.settings.cursorStyle
           if (typeof data.settings.cursorBlink === 'boolean') validSettings.cursorBlink = data.settings.cursorBlink
           if (typeof data.settings.scrollback === 'number') validSettings.scrollback = data.settings.scrollback
           if (typeof data.settings.copyOnSelect === 'boolean') validSettings.copyOnSelect = data.settings.copyOnSelect
           if (typeof data.settings.bellSound === 'boolean') validSettings.bellSound = data.settings.bellSound
-          if (typeof data.settings.defaultProfile === 'string') validSettings.defaultProfile = data.settings.defaultProfile
+          if (typeof data.settings.defaultProfile === 'string')
+            validSettings.defaultProfile = data.settings.defaultProfile
           if (typeof data.settings.opacity === 'number') validSettings.opacity = data.settings.opacity
           if (typeof data.settings.blur === 'boolean') validSettings.blur = data.settings.blur
-          if (typeof data.settings.backgroundImage === 'string') validSettings.backgroundImage = data.settings.backgroundImage
 
           // Kısayolları içe aktar
           if (data.settings.shortcuts && typeof data.settings.shortcuts === 'object') {
             const validShortcuts: Partial<KeyboardShortcuts> = {}
             const shortcutKeys: (keyof KeyboardShortcuts)[] = [
-              'newTab', 'closeTab', 'closePane', 'splitVertical', 'splitHorizontal',
-              'toggleSidebar', 'openSettings', 'nextTab', 'prevTab',
-              'focusLeft', 'focusRight', 'focusUp', 'focusDown',
-              'toggleSearch', 'clearTerminal', 'copyText', 'pasteText',
-              'openCommandPalette', 'openSSHManager'
+              'newTab',
+              'closeTab',
+              'closePane',
+              'splitVertical',
+              'splitHorizontal',
+              'toggleSidebar',
+              'openSettings',
+              'nextTab',
+              'prevTab',
+              'focusLeft',
+              'focusRight',
+              'focusUp',
+              'focusDown',
+              'toggleSearch',
+              'clearTerminal',
+              'copyText',
+              'pasteText',
+              'openCommandPalette',
+              'openSnippets'
             ]
             for (const key of shortcutKeys) {
               if (typeof data.settings.shortcuts[key] === 'string') {
@@ -315,6 +332,7 @@ export const BackupSettings: React.FC = memo(() => {
   const handleResetSettings = () => {
     if (confirm(t.settings.backup.resetConfirm)) {
       updateSettings(DEFAULT_SETTINGS)
+      toast.success(t.toast.settingsReset)
     }
   }
 
@@ -416,7 +434,14 @@ export const BackupSettings: React.FC = memo(() => {
                       onClick={() => handleRestoreBackup(backup.filename)}
                       title={t.settings.backup.restoreBackup}
                     >
-                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                      >
                         <path d="M2 7a5 5 0 1 1 1 3M2 12V7h5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       {t.settings.backup.restoreBackup}
@@ -426,8 +451,19 @@ export const BackupSettings: React.FC = memo(() => {
                       onClick={() => handleDeleteBackup(backup.filename)}
                       title={t.settings.backup.deleteBackup}
                     >
-                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M3 4h8M5 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M6 7v4M8 7v4M4 4l.5 7.5a1 1 0 0 0 1 .5h3a1 1 0 0 0 1-.5L10 4" strokeLinecap="round" strokeLinejoin="round" />
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                      >
+                        <path
+                          d="M3 4h8M5 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M6 7v4M8 7v4M4 4l.5 7.5a1 1 0 0 0 1 .5h3a1 1 0 0 0 1-.5L10 4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     </button>
                   </div>

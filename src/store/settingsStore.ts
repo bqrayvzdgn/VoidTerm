@@ -32,7 +32,7 @@ interface SettingsStore {
 export const useSettingsStore = create<SettingsStore>()((set, get) => ({
   settings: DEFAULT_SETTINGS,
   profiles: [],
-  currentTheme: themes['catppuccin-mocha'],
+  currentTheme: themes['dark'],
   isLoaded: false,
 
   loadFromConfig: async () => {
@@ -114,7 +114,7 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
   },
 
   getProfile: (id) => {
-    return get().profiles.find(p => p.id === id)
+    return get().profiles.find((p) => p.id === id)
   }
 }))
 
@@ -123,14 +123,17 @@ export const useSettings = () => useSettingsStore(useShallow((state) => state.se
 export const useProfiles = () => useSettingsStore(useShallow((state) => state.profiles))
 export const useCurrentTheme = () => useSettingsStore((state) => state.currentTheme)
 export const useIsConfigLoaded = () => useSettingsStore((state) => state.isLoaded)
-export const useSettingsActions = () => useSettingsStore(useShallow((state) => ({
-  loadFromConfig: state.loadFromConfig,
-  updateSettings: state.updateSettings,
-  resetSettings: state.resetSettings,
-  addProfile: state.addProfile,
-  updateProfile: state.updateProfile,
-  removeProfile: state.removeProfile,
-  getProfile: state.getProfile,
-  setTheme: state.setTheme,
-  getTheme: state.getTheme
-})))
+export const useSettingsActions = () =>
+  useSettingsStore(
+    useShallow((state) => ({
+      loadFromConfig: state.loadFromConfig,
+      updateSettings: state.updateSettings,
+      resetSettings: state.resetSettings,
+      addProfile: state.addProfile,
+      updateProfile: state.updateProfile,
+      removeProfile: state.removeProfile,
+      getProfile: state.getProfile,
+      setTheme: state.setTheme,
+      getTheme: state.getTheme
+    }))
+  )

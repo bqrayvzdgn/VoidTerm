@@ -1,96 +1,27 @@
 import { createPortal } from 'react-dom'
-import { Plus } from 'lucide-react'
-import { useTranslation } from '../../i18n'
-import type { TabGroup, Workspace } from '../../types'
+import type { Workspace } from '../../types'
 
 interface TabContextMenuProps {
   x: number
   y: number
   tabId: string
-  tabGroupId?: string
-  tabGroups: TabGroup[]
   workspaces: Workspace[]
   onClose: () => void
-  onCreateGroup: () => void
-  onAddToGroup: (groupId: string) => void
-  onRemoveFromGroup: () => void
   onMoveToWorkspace: (workspaceId: string | undefined) => void
 }
 
-export function TabContextMenu({
-  x,
-  y,
-  tabGroupId,
-  tabGroups,
-  workspaces,
-  onClose,
-  onCreateGroup,
-  onAddToGroup,
-  onRemoveFromGroup,
-  onMoveToWorkspace
-}: TabContextMenuProps) {
-  const { t } = useTranslation()
-
+export function TabContextMenu({ x, y, workspaces, onClose, onMoveToWorkspace }: TabContextMenuProps) {
   return createPortal(
     <>
       <div className="context-menu-overlay" onClick={onClose} />
-      <div
-        className="context-menu"
-        style={{ left: x, top: y }}
-      >
-        <div className="context-menu-header">{t.tabbar.addToGroup}</div>
-
-        <button className="context-menu-item" onClick={onCreateGroup}>
-          <span className="context-menu-icon add">
-            <Plus size={12} strokeWidth={1.5} />
-          </span>
-          <span>{t.tabbar.createGroup}</span>
-        </button>
-
-        {tabGroups.map(group => (
-          <button
-            key={group.id}
-            className="context-menu-item"
-            onClick={() => onAddToGroup(group.id)}
-          >
-            <span className="context-menu-icon" style={{ backgroundColor: group.color }}>
-              G
-            </span>
-            <span>{group.name}</span>
-          </button>
-        ))}
-
-        {tabGroupId && (
-          <>
-            <div className="context-menu-divider" />
-            <button className="context-menu-item" onClick={onRemoveFromGroup}>
-              <span className="context-menu-icon none">—</span>
-              <span>{t.tabbar.removeFromGroup}</span>
-            </button>
-          </>
-        )}
-
-        <div className="context-menu-divider" />
+      <div className="context-menu" style={{ left: x, top: y }}>
         <div className="context-menu-header">Move to Workspace</div>
-        <button
-          className="context-menu-item"
-          onClick={() => onMoveToWorkspace(undefined)}
-        >
+        <button className="context-menu-item" onClick={() => onMoveToWorkspace(undefined)}>
           <span className="context-menu-icon none">—</span>
           <span>No Workspace</span>
         </button>
         {workspaces.map((workspace) => (
-          <button
-            key={workspace.id}
-            className="context-menu-item"
-            onClick={() => onMoveToWorkspace(workspace.id)}
-          >
-            <span
-              className="context-menu-icon"
-              style={{ backgroundColor: workspace.color }}
-            >
-              {workspace.icon}
-            </span>
+          <button key={workspace.id} className="context-menu-item" onClick={() => onMoveToWorkspace(workspace.id)}>
             <span>{workspace.name}</span>
           </button>
         ))}

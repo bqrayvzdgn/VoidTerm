@@ -16,6 +16,7 @@ function ensureConsoleLevel(): void {
   if (consoleConfigured) return
   consoleConfigured = true
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { app } = require('electron')
     log.transports.console.level = app.isPackaged ? 'warn' : 'debug'
   } catch {

@@ -6,7 +6,9 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   overflow: hidden;
   background-color: var(--bg-base);
@@ -43,21 +45,21 @@ html, body, #root {
 
 /* Focus styles for accessibility */
 button:focus:not(:focus-visible),
-div[role="button"]:focus:not(:focus-visible) {
+div[role='button']:focus:not(:focus-visible) {
   outline: none;
 }
 
 button:focus-visible,
-div[role="button"]:focus-visible,
+div[role='button']:focus-visible,
 a:focus-visible {
   outline: none;
   box-shadow: var(--shadow-accent);
 }
 
-/* Focus styles for form inputs */
+/* Focus styles for form inputs (exclude xterm's hidden textarea) */
 input:focus,
 select:focus,
-textarea:focus {
+textarea:focus:not(.xterm-helper-textarea) {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
@@ -65,7 +67,9 @@ textarea:focus {
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
@@ -80,7 +84,9 @@ button {
 }
 
 /* Input base reset */
-input, select, textarea {
+input,
+select,
+textarea {
   font-family: var(--font-ui);
   font-size: var(--font-size-base);
 }

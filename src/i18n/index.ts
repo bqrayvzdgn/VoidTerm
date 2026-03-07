@@ -21,7 +21,7 @@ const getDefaultLanguage = (): Language => {
       return browserLang as Language
     }
   }
-  return 'tr'
+  return 'en'
 }
 
 export const useI18n = create<I18nStore>((set) => ({

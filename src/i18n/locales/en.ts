@@ -19,17 +19,17 @@ export const en: TranslationKeys = {
     success: 'Success',
     warning: 'Warning'
   },
-  
+
   app: {
     title: 'VoidTerm',
     noTerminal: 'No terminal open',
     useQuickStart: 'Use Quick Start or press Ctrl+T',
     loadingConfig: 'Loading configuration...'
   },
-  
+
   settings: {
     title: 'Settings',
-    
+
     tabs: {
       appearance: 'Appearance',
       terminal: 'Terminal',
@@ -38,7 +38,7 @@ export const en: TranslationKeys = {
       backup: 'Backup',
       about: 'About'
     },
-    
+
     appearance: {
       title: 'Appearance Settings',
       theme: 'Theme',
@@ -51,8 +51,6 @@ export const en: TranslationKeys = {
       windowEffects: 'Window Effects',
       opacity: 'Opacity',
       blur: 'Blur Effect',
-      backgroundImage: 'Background Image',
-      backgroundImagePlaceholder: 'File path or URL',
       customThemes: 'Custom Themes',
       importTheme: 'Import Theme',
       exportTheme: 'Export',
@@ -64,7 +62,7 @@ export const en: TranslationKeys = {
       builtInThemes: 'Built-in Themes',
       customThemesList: 'Custom Themes'
     },
-    
+
     terminal: {
       title: 'Terminal Settings',
       defaultProfile: 'Default Profile',
@@ -72,7 +70,7 @@ export const en: TranslationKeys = {
       copyOnSelect: 'Copy on Select',
       bellSound: 'Bell Sound'
     },
-    
+
     shortcuts: {
       title: 'Keyboard Shortcuts',
       newTab: 'New Tab',
@@ -93,7 +91,6 @@ export const en: TranslationKeys = {
       copyText: 'Copy',
       pasteText: 'Paste',
       openCommandPalette: 'Command Palette',
-      openSSHManager: 'SSH Manager',
       resetToDefault: 'Reset to Default',
       pressKeys: 'Press keys...',
       resetConfirm: 'Keyboard shortcuts will be reset to default. Continue?',
@@ -104,7 +101,7 @@ export const en: TranslationKeys = {
       categoryTerminal: 'Terminal',
       categoryGeneral: 'General'
     },
-    
+
     profiles: {
       title: 'Profile Management',
       newProfile: 'New Profile',
@@ -128,7 +125,7 @@ export const en: TranslationKeys = {
       deleteConfirm: 'Are you sure you want to delete this profile?',
       minProfileError: 'At least one profile is required!'
     },
-    
+
     backup: {
       title: 'Backup and Restore',
       exportTitle: 'Export All Settings',
@@ -162,7 +159,7 @@ export const en: TranslationKeys = {
       createBackup: 'Create Backup',
       backupCreated: 'Backup created'
     },
-    
+
     about: {
       title: 'About',
       version: 'Version',
@@ -170,7 +167,7 @@ export const en: TranslationKeys = {
       github: 'GitHub'
     }
   },
-  
+
   sidebar: {
     workspaces: 'Workspaces',
     newWorkspace: 'New Workspace',
@@ -180,24 +177,15 @@ export const en: TranslationKeys = {
     delete: 'Delete',
     deleteConfirm: 'Are you sure you want to delete this workspace?'
   },
-  
+
   tabbar: {
     newTab: 'New Tab',
     closeTab: 'Close Tab',
     closeOthers: 'Close Others',
     closeAll: 'Close All',
-    duplicate: 'Duplicate',
-    createGroup: 'Create Group',
-    addToGroup: 'Add to Group',
-    removeFromGroup: 'Remove from Group',
-    renameGroup: 'Rename Group',
-    deleteGroup: 'Delete Group',
-    ungroupAll: 'Ungroup All Tabs',
-    newGroup: 'New Group',
-    groupName: 'Group Name',
-    noGroups: 'No groups yet'
+    duplicate: 'Duplicate'
   },
-  
+
   terminal: {
     search: 'Search',
     searchPlaceholder: 'Search...',
@@ -208,26 +196,7 @@ export const en: TranslationKeys = {
     clear: 'Clear',
     selectAll: 'Select All'
   },
-  
-  ssh: {
-    title: 'SSH Connections',
-    newConnection: 'Add Connection',
-    name: 'Name',
-    host: 'Host',
-    port: 'Port',
-    username: 'Username',
-    authentication: 'Authentication',
-    privateKey: 'Private Key',
-    privateKeyPath: 'Private Key Path',
-    sshAgent: 'SSH Agent',
-    password: 'Password (not recommended)',
-    jumpHost: 'Jump Host (optional)',
-    jumpHostPlaceholder: 'user@jumphost.com',
-    connect: 'Connect',
-    noConnections: 'No saved SSH connections',
-    addConnectionHint: 'Click "Add Connection" to create one'
-  },
-  
+
   commandPalette: {
     placeholder: 'Search commands...',
     newTab: 'New Tab',
@@ -238,19 +207,17 @@ export const en: TranslationKeys = {
     toggleSidebar: 'Toggle Sidebar',
     openSettings: 'Open Settings',
     nextTab: 'Next Tab',
-    prevTab: 'Previous Tab',
-    openSSH: 'Open SSH Manager'
+    prevTab: 'Previous Tab'
   },
-  
+
   errors: {
     generic: 'An error occurred',
     terminalCreate: 'Failed to create terminal',
     configLoad: 'Failed to load configuration',
     profileSave: 'Failed to save profile',
-    sshConnect: 'SSH connection failed',
     invalidInput: 'Invalid input'
   },
-  
+
   snippets: {
     title: 'Snippets',
     addSnippet: 'Add Snippet',
@@ -279,7 +246,7 @@ export const en: TranslationKeys = {
     addCategory: 'Add Category',
     newCategoryPlaceholder: 'New category name'
   },
-  
+
   errorBoundary: {
     title: 'Something went wrong',
     message: 'An unexpected error occurred',
@@ -291,13 +258,17 @@ export const en: TranslationKeys = {
     errorDetails: 'Error Details (for debugging)',
     errorReport: 'VoidTerm Error Report'
   },
-  
-  broadcast: {
-    confirmTitle: 'Enable Broadcast Mode?',
-    confirmMessage: 'Everything you type will be sent to all terminals in this tab. Use this feature carefully.',
-    enable: 'Enable',
-    cancel: 'Cancel',
-    warning: 'Warning: Commands will run on all terminals!'
+
+  statusBar: {
+    cwd: 'CWD',
+    shell: 'Shell'
+  },
+
+  session: {
+    restoreTitle: 'Restore Session?',
+    restoreMessage: 'You had tabs open in your last session.',
+    restore: 'Restore',
+    startFresh: 'Start Fresh'
   },
 
   toast: {

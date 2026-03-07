@@ -37,20 +37,6 @@ export interface Profile {
   startupCommand?: string
 }
 
-export interface SSHConnection {
-  id: string
-  name: string
-  host: string
-  port: number
-  username: string
-  authMethod: 'password' | 'key' | 'agent'
-  privateKeyPath?: string
-  jumpHost?: string  // For SSH tunneling/proxy
-  color?: string
-  icon?: string
-  lastConnected?: string
-}
-
 export interface Tab {
   id: string
   title: string
@@ -58,14 +44,6 @@ export interface Tab {
   ptyId?: string
   isActive: boolean
   workspaceId?: string
-  groupId?: string
-}
-
-export interface TabGroup {
-  id: string
-  name: string
-  color: string
-  isCollapsed: boolean
 }
 
 export interface Snippet {
@@ -74,7 +52,7 @@ export interface Snippet {
   command: string
   description?: string
   category?: string
-  shortcut?: string  // Örn: "Ctrl+Shift+1"
+  shortcut?: string
   createdAt: number
   usageCount: number
 }
@@ -103,17 +81,6 @@ export interface Workspace {
   isActive: boolean
 }
 
-export interface CommandBlock {
-  id: string
-  command: string
-  cwd: string
-  startLine: number
-  endLine: number
-  exitCode: number | null
-  startTime: number
-  endTime: number | null
-}
-
 export interface KeyboardShortcuts {
   newTab: string
   closeTab: string
@@ -133,11 +100,7 @@ export interface KeyboardShortcuts {
   copyText: string
   pasteText: string
   openCommandPalette: string
-  openSSHManager: string
-  prevCommand: string
-  nextCommand: string
-  hintsMode: string
-  viMode: string
+  openSnippets: string
 }
 
 export interface Settings {
@@ -154,34 +117,18 @@ export interface Settings {
   theme: string
   opacity: number
   blur: boolean
-  backgroundImage: string
 
   // Terminal
   copyOnSelect: boolean
   scrollback: number
   bellSound: boolean
 
-  // Addons (Phase A)
+  // Addons
   enableImages: boolean
   enableClipboard: boolean
 
-  // Tray (Phase A)
-  minimizeToTray: boolean
-
-  // OS Theme (Phase A)
-  autoTheme: boolean
-  lightTheme: string
-  darkTheme: string
-
-  // Notifications (Phase A)
-  notifications: boolean
-  notificationDelay: number
-
-  // Shell Integration (Phase B)
+  // Shell Integration
   shellIntegration: boolean
-
-  // Editor (Phase C)
-  editorCommand: string
 
   // Keyboard Shortcuts
   shortcuts: KeyboardShortcuts
@@ -206,38 +153,26 @@ export const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
   copyText: 'Ctrl+Shift+C',
   pasteText: 'Ctrl+Shift+V',
   openCommandPalette: 'Ctrl+Shift+P',
-  openSSHManager: 'Ctrl+Shift+S',
-  prevCommand: 'Ctrl+Shift+ArrowUp',
-  nextCommand: 'Ctrl+Shift+ArrowDown',
-  hintsMode: 'Ctrl+Shift+H',
-  viMode: 'Ctrl+Shift+X'
+  openSnippets: 'Ctrl+Shift+N'
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   defaultProfile: 'cmd',
   fontSize: 14,
-  fontFamily: 'JetBrains Mono, Cascadia Code, Fira Code, Consolas, monospace',
+  fontFamily: 'Cascadia Code, monospace',
   lineHeight: 1.2,
   letterSpacing: 0,
   cursorStyle: 'block',
   cursorBlink: true,
-  theme: 'catppuccin-mocha',
+  theme: 'dark',
   opacity: 1,
   blur: false,
-  backgroundImage: '',
   copyOnSelect: true,
   scrollback: 50000,
   bellSound: false,
   enableImages: true,
   enableClipboard: true,
-  minimizeToTray: false,
-  autoTheme: false,
-  lightTheme: 'github-light',
-  darkTheme: 'catppuccin-mocha',
-  notifications: false,
-  notificationDelay: 5000,
   shellIntegration: true,
-  editorCommand: 'code --goto {file}:{line}:{col}',
   shortcuts: DEFAULT_SHORTCUTS
 }
 
@@ -245,6 +180,5 @@ export interface AppConfig {
   settings: Settings
   profiles: Profile[]
   workspaces: Workspace[]
-  sshConnections: SSHConnection[]
   version: number
 }

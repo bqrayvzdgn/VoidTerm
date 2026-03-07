@@ -1,26 +1,17 @@
-import { app, BrowserWindow, ipcMain, Menu, shell, globalShortcut, screen, session, dialog, Notification, nativeTheme } from 'electron'
-import { execFile } from 'child_process'
+import { app, BrowserWindow, ipcMain, Menu, shell, session } from 'electron'
 import path from 'path'
 import os from 'os'
 import fs from 'fs'
 import { PtyManager } from './pty-manager'
-import { configManager, Profile, Settings, Workspace, BackupInfo, SSHConnection } from './config-manager'
+import { configManager, Profile, Settings, Workspace, BackupInfo } from './config-manager'
 import { updater } from './auto-updater'
 import { createLogger } from './logger'
 import { isAllowed, RATE_LIMITS } from './rate-limiter'
-import { TrayManager } from './tray-manager'
-import { parseDeepLink } from './deep-link-handler'
 
 const logger = createLogger('Main')
 
 let mainWindow: BrowserWindow | null = null
 let ptyManager: PtyManager
-let trayManager: TrayManager | null = null
-let isQuakeMode = false
-let quakeWindowBounds: { x: number; y: number; width: number; height: number } | null = null
-let normalWindowBounds: { x: number; y: number; width: number; height: number } | null = null
-let minimizeToTray = false
-let pendingDeepLink: string | null = null
 
 let _isDev: boolean | null = null
 function isDev(): boolean {
@@ -45,11 +36,8 @@ function createWindow() {
     icon: iconPath,
     frame: false,
     titleBarStyle: isMac ? 'hiddenInset' : 'hidden',
-    // Windows 11 provides rounded corners automatically for frameless windows
-    // On macOS, vibrancy can be used for blur effects
     transparent: false,
     backgroundColor: '#1e1e2e',
-    // Windows 11: Use mica/acrylic for better appearance
     ...(isWindows && { backgroundMaterial: 'mica' }),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -75,7 +63,6 @@ function createWindow() {
 
   if (isDev()) {
     mainWindow.loadURL('http://localhost:5173')
-    // DevTools can be opened manually with F12 or Ctrl+Shift+I
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
@@ -89,14 +76,6 @@ function createWindow() {
       } else {
         mainWindow?.webContents.send('next-tab')
       }
-    }
-  })
-
-  // Minimize to tray instead of closing when tray is enabled
-  mainWindow.on('close', (event) => {
-    if (minimizeToTray && trayManager?.shouldPreventClose()) {
-      event.preventDefault()
-      mainWindow?.hide()
     }
   })
 
@@ -155,16 +134,12 @@ function createWindow() {
   ipcMain.on('set-background-blur', (_, enabled: boolean) => {
     if (mainWindow) {
       if (process.platform === 'win32') {
-        // Windows: Use backgroundMaterial for blur effect (Windows 11)
-        // or setBackgroundMaterial on older Windows
         try {
           mainWindow.setBackgroundMaterial(enabled ? 'acrylic' : 'none')
         } catch {
-          // Fallback for older Electron versions or Windows 10
           mainWindow.setBackgroundColor(enabled ? '#00000000' : '#0c0c0c')
         }
       } else if (process.platform === 'darwin') {
-        // macOS: Use vibrancy
         mainWindow.setVibrancy(enabled ? 'under-window' : null)
       }
     }
@@ -184,29 +159,9 @@ function createWindow() {
     }
   })
 
-  // Terminal output export
-  ipcMain.handle('save-terminal-output', async (_, content: string) => {
-    if (!mainWindow) return null
-    const result = await dialog.showSaveDialog(mainWindow, {
-      title: 'Export Terminal Output',
-      defaultPath: `terminal-output-${Date.now()}.txt`,
-      filters: [
-        { name: 'Text Files', extensions: ['txt'] },
-        { name: 'Log Files', extensions: ['log'] },
-        { name: 'All Files', extensions: ['*'] }
-      ]
-    })
-    if (!result.canceled && result.filePath) {
-      fs.writeFileSync(result.filePath, content, 'utf-8')
-      return result.filePath
-    }
-    return null
-  })
-
   // System info (moved from preload for sandbox compatibility)
   ipcMain.handle('get-homedir', () => os.homedir())
   ipcMain.handle('path-join', (_, args: string[]) => {
-    // Validate segments: reject path traversal attempts
     for (const segment of args) {
       if (typeof segment !== 'string') throw new Error('Invalid path segment: not a string')
       const normalized = path.normalize(segment)
@@ -256,177 +211,31 @@ function createWindow() {
         label: 'Select All',
         accelerator: 'CmdOrCtrl+Shift+A',
         click: () => mainWindow?.webContents.send('terminal-select-all')
+      },
+      { type: 'separator' },
+      {
+        label: 'Search',
+        accelerator: 'CmdOrCtrl+F',
+        click: () => mainWindow?.webContents.send('terminal-search')
+      },
+      { type: 'separator' },
+      {
+        label: 'Split Right',
+        click: () => mainWindow?.webContents.send('split-vertical')
+      },
+      {
+        label: 'Split Down',
+        click: () => mainWindow?.webContents.send('split-horizontal')
+      },
+      { type: 'separator' },
+      {
+        label: 'Reset Terminal',
+        click: () => mainWindow?.webContents.send('terminal-reset')
       }
     ]
 
     const menu = Menu.buildFromTemplate(template)
     menu.popup({ window: mainWindow!, x: options.x, y: options.y })
-  })
-
-  // Quake mode toggle
-  ipcMain.on('toggle-quake-mode', () => {
-    toggleQuakeMode()
-  })
-
-  ipcMain.on('set-quake-mode', (_, enabled: boolean) => {
-    if (enabled && !isQuakeMode) {
-      enableQuakeMode()
-    } else if (!enabled && isQuakeMode) {
-      disableQuakeMode()
-    }
-  })
-
-  // Desktop notifications (Phase A)
-  ipcMain.on('show-notification', (_, { title, body }: { title: string; body: string }) => {
-    if (Notification.isSupported()) {
-      new Notification({ title, body }).show()
-    }
-  })
-
-  // Tray enable/disable
-  ipcMain.on('set-minimize-to-tray', (_, enabled: boolean) => {
-    minimizeToTray = enabled
-    if (enabled && !trayManager && mainWindow) {
-      trayManager = new TrayManager()
-      trayManager.init(mainWindow)
-    } else if (!enabled && trayManager) {
-      trayManager.dispose()
-      trayManager = null
-    }
-  })
-
-  // Buffer persistence (Phase A)
-  ipcMain.handle('save-buffers', async (_, buffers: Record<string, string>) => {
-    const bufferPath = path.join(app.getPath('userData'), 'buffers.json')
-    try {
-      await fs.promises.writeFile(bufferPath, JSON.stringify(buffers), 'utf-8')
-    } catch (error) {
-      logger.error('Failed to save buffers:', error)
-    }
-  })
-
-  ipcMain.handle('get-buffers', async () => {
-    const bufferPath = path.join(app.getPath('userData'), 'buffers.json')
-    try {
-      const data = await fs.promises.readFile(bufferPath, 'utf-8')
-      return JSON.parse(data)
-    } catch {
-      return {}
-    }
-  })
-
-  // Editor integration (Phase C)
-  ipcMain.on('open-in-editor', (_, { file, line, col }: { file: string; line: number; col: number }) => {
-    if (!isAllowed('open-in-editor', RATE_LIMITS.config)) {
-      logger.warn('open-in-editor rate limited')
-      return
-    }
-
-    // Validate file path to prevent command injection
-    const resolvedFile = path.resolve(file)
-    if (!resolvedFile || resolvedFile.includes('\0')) {
-      logger.warn('Invalid file path for editor:', file)
-      return
-    }
-
-    const safeLine = Math.max(1, Math.floor(Number(line) || 1))
-    const safeCol = Math.max(1, Math.floor(Number(col) || 1))
-
-    const settings = configManager.getSettings()
-    const editorCommand = settings.editorCommand || 'code --goto {file}:{line}:{col}'
-
-    // Parse the editor command into executable and arguments
-    // The command template uses {file}, {line}, {col} placeholders
-    const parts = editorCommand.split(/\s+/)
-    const executable = parts[0]
-    const args = parts.slice(1).map(arg =>
-      arg
-        .replace('{file}', resolvedFile)
-        .replace('{line}', String(safeLine))
-        .replace('{col}', String(safeCol))
-    )
-
-    // Use execFile instead of exec to prevent shell injection
-    execFile(executable, args, (error) => {
-      if (error) {
-        logger.error('Failed to open editor:', error)
-      }
-    })
-  })
-}
-
-function toggleQuakeMode() {
-  if (!mainWindow) return
-
-  if (isQuakeMode) {
-    disableQuakeMode()
-  } else {
-    enableQuakeMode()
-  }
-}
-
-function enableQuakeMode() {
-  if (!mainWindow) return
-
-  // Save current window bounds
-  normalWindowBounds = mainWindow.getBounds()
-
-  // Get the primary display
-  const primaryDisplay = screen.getPrimaryDisplay()
-  const { width: screenWidth } = primaryDisplay.workAreaSize
-
-  // Set quake mode window bounds (top of screen, full width, 40% height)
-  const quakeHeight = Math.round(primaryDisplay.workAreaSize.height * 0.4)
-  quakeWindowBounds = {
-    x: 0,
-    y: 0,
-    width: screenWidth,
-    height: quakeHeight
-  }
-
-  mainWindow.setBounds(quakeWindowBounds)
-  mainWindow.setAlwaysOnTop(true)
-  isQuakeMode = true
-
-  mainWindow.webContents.send('quake-mode-changed', true)
-}
-
-function disableQuakeMode() {
-  if (!mainWindow) return
-
-  // Restore normal window bounds
-  if (normalWindowBounds) {
-    mainWindow.setBounds(normalWindowBounds)
-  }
-
-  mainWindow.setAlwaysOnTop(false)
-  isQuakeMode = false
-
-  mainWindow.webContents.send('quake-mode-changed', false)
-}
-
-function setupGlobalShortcuts() {
-  // F12 to toggle quake mode (show/hide terminal)
-  globalShortcut.register('F12', () => {
-    if (!mainWindow) return
-
-    if (mainWindow.isVisible() && mainWindow.isFocused()) {
-      mainWindow.hide()
-    } else {
-      if (!mainWindow.isVisible()) {
-        mainWindow.show()
-      }
-      mainWindow.focus()
-      if (isQuakeMode) {
-        // Re-apply quake bounds in case display changed
-        enableQuakeMode()
-      }
-    }
-  })
-
-  // Ctrl+` as alternative toggle
-  globalShortcut.register('Ctrl+`', () => {
-    toggleQuakeMode()
   })
 }
 
@@ -457,12 +266,10 @@ function setupPtyHandlers() {
     ptyManager.kill(id)
   })
 
-  // Get active PTY count (useful for debugging)
   ipcMain.handle('pty-get-count', () => {
     return ptyManager.getCount()
   })
 
-  // Get list of active PTY IDs
   ipcMain.handle('pty-get-active-ids', () => {
     return ptyManager.getActiveIds()
   })
@@ -477,12 +284,10 @@ function setupPtyHandlers() {
 }
 
 function setupConfigHandlers() {
-  // Get entire config
   ipcMain.handle('config-get', () => {
     return configManager.getConfig()
   })
 
-  // Get config file path
   ipcMain.handle('config-get-path', () => {
     return configManager.getConfigPath()
   })
@@ -538,23 +343,6 @@ function setupConfigHandlers() {
     return configManager.removeWorkspace(id)
   })
 
-  // SSH Connections
-  ipcMain.handle('config-get-ssh-connections', () => {
-    return configManager.getSSHConnections()
-  })
-
-  ipcMain.handle('config-add-ssh-connection', (_, connection: SSHConnection) => {
-    return configManager.addSSHConnection(connection)
-  })
-
-  ipcMain.handle('config-update-ssh-connection', (_, { id, updates }: { id: string; updates: Partial<SSHConnection> }) => {
-    return configManager.updateSSHConnection(id, updates)
-  })
-
-  ipcMain.handle('config-remove-ssh-connection', (_, id: string) => {
-    return configManager.removeSSHConnection(id)
-  })
-
   // Import/Export
   ipcMain.handle('config-export', () => {
     return configManager.exportConfig()
@@ -568,7 +356,6 @@ function setupConfigHandlers() {
     return configManager.importConfig(jsonString)
   })
 
-  // Reset entire config
   ipcMain.handle('config-reset', () => {
     if (!isAllowed('config', RATE_LIMITS.config)) {
       logger.warn('config-reset rate limited')
@@ -582,9 +369,18 @@ function setupConfigHandlers() {
     return configManager.getSession()
   })
 
-  ipcMain.handle('config-save-session', (_, session: { tabs: Array<{ id: string; profileId: string; workspaceId?: string; title: string }>; activeTabId: string | null }) => {
-    configManager.saveSession(session)
-  })
+  ipcMain.handle(
+    'config-save-session',
+    (
+      _,
+      session: {
+        tabs: Array<{ id: string; profileId: string; workspaceId?: string; title: string }>
+        activeTabId: string | null
+      }
+    ) => {
+      configManager.saveSession(session)
+    }
+  )
 
   ipcMain.handle('config-clear-session', () => {
     configManager.clearSession()
@@ -639,11 +435,7 @@ function createMenu() {
     },
     {
       label: 'Edit',
-      submenu: [
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectAll' }
-      ]
+      submenu: [{ role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }]
     },
     {
       label: 'View',
@@ -675,26 +467,12 @@ function createMenu() {
   Menu.setApplicationMenu(menu)
 }
 
-// Register deep link protocol
-if (process.defaultApp) {
-  if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient('voidterm', process.execPath, [path.resolve(process.argv[1])])
-  }
-} else {
-  app.setAsDefaultProtocolClient('voidterm')
-}
-
-// Handle deep link on Windows/Linux (second-instance)
+// Single instance lock
 const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {
   app.quit()
 } else {
-  app.on('second-instance', (_event, commandLine) => {
-    // The deep link URL is typically the last argument
-    const url = commandLine.find(arg => arg.startsWith('voidterm://'))
-    if (url) {
-      handleDeepLink(url)
-    }
+  app.on('second-instance', () => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.focus()
@@ -702,65 +480,11 @@ if (!gotTheLock) {
   })
 }
 
-// Handle deep link on macOS
-app.on('open-url', (event, url) => {
-  event.preventDefault()
-  if (mainWindow) {
-    handleDeepLink(url)
-  } else {
-    pendingDeepLink = url
-  }
-})
-
-function handleDeepLink(url: string) {
-  const action = parseDeepLink(url)
-  if (action && mainWindow) {
-    // For 'run' commands, show confirmation dialog
-    if (action.type === 'run' && action.cmd) {
-      dialog.showMessageBox(mainWindow, {
-        type: 'warning',
-        title: 'Deep Link Command',
-        message: 'An external application wants to run a command:',
-        detail: action.cmd,
-        buttons: ['Cancel', 'Allow'],
-        defaultId: 0,
-        cancelId: 0
-      }).then((result) => {
-        if (result.response === 1) {
-          mainWindow?.webContents.send('deep-link-action', action)
-        }
-      })
-    } else {
-      mainWindow.webContents.send('deep-link-action', action)
-    }
-  }
-}
-
 app.whenReady().then(() => {
   createWindow()
   createMenu()
   setupPtyHandlers()
   setupConfigHandlers()
-  setupGlobalShortcuts()
-
-  // OS theme tracking (Phase A)
-  nativeTheme.on('updated', () => {
-    mainWindow?.webContents.send('theme-changed', nativeTheme.shouldUseDarkColors)
-  })
-
-  // Initialize tray if setting is enabled
-  const settings = configManager.getSettings()
-  minimizeToTray = settings.minimizeToTray || false
-  if (minimizeToTray && mainWindow) {
-    trayManager = new TrayManager()
-    trayManager.init(mainWindow)
-  }
-
-  // Handle pending deep link
-  if (pendingDeepLink) {
-    handleDeepLink(pendingDeepLink)
-    pendingDeepLink = null
-  }
 
   // Setup auto-updater (only in production)
   if (!isDev() && mainWindow) {
@@ -768,7 +492,6 @@ app.whenReady().then(() => {
     updater.setMainWindow(mainWindow)
     updater.setupIpcHandlers()
 
-    // Check for updates after a short delay
     setTimeout(() => {
       updater.checkForUpdates()
     }, 5000)
@@ -781,14 +504,8 @@ app.whenReady().then(() => {
   })
 })
 
-app.on('will-quit', () => {
-  // Unregister all shortcuts
-  globalShortcut.unregisterAll()
-})
-
 app.on('window-all-closed', () => {
   ptyManager?.killAll()
-  trayManager?.dispose()
   if (process.platform !== 'darwin') {
     app.quit()
   }

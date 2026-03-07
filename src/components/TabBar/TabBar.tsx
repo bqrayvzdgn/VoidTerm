@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import { PanelLeftClose, PanelLeftOpen, ChevronRight, ChevronDown, Plus, ChevronDown as DropdownArrow } from 'lucide-react'
-import { useTerminalTabs, useTabGroups, useTerminalActions } from '../../store/terminalStore'
+import { PanelLeftClose, PanelLeftOpen, ChevronLeft, ChevronRight, Plus, ChevronDown as DropdownArrow } from 'lucide-react'
+import type { LayoutType } from '../../hooks/usePaneOperations'
+import { useTerminalTabs, useTerminalActions } from '../../store/terminalStore'
 import { useProfiles } from '../../store/settingsStore'
 import { useWorkspaces, useActiveWorkspaceId, useWorkspaceActions } from '../../store/workspaceStore'
 import { TerminalIcon } from '../Icons/TerminalIcons'
 import { TabItem } from './TabItem'
 import { TabContextMenu } from './TabContextMenu'
-import { GroupContextMenu } from './GroupContextMenu'
 import { WindowControls } from './WindowControls'
-import type { Profile, Tab, TabGroup } from '../../types'
+import type { Profile } from '../../types'
 
 interface TabBarProps {
   onNewTab: (profileId?: string) => void
@@ -16,89 +16,93 @@ interface TabBarProps {
   onCloseTab: (tabId: string) => void
   onToggleSidebar: () => void
   sidebarExpanded: boolean
+  onApplyLayout: (layout: LayoutType, profileId?: string) => void
 }
 
-const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onCloseTab, onToggleSidebar, sidebarExpanded }) => {
+const TabBarComponent: React.FC<TabBarProps> = ({
+  onNewTab,
+  onCreateTab,
+  onCloseTab,
+  onToggleSidebar,
+  sidebarExpanded,
+  onApplyLayout
+}) => {
   // Stores - using selectors for optimized re-renders
   const tabs = useTerminalTabs()
-  const tabGroups = useTabGroups()
-  const {
-    setActiveTab,
-    updateTab,
-    reorderTabs,
-    createTabGroup,
-    removeTabGroup,
-    updateTabGroup,
-    addTabToGroup,
-    removeTabFromGroup,
-    toggleGroupCollapse
-  } = useTerminalActions()
+  const { setActiveTab, updateTab, reorderTabs } = useTerminalActions()
   const profiles = useProfiles()
   const workspaces = useWorkspaces()
   const activeWorkspaceId = useActiveWorkspaceId()
   const { setActiveWorkspace, addWorkspace } = useWorkspaceActions()
 
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [layoutDropdownOpen, setLayoutDropdownOpen] = useState(false)
   const [workspaceDropdownOpen, setWorkspaceDropdownOpen] = useState(false)
   const [tabContextMenu, setTabContextMenu] = useState<{ x: number; y: number; tabId: string } | null>(null)
-  const [groupContextMenu, setGroupContextMenu] = useState<{ x: number; y: number; groupId: string } | null>(null)
   const [draggedTabId, setDraggedTabId] = useState<string | null>(null)
   const [dragOverTabId, setDragOverTabId] = useState<string | null>(null)
-  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
-  const [editingGroupName, setEditingGroupName] = useState('')
+  const [showLeftArrow, setShowLeftArrow] = useState(false)
+  const [showRightArrow, setShowRightArrow] = useState(false)
 
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const layoutDropdownRef = useRef<HTMLDivElement>(null)
   const workspaceDropdownRef = useRef<HTMLDivElement>(null)
   const tabsContainerRef = useRef<HTMLDivElement>(null)
-  const groupNameInputRef = useRef<HTMLInputElement>(null)
 
-  const filteredTabs = useMemo(() =>
-    tabs.filter(tab => activeWorkspaceId ? tab.workspaceId === activeWorkspaceId : !tab.workspaceId),
+  const filteredTabs = useMemo(
+    () => tabs.filter((tab) => (activeWorkspaceId ? tab.workspaceId === activeWorkspaceId : !tab.workspaceId)),
     [tabs, activeWorkspaceId]
   )
 
-  const organizedTabs = useMemo(() => {
-    const ungrouped: Tab[] = []
-    const grouped: Map<string, Tab[]> = new Map()
+  const getProfile = useCallback(
+    (profileId: string): Profile => {
+      return profiles.find((p) => p.id === profileId) || profiles[0]
+    },
+    [profiles]
+  )
 
-    filteredTabs.forEach(tab => {
-      if (tab.groupId) {
-        const groupTabs = grouped.get(tab.groupId) || []
-        groupTabs.push(tab)
-        grouped.set(tab.groupId, groupTabs)
-      } else {
-        ungrouped.push(tab)
-      }
-    })
-
-    return { ungrouped, grouped }
-  }, [filteredTabs])
-
-  const getProfile = useCallback((profileId: string): Profile => {
-    return profiles.find(p => p.id === profileId) || profiles[0]
-  }, [profiles])
-
-  // Handle horizontal scroll with mouse wheel
-  useEffect(() => {
-    const container = tabsContainerRef.current
-    if (!container) return
-
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      container.scrollLeft += e.deltaY * 0.3
-    }
-
-    container.addEventListener('wheel', handleWheel, { passive: false })
-    return () => container.removeEventListener('wheel', handleWheel)
+  const checkOverflow = useCallback(() => {
+    const el = tabsContainerRef.current
+    if (!el) return
+    setShowLeftArrow(el.scrollLeft > 0)
+    setShowRightArrow(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
   }, [])
 
-  // Focus input when editing group name
   useEffect(() => {
-    if (editingGroupId && groupNameInputRef.current) {
-      groupNameInputRef.current.focus()
-      groupNameInputRef.current.select()
+    checkOverflow()
+    const el = tabsContainerRef.current
+    if (!el) return
+    el.addEventListener('scroll', checkOverflow)
+    const observer = new ResizeObserver(checkOverflow)
+    observer.observe(el)
+    return () => {
+      el.removeEventListener('scroll', checkOverflow)
+      observer.disconnect()
     }
-  }, [editingGroupId])
+  }, [checkOverflow, filteredTabs.length])
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (tabsContainerRef.current) {
+      tabsContainerRef.current.scrollLeft += e.deltaY
+    }
+  }, [])
+
+  const activeTabId = useMemo(() => filteredTabs.find((t) => t.isActive)?.id, [filteredTabs])
+
+  useEffect(() => {
+    if (!tabsContainerRef.current || !activeTabId) return
+    const activeEl = tabsContainerRef.current.querySelector(`[data-tab-id="${activeTabId}"]`)
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    }
+  }, [activeTabId])
+
+  const scrollLeft = useCallback(() => {
+    tabsContainerRef.current?.scrollBy({ left: -200, behavior: 'smooth' })
+  }, [])
+  const scrollRight = useCallback(() => {
+    tabsContainerRef.current?.scrollBy({ left: 200, behavior: 'smooth' })
+  }, [])
 
   // Close dropdowns and context menus when clicking outside
   useEffect(() => {
@@ -106,181 +110,42 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false)
       }
+      if (layoutDropdownRef.current && !layoutDropdownRef.current.contains(e.target as Node)) {
+        setLayoutDropdownOpen(false)
+      }
       if (workspaceDropdownRef.current && !workspaceDropdownRef.current.contains(e.target as Node)) {
         setWorkspaceDropdownOpen(false)
       }
       setTabContextMenu(null)
-      setGroupContextMenu(null)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleNewTabWithProfile = useCallback((profile: Profile) => {
-    onCreateTab(profile.id)
-    setDropdownOpen(false)
-  }, [onCreateTab])
+  const handleNewTabWithProfile = useCallback(
+    (profile: Profile) => {
+      onCreateTab(profile.id)
+      setDropdownOpen(false)
+    },
+    [onCreateTab]
+  )
 
   const handleTabContextMenu = useCallback((e: React.MouseEvent, tabId: string) => {
     e.preventDefault()
-    setGroupContextMenu(null)
     setTabContextMenu({ x: e.clientX, y: e.clientY, tabId })
   }, [])
 
-  const handleGroupContextMenu = useCallback((e: React.MouseEvent, groupId: string) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setTabContextMenu(null)
-    setGroupContextMenu({ x: e.clientX, y: e.clientY, groupId })
-  }, [])
-
-  const handleMoveToWorkspace = useCallback((workspaceId: string | undefined) => {
-    if (tabContextMenu) {
-      updateTab(tabContextMenu.tabId, { workspaceId })
-      setTabContextMenu(null)
-    }
-  }, [tabContextMenu, updateTab])
-
-  const handleCreateGroup = useCallback(() => {
-    if (tabContextMenu) {
-      createTabGroup(undefined, [tabContextMenu.tabId])
-      setTabContextMenu(null)
-    }
-  }, [tabContextMenu, createTabGroup])
-
-  const handleAddToGroup = useCallback((groupId: string) => {
-    if (tabContextMenu) {
-      addTabToGroup(tabContextMenu.tabId, groupId)
-      setTabContextMenu(null)
-    }
-  }, [tabContextMenu, addTabToGroup])
-
-  const handleRemoveFromGroup = useCallback(() => {
-    if (tabContextMenu) {
-      removeTabFromGroup(tabContextMenu.tabId)
-      setTabContextMenu(null)
-    }
-  }, [tabContextMenu, removeTabFromGroup])
-
-  const handleDeleteGroup = useCallback(() => {
-    if (groupContextMenu) {
-      removeTabGroup(groupContextMenu.groupId)
-      setGroupContextMenu(null)
-    }
-  }, [groupContextMenu, removeTabGroup])
-
-  const handleStartRenameGroup = useCallback(() => {
-    if (groupContextMenu) {
-      const group = tabGroups.find(g => g.id === groupContextMenu.groupId)
-      if (group) {
-        setEditingGroupId(groupContextMenu.groupId)
-        setEditingGroupName(group.name)
-        setGroupContextMenu(null)
+  const handleMoveToWorkspace = useCallback(
+    (workspaceId: string | undefined) => {
+      if (tabContextMenu) {
+        updateTab(tabContextMenu.tabId, { workspaceId })
+        setTabContextMenu(null)
       }
-    }
-  }, [groupContextMenu, tabGroups])
+    },
+    [tabContextMenu, updateTab]
+  )
 
-  const handleFinishRenameGroup = useCallback(() => {
-    if (editingGroupId && editingGroupName.trim()) {
-      updateTabGroup(editingGroupId, { name: editingGroupName.trim() })
-    }
-    setEditingGroupId(null)
-    setEditingGroupName('')
-  }, [editingGroupId, editingGroupName, updateTabGroup])
-
-  const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId)
-  const contextMenuTab = tabContextMenu ? tabs.find(t => t.id === tabContextMenu.tabId) : null
-
-  const renderTabGroup = (group: TabGroup, groupTabs: Tab[]) => {
-    const isCollapsed = group.isCollapsed
-    const activeTabInGroup = groupTabs.some(t => t.isActive)
-
-    return (
-      <div key={group.id} className={`tab-group ${isCollapsed ? 'collapsed' : ''}`}>
-        <div
-          className={`tab-group-header ${activeTabInGroup ? 'has-active' : ''}`}
-          style={{ backgroundColor: group.color + '30', borderColor: group.color }}
-          onClick={() => toggleGroupCollapse(group.id)}
-          onContextMenu={(e) => handleGroupContextMenu(e, group.id)}
-        >
-          <span className="tab-group-collapse-icon">
-            {isCollapsed ? (
-              <ChevronRight size={10} strokeWidth={1.5} />
-            ) : (
-              <ChevronDown size={10} strokeWidth={1.5} />
-            )}
-          </span>
-          {editingGroupId === group.id ? (
-            <input
-              ref={groupNameInputRef}
-              type="text"
-              className="tab-group-name-input"
-              value={editingGroupName}
-              onChange={(e) => setEditingGroupName(e.target.value)}
-              onBlur={handleFinishRenameGroup}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleFinishRenameGroup()
-                if (e.key === 'Escape') {
-                  setEditingGroupId(null)
-                  setEditingGroupName('')
-                }
-              }}
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <span className="tab-group-name">{group.name}</span>
-          )}
-          <span className="tab-group-count">{groupTabs.length}</span>
-        </div>
-        {!isCollapsed && (
-          <div className="tab-group-tabs">
-            {groupTabs.map(tab => (
-              <TabItem
-                key={tab.id}
-                tab={tab}
-                profile={getProfile(tab.profileId)}
-                isActive={tab.isActive}
-                isDragging={draggedTabId === tab.id}
-                isDragOver={dragOverTabId === tab.id}
-                inGroup
-                onSelect={() => setActiveTab(tab.id)}
-                onClose={() => onCloseTab(tab.id)}
-                onContextMenu={(e) => handleTabContextMenu(e, tab.id)}
-                onDragStart={(e) => {
-                  setDraggedTabId(tab.id)
-                  e.dataTransfer.effectAllowed = 'move'
-                  e.dataTransfer.setData('text/plain', tab.id)
-                }}
-                onDragEnd={() => {
-                  setDraggedTabId(null)
-                  setDragOverTabId(null)
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  if (draggedTabId && draggedTabId !== tab.id) {
-                    setDragOverTabId(tab.id)
-                  }
-                }}
-                onDragLeave={() => setDragOverTabId(null)}
-                onDrop={(e) => {
-                  e.preventDefault()
-                  if (draggedTabId && draggedTabId !== tab.id) {
-                    const fromIndex = tabs.findIndex(t => t.id === draggedTabId)
-                    const toIndex = tabs.findIndex(t => t.id === tab.id)
-                    if (fromIndex !== -1 && toIndex !== -1) {
-                      reorderTabs(fromIndex, toIndex)
-                    }
-                  }
-                  setDraggedTabId(null)
-                  setDragOverTabId(null)
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  }
+  const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId)
 
   return (
     <div className="tabbar" role="toolbar" aria-label="Tab bar">
@@ -299,6 +164,45 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
         )}
       </button>
 
+      {/* Layout Picker */}
+      <div className="layout-picker" ref={layoutDropdownRef}>
+        <button
+          className="split-btn"
+          onClick={() => setLayoutDropdownOpen(!layoutDropdownOpen)}
+          title="Split layout"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="1" y="1" width="6" height="14" rx="1" />
+            <rect x="9" y="1" width="6" height="14" rx="1" />
+          </svg>
+        </button>
+        {layoutDropdownOpen && (
+          <div className="layout-dropdown">
+            <div className="layout-dropdown-header">Layout</div>
+            {([
+              { layout: '1x1' as LayoutType, label: 'Reset', svg: <svg width="24" height="18" viewBox="0 0 24 18" fill="none" stroke="currentColor" strokeWidth="1.2"><rect x="1" y="1" width="22" height="16" rx="1.5" /></svg> },
+              { layout: '1x2' as LayoutType, label: '1 x 2', svg: <svg width="24" height="18" viewBox="0 0 24 18" fill="none" stroke="currentColor" strokeWidth="1.2"><rect x="1" y="1" width="10" height="16" rx="1.5" /><rect x="13" y="1" width="10" height="16" rx="1.5" /></svg> },
+              { layout: '2x1' as LayoutType, label: '2 x 1', svg: <svg width="24" height="18" viewBox="0 0 24 18" fill="none" stroke="currentColor" strokeWidth="1.2"><rect x="1" y="1" width="22" height="7" rx="1.5" /><rect x="1" y="10" width="22" height="7" rx="1.5" /></svg> },
+              { layout: '2x2' as LayoutType, label: '2 x 2', svg: <svg width="24" height="18" viewBox="0 0 24 18" fill="none" stroke="currentColor" strokeWidth="1.2"><rect x="1" y="1" width="10" height="7" rx="1.5" /><rect x="13" y="1" width="10" height="7" rx="1.5" /><rect x="1" y="10" width="10" height="7" rx="1.5" /><rect x="13" y="10" width="10" height="7" rx="1.5" /></svg> },
+              { layout: '1x3' as LayoutType, label: '1 x 3', svg: <svg width="24" height="18" viewBox="0 0 24 18" fill="none" stroke="currentColor" strokeWidth="1.2"><rect x="1" y="1" width="6.5" height="16" rx="1.5" /><rect x="9" y="1" width="6" height="16" rx="1.5" /><rect x="16.5" y="1" width="6.5" height="16" rx="1.5" /></svg> },
+              { layout: '3x1' as LayoutType, label: '3 x 1', svg: <svg width="24" height="18" viewBox="0 0 24 18" fill="none" stroke="currentColor" strokeWidth="1.2"><rect x="1" y="1" width="22" height="4.2" rx="1.5" /><rect x="1" y="6.9" width="22" height="4.2" rx="1.5" /><rect x="1" y="12.8" width="22" height="4.2" rx="1.5" /></svg> }
+            ]).map(({ layout, label, svg }) => (
+              <button
+                key={layout}
+                className="layout-dropdown-item"
+                onClick={() => {
+                  onApplyLayout(layout)
+                  setLayoutDropdownOpen(false)
+                }}
+              >
+                {svg}
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Workspace Selector */}
       {activeWorkspaceId && (
         <div className="workspace-selector" ref={workspaceDropdownRef}>
@@ -307,12 +211,7 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
             onClick={() => setWorkspaceDropdownOpen(!workspaceDropdownOpen)}
             title="Switch workspace"
           >
-            <span
-              className="workspace-selector-icon"
-              style={{ backgroundColor: activeWorkspace?.color || '#666' }}
-            >
-              {activeWorkspace?.icon || 'W'}
-            </span>
+            <span className="workspace-selector-label">{activeWorkspace?.name || 'Workspace'}</span>
             <DropdownArrow size={8} strokeWidth={1.5} />
           </button>
 
@@ -328,12 +227,6 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
                     setWorkspaceDropdownOpen(false)
                   }}
                 >
-                  <span
-                    className="workspace-dropdown-icon"
-                    style={{ backgroundColor: workspace.color }}
-                  >
-                    {workspace.icon}
-                  </span>
                   <span className="workspace-dropdown-name">{workspace.name}</span>
                 </button>
               ))}
@@ -357,14 +250,20 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
 
       <div className="tabbar-divider" />
 
-      <div className="tabbar-tabs" ref={tabsContainerRef} role="tablist" aria-label="Terminal tabs">
-        {tabGroups.map(group => {
-          const groupTabs = organizedTabs.grouped.get(group.id)
-          if (!groupTabs || groupTabs.length === 0) return null
-          return renderTabGroup(group, groupTabs)
-        })}
+      {showLeftArrow && (
+        <button className="tab-scroll-indicator tab-scroll-left" onClick={scrollLeft}>
+          <ChevronLeft size={14} />
+        </button>
+      )}
 
-        {organizedTabs.ungrouped.map(tab => (
+      <div
+        className="tabbar-tabs"
+        ref={tabsContainerRef}
+        onWheel={handleWheel}
+        role="tablist"
+        aria-label="Terminal tabs"
+      >
+        {filteredTabs.map((tab) => (
           <TabItem
             key={tab.id}
             tab={tab}
@@ -372,6 +271,7 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
             isActive={tab.isActive}
             isDragging={draggedTabId === tab.id}
             isDragOver={dragOverTabId === tab.id}
+            dataTabId={tab.id}
             onSelect={() => setActiveTab(tab.id)}
             onClose={() => onCloseTab(tab.id)}
             onContextMenu={(e) => handleTabContextMenu(e, tab.id)}
@@ -394,8 +294,8 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
             onDrop={(e) => {
               e.preventDefault()
               if (draggedTabId && draggedTabId !== tab.id) {
-                const fromIndex = tabs.findIndex(t => t.id === draggedTabId)
-                const toIndex = tabs.findIndex(t => t.id === tab.id)
+                const fromIndex = tabs.findIndex((t) => t.id === draggedTabId)
+                const toIndex = tabs.findIndex((t) => t.id === tab.id)
                 if (fromIndex !== -1 && toIndex !== -1) {
                   reorderTabs(fromIndex, toIndex)
                 }
@@ -407,39 +307,31 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
         ))}
       </div>
 
+      {showRightArrow && (
+        <button className="tab-scroll-indicator tab-scroll-right" onClick={scrollRight}>
+          <ChevronRight size={14} />
+        </button>
+      )}
+
       {/* New Tab Button with Dropdown */}
       <div className="tab-new-wrapper" ref={dropdownRef}>
-        <button
-          className="tab-new"
-          onClick={() => onNewTab()}
-          title="New tab (Ctrl+T)"
-        >
+        <button className="tab-new" onClick={() => onNewTab()} title="New tab (Ctrl+T)">
           <Plus size={14} strokeWidth={1.5} />
         </button>
-        <button
-          className="tab-dropdown"
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          title="Select terminal type"
-        >
+        <button className="tab-dropdown" onClick={() => setDropdownOpen(!dropdownOpen)} title="Select terminal type">
           <DropdownArrow size={8} strokeWidth={1.5} />
         </button>
 
         {dropdownOpen && (
           <div className="profile-dropdown">
-            <div className="profile-dropdown-header">Select Terminal Type</div>
             {profiles.map((profile) => (
               <button
                 key={profile.id}
                 className="profile-dropdown-item"
                 onClick={() => handleNewTabWithProfile(profile)}
               >
-                <span className="profile-dropdown-icon-wrapper">
-                  <TerminalIcon icon={profile.icon} size={20} />
-                </span>
-                <div className="profile-dropdown-info">
-                  <span className="profile-dropdown-name">{profile.name}</span>
-                  <span className="profile-dropdown-path">{profile.shell}</span>
-                </div>
+                <TerminalIcon icon={profile.icon} size={16} className="profile-dropdown-icon" />
+                <span className="profile-dropdown-name">{profile.name}</span>
               </button>
             ))}
           </div>
@@ -455,24 +347,9 @@ const TabBarComponent: React.FC<TabBarProps> = ({ onNewTab, onCreateTab, onClose
           x={tabContextMenu.x}
           y={tabContextMenu.y}
           tabId={tabContextMenu.tabId}
-          tabGroupId={contextMenuTab?.groupId}
-          tabGroups={tabGroups}
           workspaces={workspaces}
           onClose={() => setTabContextMenu(null)}
-          onCreateGroup={handleCreateGroup}
-          onAddToGroup={handleAddToGroup}
-          onRemoveFromGroup={handleRemoveFromGroup}
           onMoveToWorkspace={handleMoveToWorkspace}
-        />
-      )}
-
-      {groupContextMenu && (
-        <GroupContextMenu
-          x={groupContextMenu.x}
-          y={groupContextMenu.y}
-          onClose={() => setGroupContextMenu(null)}
-          onRename={handleStartRenameGroup}
-          onDelete={handleDeleteGroup}
         />
       )}
     </div>

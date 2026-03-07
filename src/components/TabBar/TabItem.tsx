@@ -15,9 +15,9 @@ interface TabItemProps {
   isActive: boolean
   isDragging: boolean
   isDragOver: boolean
-  inGroup?: boolean
   hasActivity?: boolean
   cwd?: string
+  dataTabId?: string
   onSelect: () => void
   onClose: () => void
   onContextMenu: (e: React.MouseEvent) => void
@@ -34,9 +34,9 @@ export const TabItem: React.FC<TabItemProps> = ({
   isActive,
   isDragging,
   isDragOver,
-  inGroup,
   hasActivity,
   cwd,
+  dataTabId,
   onSelect,
   onClose,
   onContextMenu,
@@ -77,7 +77,8 @@ export const TabItem: React.FC<TabItemProps> = ({
       tabIndex={isActive ? 0 : -1}
       aria-selected={isActive}
       aria-label={`${tab.title} terminal tab`}
-      className={`tab ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isDragOver ? 'drag-over' : ''} ${inGroup ? 'in-group' : ''}`}
+      data-tab-id={dataTabId}
+      className={`tab ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isDragOver ? 'drag-over' : ''}`}
       style={{
         borderBottom: profile.color ? `2px solid ${profile.color}` : undefined
       }}
@@ -103,9 +104,7 @@ export const TabItem: React.FC<TabItemProps> = ({
           </span>
         )}
       </span>
-      {hasActivity && !isActive && (
-        <span className="tab-activity-badge" aria-label="New activity" />
-      )}
+      {hasActivity && !isActive && <span className="tab-activity-badge" aria-label="New activity" />}
       <span
         role="button"
         tabIndex={0}

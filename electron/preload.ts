@@ -17,18 +17,12 @@ const electronAPI = {
   pathJoin: (...args: string[]): Promise<string> => ipcRenderer.invoke('path-join', args),
 
   // PTY operations
-  ptyCreate: (options: PtyOptions): Promise<string> =>
-    ipcRenderer.invoke('pty-create', options),
-  ptyWrite: (id: string, data: string) =>
-    ipcRenderer.send('pty-write', { id, data }),
-  ptyResize: (id: string, cols: number, rows: number) =>
-    ipcRenderer.send('pty-resize', { id, cols, rows }),
-  ptyKill: (id: string) =>
-    ipcRenderer.send('pty-kill', id),
-  ptyGetCount: (): Promise<number> =>
-    ipcRenderer.invoke('pty-get-count'),
-  ptyGetActiveIds: (): Promise<string[]> =>
-    ipcRenderer.invoke('pty-get-active-ids'),
+  ptyCreate: (options: PtyOptions): Promise<string> => ipcRenderer.invoke('pty-create', options),
+  ptyWrite: (id: string, data: string) => ipcRenderer.send('pty-write', { id, data }),
+  ptyResize: (id: string, cols: number, rows: number) => ipcRenderer.send('pty-resize', { id, cols, rows }),
+  ptyKill: (id: string) => ipcRenderer.send('pty-kill', id),
+  ptyGetCount: (): Promise<number> => ipcRenderer.invoke('pty-get-count'),
+  ptyGetActiveIds: (): Promise<string[]> => ipcRenderer.invoke('pty-get-active-ids'),
 
   // PTY event listeners
   onPtyData: (callback: (id: string, data: string) => void) => {
@@ -90,22 +84,8 @@ const electronAPI = {
   setBackgroundBlur: (enabled: boolean) => ipcRenderer.send('set-background-blur', enabled),
   setWindowTitle: (title: string) => ipcRenderer.send('set-window-title', title),
 
-  // Quake mode
-  toggleQuakeMode: () => ipcRenderer.send('toggle-quake-mode'),
-  setQuakeMode: (enabled: boolean) => ipcRenderer.send('set-quake-mode', enabled),
-  onQuakeModeChanged: (callback: (enabled: boolean) => void) => {
-    const handler = (_: Electron.IpcRendererEvent, enabled: boolean) => {
-      callback(enabled)
-    }
-    ipcRenderer.on('quake-mode-changed', handler)
-    return () => ipcRenderer.removeListener('quake-mode-changed', handler)
-  },
-
   // Shell validation
   shellExists: (shellPath: string): Promise<boolean> => ipcRenderer.invoke('shell-exists', shellPath),
-
-  // Terminal output export
-  saveTerminalOutput: (content: string): Promise<string | null> => ipcRenderer.invoke('save-terminal-output', content),
 
   // Platform info
   platform: process.platform,
@@ -135,55 +115,40 @@ const electronAPI = {
     ipcRenderer.on('terminal-clear', callback)
     return () => ipcRenderer.removeListener('terminal-clear', callback)
   },
-
-  // Desktop notifications (Phase A)
-  showNotification: (title: string, body: string) =>
-    ipcRenderer.send('show-notification', { title, body }),
-
-  // OS theme tracking (Phase A)
-  onThemeChanged: (callback: (isDark: boolean) => void) => {
-    const handler = (_: Electron.IpcRendererEvent, isDark: boolean) => {
-      callback(isDark)
-    }
-    ipcRenderer.on('theme-changed', handler)
-    return () => ipcRenderer.removeListener('theme-changed', handler)
+  onTerminalSelectAll: (callback: () => void) => {
+    ipcRenderer.on('terminal-select-all', callback)
+    return () => ipcRenderer.removeListener('terminal-select-all', callback)
   },
-
-  // Tray settings (Phase A)
-  setMinimizeToTray: (enabled: boolean) =>
-    ipcRenderer.send('set-minimize-to-tray', enabled),
-
-  // Deep links (Phase A)
-  onDeepLink: (callback: (action: { type: string; cwd?: string; host?: string; user?: string; cmd?: string }) => void) => {
-    const handler = (_: Electron.IpcRendererEvent, action: { type: string; cwd?: string; host?: string; user?: string; cmd?: string }) => {
-      callback(action)
-    }
-    ipcRenderer.on('deep-link-action', handler)
-    return () => ipcRenderer.removeListener('deep-link-action', handler)
+  onTerminalSearch: (callback: () => void) => {
+    ipcRenderer.on('terminal-search', callback)
+    return () => ipcRenderer.removeListener('terminal-search', callback)
   },
-
-  // Buffer persistence (Phase A)
-  saveBuffers: (buffers: Record<string, string>): Promise<void> =>
-    ipcRenderer.invoke('save-buffers', buffers),
-  getBuffers: (): Promise<Record<string, string>> =>
-    ipcRenderer.invoke('get-buffers'),
-
-  // Editor integration (Phase C)
-  openInEditor: (file: string, line: number, col: number) =>
-    ipcRenderer.send('open-in-editor', { file, line, col }),
+  onTerminalSplitRight: (callback: () => void) => {
+    ipcRenderer.on('terminal-split-right', callback)
+    return () => ipcRenderer.removeListener('terminal-split-right', callback)
+  },
+  onTerminalSplitDown: (callback: () => void) => {
+    ipcRenderer.on('terminal-split-down', callback)
+    return () => ipcRenderer.removeListener('terminal-split-down', callback)
+  },
+  onTerminalReset: (callback: () => void) => {
+    ipcRenderer.on('terminal-reset', callback)
+    return () => ipcRenderer.removeListener('terminal-reset', callback)
+  },
 
   // Auto-update operations
   updates: {
-    checkForUpdates: (): Promise<{ updateAvailable: boolean; updateInfo: { version: string; releaseNotes?: string } | null }> =>
-      ipcRenderer.invoke('check-for-updates'),
-    downloadUpdate: (): Promise<boolean> =>
-      ipcRenderer.invoke('download-update'),
-    installUpdate: (): Promise<void> =>
-      ipcRenderer.invoke('install-update'),
-    getStatus: (): Promise<{ isUpdateAvailable: boolean; updateInfo: { version: string; releaseNotes?: string } | null }> =>
-      ipcRenderer.invoke('get-update-status'),
+    checkForUpdates: (): Promise<{
+      updateAvailable: boolean
+      updateInfo: { version: string; releaseNotes?: string } | null
+    }> => ipcRenderer.invoke('check-for-updates'),
+    downloadUpdate: (): Promise<boolean> => ipcRenderer.invoke('download-update'),
+    installUpdate: (): Promise<void> => ipcRenderer.invoke('install-update'),
+    getStatus: (): Promise<{
+      isUpdateAvailable: boolean
+      updateInfo: { version: string; releaseNotes?: string } | null
+    }> => ipcRenderer.invoke('get-update-status'),
 
-    // Update event listeners
     onChecking: (callback: () => void) => {
       ipcRenderer.on('update-checking', callback)
       return () => ipcRenderer.removeListener('update-checking', callback)
@@ -198,8 +163,13 @@ const electronAPI = {
       ipcRenderer.on('update-not-available', handler)
       return () => ipcRenderer.removeListener('update-not-available', handler)
     },
-    onProgress: (callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void) => {
-      const handler = (_: Electron.IpcRendererEvent, progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => callback(progress)
+    onProgress: (
+      callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void
+    ) => {
+      const handler = (
+        _: Electron.IpcRendererEvent,
+        progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }
+      ) => callback(progress)
       ipcRenderer.on('update-download-progress', handler)
       return () => ipcRenderer.removeListener('update-download-progress', handler)
     },
@@ -217,56 +187,37 @@ const electronAPI = {
 
   // Config operations
   config: {
-    // Get entire config
     get: () => ipcRenderer.invoke('config-get'),
     getPath: () => ipcRenderer.invoke('config-get-path'),
 
-    // Settings
     getSettings: () => ipcRenderer.invoke('config-get-settings'),
     updateSettings: (updates: Record<string, unknown>) => ipcRenderer.invoke('config-update-settings', updates),
     resetSettings: () => ipcRenderer.invoke('config-reset-settings'),
 
-    // Profiles
     getProfiles: () => ipcRenderer.invoke('config-get-profiles'),
     addProfile: (profile: Record<string, unknown>) => ipcRenderer.invoke('config-add-profile', profile),
-    updateProfile: (id: string, updates: Record<string, unknown>) => ipcRenderer.invoke('config-update-profile', { id, updates }),
+    updateProfile: (id: string, updates: Record<string, unknown>) =>
+      ipcRenderer.invoke('config-update-profile', { id, updates }),
     removeProfile: (id: string) => ipcRenderer.invoke('config-remove-profile', id),
 
-    // Workspaces
     getWorkspaces: () => ipcRenderer.invoke('config-get-workspaces'),
     addWorkspace: (workspace: Record<string, unknown>) => ipcRenderer.invoke('config-add-workspace', workspace),
-    updateWorkspace: (id: string, updates: Record<string, unknown>) => ipcRenderer.invoke('config-update-workspace', { id, updates }),
+    updateWorkspace: (id: string, updates: Record<string, unknown>) =>
+      ipcRenderer.invoke('config-update-workspace', { id, updates }),
     removeWorkspace: (id: string) => ipcRenderer.invoke('config-remove-workspace', id),
-
-    // SSH Connections
-    getSSHConnections: (): Promise<Array<{
-      id: string
-      name: string
-      host: string
-      port: number
-      username: string
-      authMethod: 'password' | 'key' | 'agent'
-      privateKeyPath?: string
-      jumpHost?: string
-      color?: string
-      icon?: string
-      lastConnected?: string
-    }>> => ipcRenderer.invoke('config-get-ssh-connections'),
-    addSSHConnection: (connection: Record<string, unknown>) => ipcRenderer.invoke('config-add-ssh-connection', connection),
-    updateSSHConnection: (id: string, updates: Record<string, unknown>) => ipcRenderer.invoke('config-update-ssh-connection', { id, updates }),
-    removeSSHConnection: (id: string) => ipcRenderer.invoke('config-remove-ssh-connection', id),
 
     // Import/Export
     export: () => ipcRenderer.invoke('config-export'),
     import: (jsonString: string) => ipcRenderer.invoke('config-import', jsonString),
 
-    // Reset
     reset: () => ipcRenderer.invoke('config-reset'),
 
     // Session
     getSession: () => ipcRenderer.invoke('config-get-session'),
-    saveSession: (session: { tabs: Array<{ id: string; profileId: string; workspaceId?: string; title: string }>; activeTabId: string | null }) =>
-      ipcRenderer.invoke('config-save-session', session),
+    saveSession: (session: {
+      tabs: Array<{ id: string; profileId: string; workspaceId?: string; title: string }>
+      activeTabId: string | null
+    }) => ipcRenderer.invoke('config-save-session', session),
     clearSession: () => ipcRenderer.invoke('config-clear-session'),
 
     // Backup operations
@@ -274,10 +225,8 @@ const electronAPI = {
       create: (): Promise<string> => ipcRenderer.invoke('config-backup-create'),
       list: (): Promise<Array<{ filename: string; timestamp: number; date: string; size: number }>> =>
         ipcRenderer.invoke('config-backup-list'),
-      restore: (filename: string): Promise<boolean> =>
-        ipcRenderer.invoke('config-backup-restore', filename),
-      delete: (filename: string): Promise<boolean> =>
-        ipcRenderer.invoke('config-backup-delete', filename)
+      restore: (filename: string): Promise<boolean> => ipcRenderer.invoke('config-backup-restore', filename),
+      delete: (filename: string): Promise<boolean> => ipcRenderer.invoke('config-backup-delete', filename)
     },
     validate: (): Promise<boolean> => ipcRenderer.invoke('config-validate')
   }

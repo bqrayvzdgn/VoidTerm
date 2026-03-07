@@ -1,20 +1,8 @@
 import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import { v4 as uuidv4 } from 'uuid'
-import type { Tab, Pane, TerminalState, TabGroup, CommandBlock } from '../types'
+import type { Tab, Pane, TerminalState } from '../types'
 import { collectTerminalIds } from '../utils/pane'
-
-// Varsayılan grup renkleri
-const GROUP_COLORS = [
-  '#ef4444', // red
-  '#f97316', // orange
-  '#eab308', // yellow
-  '#22c55e', // green
-  '#06b6d4', // cyan
-  '#3b82f6', // blue
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-]
 
 // Closed tab info for reopening
 interface ClosedTab {
@@ -29,13 +17,10 @@ interface TerminalStore {
   activeTabId: string | null
   terminals: Map<string, TerminalState>
   panes: Map<string, Pane>
-  broadcastMode: boolean
   closedTabs: ClosedTab[]
-  tabGroups: TabGroup[]
 
   // Shell integration state
   terminalCwds: Map<string, string>
-  commandBlocks: Map<string, CommandBlock[]>
 
   // Tab actions
   addTab: (profileId?: string, title?: string, workspaceId?: string) => string
@@ -54,9 +39,6 @@ interface TerminalStore {
   // Pane actions
   setPane: (tabId: string, pane: Pane) => void
 
-  // Broadcast actions
-  toggleBroadcastMode: () => void
-
   // Tab activity tracking
   tabActivity: Map<string, boolean>
   setTabActivity: (tabId: string, hasActivity: boolean) => void
@@ -65,33 +47,18 @@ interface TerminalStore {
   // Shell integration actions
   setTerminalCwd: (terminalId: string, cwd: string) => void
   getTerminalCwd: (terminalId: string) => string | undefined
-  addCommandBlock: (terminalId: string, block: CommandBlock) => void
-  updateCommandBlock: (terminalId: string, blockId: string, updates: Partial<CommandBlock>) => void
-  getCommandBlocks: (terminalId: string) => CommandBlock[]
-
-  // Tab Group actions
-  createTabGroup: (name?: string, tabIds?: string[]) => string
-  removeTabGroup: (groupId: string) => void
-  updateTabGroup: (groupId: string, updates: Partial<TabGroup>) => void
-  addTabToGroup: (tabId: string, groupId: string) => void
-  removeTabFromGroup: (tabId: string) => void
-  toggleGroupCollapse: (groupId: string) => void
 }
 
-const MAX_CLOSED_TABS = 10 // Keep last 10 closed tabs
-const MAX_COMMAND_BLOCKS = 500 // Limit per-terminal command blocks to prevent memory growth
+const MAX_CLOSED_TABS = 10
 
 export const useTerminalStore = create<TerminalStore>((set, get) => ({
   tabs: [],
   activeTabId: null,
   terminals: new Map(),
   panes: new Map(),
-  broadcastMode: false,
   closedTabs: [],
-  tabGroups: [],
   tabActivity: new Map(),
   terminalCwds: new Map(),
-  commandBlocks: new Map(),
 
   addTab: (profileId = 'default', title?: string, workspaceId?: string) => {
     const tabId = uuidv4()
@@ -104,7 +71,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     }
 
     set((state) => ({
-      tabs: [...state.tabs.map(t => ({ ...t, isActive: false })), tab],
+      tabs: [...state.tabs.map((t) => ({ ...t, isActive: false })), tab],
       activeTabId: tabId
     }))
 
@@ -113,10 +80,9 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   removeTab: (tabId) => {
     const state = get()
-    const tabToClose = state.tabs.find(t => t.id === tabId)
-    const tabs = state.tabs.filter(t => t.id !== tabId)
+    const tabToClose = state.tabs.find((t) => t.id === tabId)
+    const tabs = state.tabs.filter((t) => t.id !== tabId)
 
-    // Build new closed tabs list
     let closedTabs = state.closedTabs
     if (tabToClose) {
       closedTabs = [
@@ -130,60 +96,54 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       ].slice(0, MAX_CLOSED_TABS)
     }
 
-    // Clean up terminals and panes for this tab
     const terminals = new Map(state.terminals)
     const panes = new Map(state.panes)
     const tabActivity = new Map(state.tabActivity)
     const terminalCwds = new Map(state.terminalCwds)
-    const commandBlocks = new Map(state.commandBlocks)
     const pane = state.panes.get(tabId)
     if (pane) {
       const terminalIds = collectTerminalIds(pane)
-      terminalIds.forEach(id => {
+      terminalIds.forEach((id) => {
         terminals.delete(id)
         terminalCwds.delete(id)
-        commandBlocks.delete(id)
       })
       panes.delete(tabId)
     }
     tabActivity.delete(tabId)
 
-    // Set new active tab
     let newActiveTabId = state.activeTabId
     if (state.activeTabId === tabId) {
-      const index = state.tabs.findIndex(t => t.id === tabId)
+      const index = state.tabs.findIndex((t) => t.id === tabId)
       newActiveTabId = tabs[Math.max(0, index - 1)]?.id || null
     }
 
-    // Single atomic state update to avoid intermediate renders
     set({
-      tabs: tabs.map(t => ({ ...t, isActive: t.id === newActiveTabId })),
+      tabs: tabs.map((t) => ({ ...t, isActive: t.id === newActiveTabId })),
       activeTabId: newActiveTabId,
       closedTabs,
       terminals,
       panes,
       tabActivity,
-      terminalCwds,
-      commandBlocks
+      terminalCwds
     })
   },
 
   setActiveTab: (tabId) => {
     set((state) => ({
-      tabs: state.tabs.map(t => ({ ...t, isActive: t.id === tabId })),
+      tabs: state.tabs.map((t) => ({ ...t, isActive: t.id === tabId })),
       activeTabId: tabId
     }))
   },
 
   updateTabTitle: (tabId, title) => {
     set((state) => ({
-      tabs: state.tabs.map(t => t.id === tabId ? { ...t, title } : t)
+      tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, title } : t))
     }))
   },
 
   updateTab: (tabId, updates) => {
     set((state) => ({
-      tabs: state.tabs.map(t => t.id === tabId ? { ...t, ...updates } : t)
+      tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, ...updates } : t))
     }))
   },
 
@@ -249,10 +209,6 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     })
   },
 
-  toggleBroadcastMode: () => {
-    set((state) => ({ broadcastMode: !state.broadcastMode }))
-  },
-
   setTabActivity: (tabId, hasActivity) => {
     set((state) => {
       const newActivity = new Map(state.tabActivity)
@@ -272,13 +228,12 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   popClosedTab: () => {
     const state = get()
     if (state.closedTabs.length === 0) return undefined
-    
+
     const [closedTab, ...rest] = state.closedTabs
     set({ closedTabs: rest })
     return closedTab
   },
 
-  // Shell integration actions
   setTerminalCwd: (terminalId: string, cwd: string) => {
     set((state) => {
       const cwds = new Map(state.terminalCwds)
@@ -289,98 +244,6 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   getTerminalCwd: (terminalId: string) => {
     return get().terminalCwds.get(terminalId)
-  },
-
-  addCommandBlock: (terminalId: string, block: CommandBlock) => {
-    set((state) => {
-      const blocks = new Map(state.commandBlocks)
-      const existing = blocks.get(terminalId) || []
-      // Trim oldest blocks if exceeding limit
-      const updated = [...existing, block]
-      blocks.set(terminalId, updated.length > MAX_COMMAND_BLOCKS
-        ? updated.slice(updated.length - MAX_COMMAND_BLOCKS)
-        : updated)
-      return { commandBlocks: blocks }
-    })
-  },
-
-  updateCommandBlock: (terminalId: string, blockId: string, updates: Partial<CommandBlock>) => {
-    set((state) => {
-      const blocks = new Map(state.commandBlocks)
-      const existing = blocks.get(terminalId)
-      if (existing) {
-        blocks.set(terminalId, existing.map(b => b.id === blockId ? { ...b, ...updates } : b))
-      }
-      return { commandBlocks: blocks }
-    })
-  },
-
-  getCommandBlocks: (terminalId: string) => {
-    return get().commandBlocks.get(terminalId) || []
-  },
-
-  // Tab Group Actions
-  createTabGroup: (name?: string, tabIds?: string[]) => {
-    const groupId = uuidv4()
-    const state = get()
-    const colorIndex = state.tabGroups.length % GROUP_COLORS.length
-    
-    const group: TabGroup = {
-      id: groupId,
-      name: name || `Group ${state.tabGroups.length + 1}`,
-      color: GROUP_COLORS[colorIndex],
-      isCollapsed: false
-    }
-
-    set((s) => ({
-      tabGroups: [...s.tabGroups, group],
-      tabs: s.tabs.map(t => 
-        tabIds?.includes(t.id) ? { ...t, groupId } : t
-      )
-    }))
-
-    return groupId
-  },
-
-  removeTabGroup: (groupId: string) => {
-    set((state) => ({
-      tabGroups: state.tabGroups.filter(g => g.id !== groupId),
-      tabs: state.tabs.map(t => 
-        t.groupId === groupId ? { ...t, groupId: undefined } : t
-      )
-    }))
-  },
-
-  updateTabGroup: (groupId: string, updates: Partial<TabGroup>) => {
-    set((state) => ({
-      tabGroups: state.tabGroups.map(g => 
-        g.id === groupId ? { ...g, ...updates } : g
-      )
-    }))
-  },
-
-  addTabToGroup: (tabId: string, groupId: string) => {
-    set((state) => ({
-      tabs: state.tabs.map(t => 
-        t.id === tabId ? { ...t, groupId } : t
-      )
-    }))
-  },
-
-  removeTabFromGroup: (tabId: string) => {
-    set((state) => ({
-      tabs: state.tabs.map(t => 
-        t.id === tabId ? { ...t, groupId: undefined } : t
-      )
-    }))
-  },
-
-  toggleGroupCollapse: (groupId: string) => {
-    set((state) => ({
-      tabGroups: state.tabGroups.map(g => 
-        g.id === groupId ? { ...g, isCollapsed: !g.isCollapsed } : g
-      )
-    }))
   }
 }))
 
@@ -388,32 +251,23 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 export const useTerminalTabs = () => useTerminalStore(useShallow((state) => state.tabs))
 export const useActiveTabId = () => useTerminalStore((state) => state.activeTabId)
 export const useTerminalPanes = () => useTerminalStore(useShallow((state) => state.panes))
-export const useBroadcastMode = () => useTerminalStore((state) => state.broadcastMode)
-export const useTabGroups = () => useTerminalStore(useShallow((state) => state.tabGroups))
-export const useTerminalActions = () => useTerminalStore(useShallow((state) => ({
-  addTab: state.addTab,
-  removeTab: state.removeTab,
-  setActiveTab: state.setActiveTab,
-  updateTabTitle: state.updateTabTitle,
-  updateTab: state.updateTab,
-  reorderTabs: state.reorderTabs,
-  addTerminal: state.addTerminal,
-  removeTerminal: state.removeTerminal,
-  updateTerminalTitle: state.updateTerminalTitle,
-  setPane: state.setPane,
-  toggleBroadcastMode: state.toggleBroadcastMode,
-  setTabActivity: state.setTabActivity,
-  clearTabActivity: state.clearTabActivity,
-  popClosedTab: state.popClosedTab,
-  setTerminalCwd: state.setTerminalCwd,
-  getTerminalCwd: state.getTerminalCwd,
-  addCommandBlock: state.addCommandBlock,
-  updateCommandBlock: state.updateCommandBlock,
-  getCommandBlocks: state.getCommandBlocks,
-  createTabGroup: state.createTabGroup,
-  removeTabGroup: state.removeTabGroup,
-  updateTabGroup: state.updateTabGroup,
-  addTabToGroup: state.addTabToGroup,
-  removeTabFromGroup: state.removeTabFromGroup,
-  toggleGroupCollapse: state.toggleGroupCollapse
-})))
+export const useTerminalActions = () =>
+  useTerminalStore(
+    useShallow((state) => ({
+      addTab: state.addTab,
+      removeTab: state.removeTab,
+      setActiveTab: state.setActiveTab,
+      updateTabTitle: state.updateTabTitle,
+      updateTab: state.updateTab,
+      reorderTabs: state.reorderTabs,
+      addTerminal: state.addTerminal,
+      removeTerminal: state.removeTerminal,
+      updateTerminalTitle: state.updateTerminalTitle,
+      setPane: state.setPane,
+      setTabActivity: state.setTabActivity,
+      clearTabActivity: state.clearTabActivity,
+      popClosedTab: state.popClosedTab,
+      setTerminalCwd: state.setTerminalCwd,
+      getTerminalCwd: state.getTerminalCwd
+    }))
+  )

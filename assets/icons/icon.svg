@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="108" fill="#0b0b12"/>
+
+  <!-- Subtle border -->
+  <rect x="1" y="1" width="510" height="510" rx="107" fill="none" stroke="#1a1a2e" stroke-width="1.5"/>
+
+  <!-- > chevron -->
+  <path
+    d="M155 175 L265 256 L155 337"
+    fill="none"
+    stroke="#e4e4ec"
+    stroke-width="34"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+
+  <!-- _ cursor -->
+  <line
+    x1="300" y1="337" x2="368" y2="337"
+    stroke="#8b8bf5"
+    stroke-width="34"
+    stroke-linecap="round"/>
+</svg>

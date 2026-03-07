@@ -19,13 +19,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   onCreateTerminal,
   onOpenSettings
 }) => {
-  const {
-    workspaces,
-    activeWorkspaceId,
-    setActiveWorkspace,
-    removeWorkspace,
-    updateWorkspace
-  } = useWorkspaceStore()
+  const { workspaces, activeWorkspaceId, setActiveWorkspace, removeWorkspace, updateWorkspace } = useWorkspaceStore()
   const { tabs, activeTabId, setActiveTab, removeTab, updateTab } = useTerminalStore()
   const { profiles } = useSettingsStore()
 
@@ -39,7 +33,6 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
     type: 'workspace' | 'terminal'
     id: string
   } | null>(null)
-  const [colorPicker, setColorPicker] = useState<string | null>(null)
   const [profileDropdownId, setProfileDropdownId] = useState<string | null>(null) // 'header' or workspace id
   const profileDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -54,19 +47,6 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const workspaceColors = [
-    '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6',
-    '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280', '#78716c'
-  ]
-
-  const handleChangeColor = (color: string) => {
-    if (contextMenu && contextMenu.type === 'workspace') {
-      updateWorkspace(contextMenu.id, { color })
-    }
-    setColorPicker(null)
-    setContextMenu(null)
-  }
-
   const handleAddTerminalToWorkspace = () => {
     if (contextMenu && contextMenu.type === 'workspace') {
       onCreateTerminal(undefined, contextMenu.id)
@@ -75,11 +55,11 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   }
 
   const getProfile = (profileId: string) => {
-    return profiles.find(p => p.id === profileId) || profiles[0]
+    return profiles.find((p) => p.id === profileId) || profiles[0]
   }
 
   const toggleWorkspace = (workspaceId: string) => {
-    setExpandedWorkspaces(prev => {
+    setExpandedWorkspaces((prev) => {
       const next = new Set(prev)
       if (next.has(workspaceId)) {
         next.delete(workspaceId)
@@ -177,7 +157,9 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       <aside className="workspace-sidebar" role="complementary" aria-label="Workspace Explorer">
         {/* Header */}
         <div className="workspace-sidebar-header">
-          <span className="workspace-sidebar-title" id="sidebar-title">Explorer</span>
+          <span className="workspace-sidebar-title" id="sidebar-title">
+            Explorer
+          </span>
           <button
             className="workspace-sidebar-add"
             onClick={() => onNewTab()}
@@ -194,7 +176,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           {workspaces.map((workspace) => {
             const isActive = workspace.id === activeWorkspaceId
             const isExpanded = expandedWorkspaces.has(workspace.id)
-            const workspaceTabs = tabs.filter(t => t.workspaceId === workspace.id)
+            const workspaceTabs = tabs.filter((t) => t.workspaceId === workspace.id)
 
             return (
               <div key={workspace.id} className="workspace-tree-section" role="treeitem" aria-expanded={isExpanded}>
@@ -225,12 +207,6 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                       style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
                     />
                   </button>
-                  <span
-                    className="terminal-tree-icon"
-                    style={{ backgroundColor: workspace.color }}
-                  >
-                    {workspace.icon}
-                  </span>
                   {editingId === workspace.id ? (
                     <input
                       type="text"
@@ -337,9 +313,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                         </div>
                       )
                     })}
-                    {workspaceTabs.length === 0 && (
-                      <div className="workspace-tree-empty">No terminals</div>
-                    )}
+                    {workspaceTabs.length === 0 && <div className="workspace-tree-empty">No terminals</div>}
                   </div>
                 )}
               </div>
@@ -347,61 +321,61 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           })}
 
           {/* Unassigned Terminals */}
-          {tabs.filter(t => !t.workspaceId).length > 0 && (
+          {tabs.filter((t) => !t.workspaceId).length > 0 && (
             <div className="workspace-tree-section">
               <div className="workspace-tree-section-header">
                 <Terminal size={14} strokeWidth={1.5} />
                 <span>Unassigned</span>
-                <span className="workspace-tree-count">
-                  {tabs.filter(t => !t.workspaceId).length}
-                </span>
+                <span className="workspace-tree-count">{tabs.filter((t) => !t.workspaceId).length}</span>
               </div>
               <div className="workspace-tree-children">
-                {tabs.filter(t => !t.workspaceId).map((tab) => {
-                  const profile = getProfile(tab.profileId)
-                  return (
-                    <div
-                      key={tab.id}
-                      className={`terminal-tree-item ${tab.id === activeTabId ? 'active' : ''}`}
-                      onClick={() => handleTerminalClick(tab.id, undefined)}
-                      onContextMenu={(e) => handleContextMenu(e, 'terminal', tab.id)}
-                    >
-                      <span className="terminal-tree-icon-wrapper">
-                        <TerminalIcon icon={profile.icon} size={18} />
-                      </span>
-                      {editingId === tab.id && editingType === 'terminal' ? (
-                        <input
-                          type="text"
-                          className="workspace-edit-input"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          onBlur={() => handleSaveRename(tab.id)}
-                          onKeyDown={(e) => handleKeyDown(e, tab.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          autoFocus
-                        />
-                      ) : (
-                        <span className="terminal-tree-name">{tab.title}</span>
-                      )}
-                      <button
-                        className="terminal-tree-close"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          removeTab(tab.id)
-                        }}
-                        title="Close"
+                {tabs
+                  .filter((t) => !t.workspaceId)
+                  .map((tab) => {
+                    const profile = getProfile(tab.profileId)
+                    return (
+                      <div
+                        key={tab.id}
+                        className={`terminal-tree-item ${tab.id === activeTabId ? 'active' : ''}`}
+                        onClick={() => handleTerminalClick(tab.id, undefined)}
+                        onContextMenu={(e) => handleContextMenu(e, 'terminal', tab.id)}
                       >
-                        <X size={10} strokeWidth={1.5} />
-                      </button>
-                    </div>
-                  )
-                })}
+                        <span className="terminal-tree-icon-wrapper">
+                          <TerminalIcon icon={profile.icon} size={18} />
+                        </span>
+                        {editingId === tab.id && editingType === 'terminal' ? (
+                          <input
+                            type="text"
+                            className="workspace-edit-input"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onBlur={() => handleSaveRename(tab.id)}
+                            onKeyDown={(e) => handleKeyDown(e, tab.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="terminal-tree-name">{tab.title}</span>
+                        )}
+                        <button
+                          className="terminal-tree-close"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            removeTab(tab.id)
+                          }}
+                          title="Close"
+                        >
+                          <X size={10} strokeWidth={1.5} />
+                        </button>
+                      </div>
+                    )
+                  })}
               </div>
             </div>
           )}
 
           {/* Show message if no workspace selected */}
-          {workspaces.length > 0 && !activeWorkspaceId && tabs.filter(t => !t.workspaceId).length === 0 && (
+          {workspaces.length > 0 && !activeWorkspaceId && tabs.filter((t) => !t.workspaceId).length === 0 && (
             <div className="workspace-tree-empty" style={{ padding: '12px' }}>
               No workspace selected
             </div>
@@ -425,105 +399,70 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       </aside>
 
       {/* Context Menu */}
-      {contextMenu && createPortal(
-        <>
-          <div
-            className="context-menu-overlay"
-            onClick={() => {
-              setContextMenu(null)
-              setColorPicker(null)
-            }}
-          />
-          <div
-            className="context-menu"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
-          >
-            {contextMenu.type === 'workspace' && (
-              <>
-                <button className="context-menu-item" onClick={handleAddTerminalToWorkspace}>
-                  <Plus size={14} strokeWidth={1.5} />
-                  <span>Add Terminal</span>
-                </button>
-                <button className="context-menu-item" onClick={handleRename}>
-                  <Pencil size={14} strokeWidth={1.5} />
-                  <span>Rename</span>
-                </button>
-                <button
-                  className="context-menu-item"
-                  onClick={() => setColorPicker(colorPicker ? null : contextMenu.id)}
-                >
-                  <span
-                    className="context-menu-color-preview"
-                    style={{ backgroundColor: workspaces.find(w => w.id === contextMenu.id)?.color }}
-                  />
-                  <span>Change Color</span>
-                  <ChevronRight size={10} strokeWidth={1.5} style={{ marginLeft: 'auto' }} />
-                </button>
-                {colorPicker && (
-                  <div className="context-menu-colors">
-                    {workspaceColors.map((color) => (
-                      <button
-                        key={color}
-                        className="context-menu-color-btn"
-                        style={{ backgroundColor: color }}
-                        onClick={() => handleChangeColor(color)}
-                      />
-                    ))}
-                  </div>
-                )}
-                <div className="context-menu-divider" />
-              </>
-            )}
-            {contextMenu.type === 'terminal' && (
-              <>
-                <button className="context-menu-item" onClick={handleRename}>
-                  <Pencil size={14} strokeWidth={1.5} />
-                  <span>Rename</span>
-                </button>
-                <div className="context-menu-divider" />
-                <div className="context-menu-header">Move to Workspace</div>
-                <button
-                  className="context-menu-item"
-                  onClick={() => {
-                    updateTab(contextMenu.id, { workspaceId: undefined })
-                    setContextMenu(null)
-                  }}
-                >
-                  <span className="context-menu-icon none">—</span>
-                  <span>No Workspace</span>
-                </button>
-                {workspaces.map((workspace) => (
+      {contextMenu &&
+        createPortal(
+          <>
+            <div
+              className="context-menu-overlay"
+              onClick={() => {
+                setContextMenu(null)
+              }}
+            />
+            <div className="context-menu" style={{ left: contextMenu.x, top: contextMenu.y }}>
+              {contextMenu.type === 'workspace' && (
+                <>
+                  <button className="context-menu-item" onClick={handleAddTerminalToWorkspace}>
+                    <Plus size={14} strokeWidth={1.5} />
+                    <span>Add Terminal</span>
+                  </button>
+                  <button className="context-menu-item" onClick={handleRename}>
+                    <Pencil size={14} strokeWidth={1.5} />
+                    <span>Rename</span>
+                  </button>
+                  <div className="context-menu-divider" />
+                </>
+              )}
+              {contextMenu.type === 'terminal' && (
+                <>
+                  <button className="context-menu-item" onClick={handleRename}>
+                    <Pencil size={14} strokeWidth={1.5} />
+                    <span>Rename</span>
+                  </button>
+                  <div className="context-menu-divider" />
+                  <div className="context-menu-header">Move to Workspace</div>
                   <button
-                    key={workspace.id}
                     className="context-menu-item"
                     onClick={() => {
-                      updateTab(contextMenu.id, { workspaceId: workspace.id })
+                      updateTab(contextMenu.id, { workspaceId: undefined })
                       setContextMenu(null)
                     }}
                   >
-                    <span
-                      className="context-menu-icon"
-                      style={{ backgroundColor: workspace.color }}
-                    >
-                      {workspace.icon}
-                    </span>
-                    <span>{workspace.name}</span>
+                    <span className="context-menu-icon none">—</span>
+                    <span>No Workspace</span>
                   </button>
-                ))}
-                <div className="context-menu-divider" />
-              </>
-            )}
-            <button
-              className="context-menu-item delete"
-              onClick={handleDelete}
-            >
-              <Trash2 size={14} strokeWidth={1.5} />
-              <span>Delete</span>
-            </button>
-          </div>
-        </>,
-        document.body
-      )}
+                  {workspaces.map((workspace) => (
+                    <button
+                      key={workspace.id}
+                      className="context-menu-item"
+                      onClick={() => {
+                        updateTab(contextMenu.id, { workspaceId: workspace.id })
+                        setContextMenu(null)
+                      }}
+                    >
+                      <span>{workspace.name}</span>
+                    </button>
+                  ))}
+                  <div className="context-menu-divider" />
+                </>
+              )}
+              <button className="context-menu-item delete" onClick={handleDelete}>
+                <Trash2 size={14} strokeWidth={1.5} />
+                <span>Delete</span>
+              </button>
+            </div>
+          </>,
+          document.body
+        )}
     </>
   )
 }

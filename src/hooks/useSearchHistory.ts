@@ -40,25 +40,28 @@ export const useSearchHistory = () => {
   /**
    * Aramayı geçmişe ekle
    */
-  const addToHistory = useCallback((searchTerm: string) => {
-    if (!searchTerm.trim()) return
+  const addToHistory = useCallback(
+    (searchTerm: string) => {
+      if (!searchTerm.trim()) return
 
-    setHistory(prev => {
-      // Eğer zaten varsa, en üste taşı
-      const filtered = prev.filter(item => item !== searchTerm)
-      const newHistory = [searchTerm, ...filtered].slice(0, MAX_HISTORY_SIZE)
-      saveHistory(newHistory)
-      return newHistory
-    })
-    setHistoryIndex(-1)
-  }, [saveHistory])
+      setHistory((prev) => {
+        // Eğer zaten varsa, en üste taşı
+        const filtered = prev.filter((item) => item !== searchTerm)
+        const newHistory = [searchTerm, ...filtered].slice(0, MAX_HISTORY_SIZE)
+        saveHistory(newHistory)
+        return newHistory
+      })
+      setHistoryIndex(-1)
+    },
+    [saveHistory]
+  )
 
   /**
    * Geçmişte bir önceki aramaya git
    */
   const navigatePrevious = useCallback((): string | null => {
     if (history.length === 0) return null
-    
+
     const newIndex = historyIndex + 1
     if (newIndex < history.length) {
       setHistoryIndex(newIndex)
@@ -75,7 +78,7 @@ export const useSearchHistory = () => {
       setHistoryIndex(-1)
       return ''
     }
-    
+
     const newIndex = historyIndex - 1
     setHistoryIndex(newIndex)
     return history[newIndex]
@@ -100,13 +103,16 @@ export const useSearchHistory = () => {
   /**
    * Geçmişten bir öğeyi sil
    */
-  const removeFromHistory = useCallback((searchTerm: string) => {
-    setHistory(prev => {
-      const newHistory = prev.filter(item => item !== searchTerm)
-      saveHistory(newHistory)
-      return newHistory
-    })
-  }, [saveHistory])
+  const removeFromHistory = useCallback(
+    (searchTerm: string) => {
+      setHistory((prev) => {
+        const newHistory = prev.filter((item) => item !== searchTerm)
+        saveHistory(newHistory)
+        return newHistory
+      })
+    },
+    [saveHistory]
+  )
 
   return {
     history,

@@ -4,8 +4,8 @@ import log from 'electron-log'
 // electron-updater accesses app.getVersion() on import,
 // so we must lazy-load it after app is ready.
 function getAutoUpdater() {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { autoUpdater } = require('electron-updater')
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy-load required after app.ready
+  const { autoUpdater } = require('electron-updater') as { autoUpdater: typeof import('electron-updater').autoUpdater }
   return autoUpdater
 }
 
@@ -61,9 +61,7 @@ export class AutoUpdater {
       this.isUpdateAvailable = true
       this.updateInfo = {
         version: info.version,
-        releaseNotes: typeof info.releaseNotes === 'string'
-          ? info.releaseNotes
-          : undefined,
+        releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : undefined,
         releaseDate: info.releaseDate
       }
       this.sendToRenderer('update-available', this.updateInfo)
@@ -78,24 +76,25 @@ export class AutoUpdater {
     })
 
     // Download progress
-    au.on('download-progress', (progress: { bytesPerSecond: number; percent: number; transferred: number; total: number }) => {
-      const progressInfo: UpdateProgress = {
-        bytesPerSecond: progress.bytesPerSecond,
-        percent: progress.percent,
-        transferred: progress.transferred,
-        total: progress.total
+    au.on(
+      'download-progress',
+      (progress: { bytesPerSecond: number; percent: number; transferred: number; total: number }) => {
+        const progressInfo: UpdateProgress = {
+          bytesPerSecond: progress.bytesPerSecond,
+          percent: progress.percent,
+          transferred: progress.transferred,
+          total: progress.total
+        }
+        this.sendToRenderer('update-download-progress', progressInfo)
+        log.info(`Download progress: ${progress.percent.toFixed(2)}%`)
       }
-      this.sendToRenderer('update-download-progress', progressInfo)
-      log.info(`Download progress: ${progress.percent.toFixed(2)}%`)
-    })
+    )
 
     // When update is downloaded
     au.on('update-downloaded', (info: { version: string; releaseNotes?: string | unknown }) => {
       this.sendToRenderer('update-downloaded', {
         version: info.version,
-        releaseNotes: typeof info.releaseNotes === 'string'
-          ? info.releaseNotes
-          : undefined
+        releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : undefined
       })
       log.info(`Update downloaded: ${info.version}`)
 

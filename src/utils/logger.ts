@@ -55,13 +55,11 @@ export function createLogger(context: string): Logger {
     },
     warn: (message: string, ...args: unknown[]) => {
       if (shouldLog('warn')) {
-        // eslint-disable-next-line no-console
         console.warn(formatMessage('warn', message), ...args)
       }
     },
     error: (message: string, ...args: unknown[]) => {
       if (shouldLog('error')) {
-        // eslint-disable-next-line no-console
         console.error(formatMessage('error', message), ...args)
       }
     }
@@ -69,7 +67,4 @@ export function createLogger(context: string): Logger {
 }
 
 // Pre-configured loggers for common contexts
-export const appLogger = createLogger('App')
 export const terminalLogger = createLogger('Terminal')
-export const settingsLogger = createLogger('Settings')
-export const workspaceLogger = createLogger('Workspace')

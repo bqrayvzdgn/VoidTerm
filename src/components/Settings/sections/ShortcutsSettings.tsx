@@ -37,12 +37,7 @@ const SHORTCUT_CONFIGS: ShortcutConfig[] = [
   { key: 'toggleSidebar', category: 'general' },
   { key: 'openSettings', category: 'general' },
   { key: 'openCommandPalette', category: 'general' },
-  { key: 'openSSHManager', category: 'general' },
-  // Navigation (shell integration)
-  { key: 'prevCommand', category: 'navigation' },
-  { key: 'nextCommand', category: 'navigation' },
-  { key: 'hintsMode', category: 'terminal' },
-  { key: 'viMode', category: 'terminal' }
+  { key: 'openSnippets', category: 'general' }
 ]
 
 /**
@@ -95,11 +90,7 @@ export const ShortcutsSettings: React.FC = memo(() => {
       copyText: t.settings.shortcuts.copyText,
       pasteText: t.settings.shortcuts.pasteText,
       openCommandPalette: t.settings.shortcuts.openCommandPalette,
-      openSSHManager: t.settings.shortcuts.openSSHManager,
-      prevCommand: 'Previous Command',
-      nextCommand: 'Next Command',
-      hintsMode: 'Hints Mode',
-      viMode: 'Vi Mode'
+      openSnippets: 'Open Snippets'
     }
     return labels[key]
   }
@@ -150,7 +141,7 @@ export const ShortcutsSettings: React.FC = memo(() => {
       parts.push(keyName)
 
       const newShortcut = parts.join('+')
-      
+
       // Çakışma kontrolü
       const conflict = findConflict(newShortcut, key)
       if (conflict) {
@@ -182,10 +173,7 @@ export const ShortcutsSettings: React.FC = memo(() => {
     const shortcutParts = formatShortcut(settings.shortcuts[key])
 
     return (
-      <div 
-        key={key} 
-        className={`settings-item shortcut-item ${isConflict ? 'conflict' : ''}`}
-      >
+      <div key={key} className={`settings-item shortcut-item ${isConflict ? 'conflict' : ''}`}>
         <span className="settings-label">{getShortcutLabel(key)}</span>
         <div className="shortcut-input-wrapper">
           {isEditing ? (
@@ -199,17 +187,12 @@ export const ShortcutsSettings: React.FC = memo(() => {
               readOnly
             />
           ) : (
-            <button
-              className="shortcut-display"
-              onClick={() => setEditingShortcut(key)}
-            >
+            <button className="shortcut-display" onClick={() => setEditingShortcut(key)}>
               <div className="shortcut-keys">
                 {shortcutParts.map((part, index) => (
                   <React.Fragment key={index}>
                     <kbd className="shortcut-key">{part}</kbd>
-                    {index < shortcutParts.length - 1 && (
-                      <span className="shortcut-separator">+</span>
-                    )}
+                    {index < shortcutParts.length - 1 && <span className="shortcut-separator">+</span>}
                   </React.Fragment>
                 ))}
               </div>
@@ -233,33 +216,25 @@ export const ShortcutsSettings: React.FC = memo(() => {
       {/* Sekmeler */}
       <div className="settings-category">
         <h4 className="settings-category-title">{getCategoryTitle('tabs')}</h4>
-        <div className="settings-group">
-          {groupedShortcuts.tabs.map(renderShortcutItem)}
-        </div>
+        <div className="settings-group">{groupedShortcuts.tabs.map(renderShortcutItem)}</div>
       </div>
 
       {/* Paneller */}
       <div className="settings-category">
         <h4 className="settings-category-title">{getCategoryTitle('panes')}</h4>
-        <div className="settings-group">
-          {groupedShortcuts.panes.map(renderShortcutItem)}
-        </div>
+        <div className="settings-group">{groupedShortcuts.panes.map(renderShortcutItem)}</div>
       </div>
 
       {/* Terminal */}
       <div className="settings-category">
         <h4 className="settings-category-title">{getCategoryTitle('terminal')}</h4>
-        <div className="settings-group">
-          {groupedShortcuts.terminal.map(renderShortcutItem)}
-        </div>
+        <div className="settings-group">{groupedShortcuts.terminal.map(renderShortcutItem)}</div>
       </div>
 
       {/* Genel */}
       <div className="settings-category">
         <h4 className="settings-category-title">{getCategoryTitle('general')}</h4>
-        <div className="settings-group">
-          {groupedShortcuts.general.map(renderShortcutItem)}
-        </div>
+        <div className="settings-group">{groupedShortcuts.general.map(renderShortcutItem)}</div>
       </div>
 
       <div className="settings-actions">

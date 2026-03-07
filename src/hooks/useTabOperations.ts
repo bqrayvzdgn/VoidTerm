@@ -13,22 +13,18 @@ interface UseTabOperationsProps {
 /**
  * Tab navigasyonu icin hook (next, prev, reopen)
  */
-export const useTabOperations = ({
-  panes,
-  setActivePaneTerminalId,
-  handleCreateTab
-}: UseTabOperationsProps) => {
+export const useTabOperations = ({ panes, setActivePaneTerminalId, handleCreateTab }: UseTabOperationsProps) => {
   const { tabs, activeTabId, setActiveTab, popClosedTab } = useTerminalStore()
   const { activeWorkspaceId } = useWorkspaceStore()
 
   // Tab navigation - next
   const handleNextTab = useCallback(() => {
-    const workspaceTabs = tabs.filter(tab =>
+    const workspaceTabs = tabs.filter((tab) =>
       activeWorkspaceId ? tab.workspaceId === activeWorkspaceId : !tab.workspaceId
     )
     if (workspaceTabs.length <= 1) return
 
-    const currentIndex = workspaceTabs.findIndex(t => t.id === activeTabId)
+    const currentIndex = workspaceTabs.findIndex((t) => t.id === activeTabId)
     const nextIndex = (currentIndex + 1) % workspaceTabs.length
     const nextTab = workspaceTabs[nextIndex]
 
@@ -44,12 +40,12 @@ export const useTabOperations = ({
 
   // Tab navigation - previous
   const handlePrevTab = useCallback(() => {
-    const workspaceTabs = tabs.filter(tab =>
+    const workspaceTabs = tabs.filter((tab) =>
       activeWorkspaceId ? tab.workspaceId === activeWorkspaceId : !tab.workspaceId
     )
     if (workspaceTabs.length <= 1) return
 
-    const currentIndex = workspaceTabs.findIndex(t => t.id === activeTabId)
+    const currentIndex = workspaceTabs.findIndex((t) => t.id === activeTabId)
     const prevIndex = (currentIndex - 1 + workspaceTabs.length) % workspaceTabs.length
     const prevTab = workspaceTabs[prevIndex]
 

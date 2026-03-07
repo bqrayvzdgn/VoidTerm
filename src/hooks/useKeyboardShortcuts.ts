@@ -12,13 +12,9 @@ interface KeyboardShortcutHandlers {
   onNavigatePane?: (direction: 'up' | 'down' | 'left' | 'right') => void
   onClosePane?: () => void
   onCommandPalette?: () => void
-  onToggleBroadcast?: () => void
   onReopenClosedTab?: () => void
   onToggleMaximize?: () => void
-  onPrevCommand?: () => void
-  onNextCommand?: () => void
-  onHintsMode?: () => void
-  onViMode?: () => void
+  onOpenSnippets?: () => void
 }
 
 export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
@@ -39,9 +35,6 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
           h.onSplitHorizontal()
         } else if (e.key === 'B' || e.key === 'b') {
           e.preventDefault()
-          h.onToggleBroadcast?.()
-        } else if (e.key === 'S' || e.key === 's') {
-          e.preventDefault()
           h.onToggleSidebar()
         } else if (e.key === 'W' || e.key === 'w') {
           e.preventDefault()
@@ -58,18 +51,9 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
         } else if (e.key === 'M' || e.key === 'm') {
           e.preventDefault()
           h.onToggleMaximize?.()
-        } else if (e.key === 'ArrowUp') {
+        } else if (e.key === 'N' || e.key === 'n') {
           e.preventDefault()
-          h.onPrevCommand?.()
-        } else if (e.key === 'ArrowDown') {
-          e.preventDefault()
-          h.onNextCommand?.()
-        } else if (e.key === 'H' || e.key === 'h') {
-          e.preventDefault()
-          h.onHintsMode?.()
-        } else if (e.key === 'X' || e.key === 'x') {
-          e.preventDefault()
-          h.onViMode?.()
+          h.onOpenSnippets?.()
         }
       } else if (isCtrl) {
         if (e.key === 't') {

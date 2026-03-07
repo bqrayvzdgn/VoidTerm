@@ -49,11 +49,7 @@ const ToastItem: React.FC<{ toast: ToastType }> = memo(({ toast }) => {
           </button>
         )}
       </div>
-      <button 
-        className="toast-close" 
-        onClick={handleClose}
-        aria-label="Close notification"
-      >
+      <button className="toast-close" onClick={handleClose} aria-label="Close notification">
         <X size={12} strokeWidth={1.5} />
       </button>
     </div>

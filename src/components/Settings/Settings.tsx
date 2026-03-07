@@ -79,7 +79,9 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title" id="settings-title">{t.settings.title}</h2>
+          <h2 className="modal-title" id="settings-title">
+            {t.settings.title}
+          </h2>
           <button className="modal-close" onClick={onClose} aria-label={t.common.close}>
             <X size={14} strokeWidth={1.5} aria-hidden="true" />
           </button>
@@ -103,9 +105,9 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
             ))}
           </nav>
 
-          <div 
-            className="settings-content" 
-            role="tabpanel" 
+          <div
+            className="settings-content"
+            role="tabpanel"
             id={`settings-panel-${activeTab}`}
             aria-labelledby={`settings-tab-${activeTab}`}
           >

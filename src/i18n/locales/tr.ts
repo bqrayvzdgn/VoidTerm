@@ -17,17 +17,17 @@ export const tr = {
     success: 'Başarılı',
     warning: 'Uyarı'
   },
-  
+
   app: {
     title: 'VoidTerm',
     noTerminal: 'Terminal açık değil',
     useQuickStart: 'Hızlı Başlat kullanın veya Ctrl+T basın',
     loadingConfig: 'Yapılandırma yükleniyor...'
   },
-  
+
   settings: {
     title: 'Ayarlar',
-    
+
     tabs: {
       appearance: 'Görünüm',
       terminal: 'Terminal',
@@ -36,7 +36,7 @@ export const tr = {
       backup: 'Yedekleme',
       about: 'Hakkında'
     },
-    
+
     appearance: {
       title: 'Görünüm Ayarları',
       theme: 'Tema',
@@ -49,8 +49,6 @@ export const tr = {
       windowEffects: 'Pencere Efektleri',
       opacity: 'Saydamlık',
       blur: 'Bulanıklık Efekti',
-      backgroundImage: 'Arkaplan Resmi',
-      backgroundImagePlaceholder: 'Dosya yolu veya URL',
       customThemes: 'Özel Temalar',
       importTheme: 'Tema İçe Aktar',
       exportTheme: 'Dışa Aktar',
@@ -62,7 +60,7 @@ export const tr = {
       builtInThemes: 'Yerleşik Temalar',
       customThemesList: 'Özel Temalar'
     },
-    
+
     terminal: {
       title: 'Terminal Ayarları',
       defaultProfile: 'Varsayılan Profil',
@@ -70,7 +68,7 @@ export const tr = {
       copyOnSelect: 'Seçince Kopyala',
       bellSound: 'Bip Sesi'
     },
-    
+
     shortcuts: {
       title: 'Klavye Kısayolları',
       newTab: 'Yeni Sekme',
@@ -91,7 +89,6 @@ export const tr = {
       copyText: 'Kopyala',
       pasteText: 'Yapıştır',
       openCommandPalette: 'Komut Paleti',
-      openSSHManager: 'SSH Yöneticisi',
       resetToDefault: 'Varsayılana Sıfırla',
       pressKeys: 'Tuş kombinasyonu...',
       resetConfirm: 'Klavye kısayolları varsayılana sıfırlanacak. Devam etmek istiyor musunuz?',
@@ -102,7 +99,7 @@ export const tr = {
       categoryTerminal: 'Terminal',
       categoryGeneral: 'Genel'
     },
-    
+
     profiles: {
       title: 'Profil Yönetimi',
       newProfile: 'Yeni Profil',
@@ -126,7 +123,7 @@ export const tr = {
       deleteConfirm: 'Bu profili silmek istediğinizden emin misiniz?',
       minProfileError: 'En az bir profil olmalı!'
     },
-    
+
     backup: {
       title: 'Yedekleme ve Geri Yükleme',
       exportTitle: 'Tüm Ayarları Dışa Aktar',
@@ -160,15 +157,16 @@ export const tr = {
       createBackup: 'Yedek Oluştur',
       backupCreated: 'Yedek oluşturuldu'
     },
-    
+
     about: {
       title: 'Hakkında',
       version: 'Versiyon',
-      description: 'Modern, hızlı ve özelleştirilebilir bir terminal emülatörü. Electron, React ve xterm.js ile oluşturuldu.',
+      description:
+        'Modern, hızlı ve özelleştirilebilir bir terminal emülatörü. Electron, React ve xterm.js ile oluşturuldu.',
       github: 'GitHub'
     }
   },
-  
+
   sidebar: {
     workspaces: 'Çalışma Alanları',
     newWorkspace: 'Yeni Çalışma Alanı',
@@ -178,24 +176,15 @@ export const tr = {
     delete: 'Sil',
     deleteConfirm: 'Bu çalışma alanını silmek istediğinizden emin misiniz?'
   },
-  
+
   tabbar: {
     newTab: 'Yeni Sekme',
     closeTab: 'Sekmeyi Kapat',
     closeOthers: 'Diğerlerini Kapat',
     closeAll: 'Tümünü Kapat',
-    duplicate: 'Çoğalt',
-    createGroup: 'Grup Oluştur',
-    addToGroup: 'Gruba Ekle',
-    removeFromGroup: 'Gruptan Çıkar',
-    renameGroup: 'Grubu Yeniden Adlandır',
-    deleteGroup: 'Grubu Sil',
-    ungroupAll: 'Tüm Sekmeleri Gruptan Çıkar',
-    newGroup: 'Yeni Grup',
-    groupName: 'Grup Adı',
-    noGroups: 'Henüz grup yok'
+    duplicate: 'Çoğalt'
   },
-  
+
   terminal: {
     search: 'Ara',
     searchPlaceholder: 'Ara...',
@@ -206,26 +195,7 @@ export const tr = {
     clear: 'Temizle',
     selectAll: 'Tümünü Seç'
   },
-  
-  ssh: {
-    title: 'SSH Bağlantıları',
-    newConnection: 'Bağlantı Ekle',
-    name: 'Ad',
-    host: 'Sunucu',
-    port: 'Port',
-    username: 'Kullanıcı Adı',
-    authentication: 'Kimlik Doğrulama',
-    privateKey: 'Özel Anahtar',
-    privateKeyPath: 'Özel Anahtar Yolu',
-    sshAgent: 'SSH Agent',
-    password: 'Şifre (önerilmez)',
-    jumpHost: 'Jump Host (opsiyonel)',
-    jumpHostPlaceholder: 'user@jumphost.com',
-    connect: 'Bağlan',
-    noConnections: 'Kayıtlı SSH bağlantısı yok',
-    addConnectionHint: 'Bağlantı eklemek için "Bağlantı Ekle" butonuna tıklayın'
-  },
-  
+
   commandPalette: {
     placeholder: 'Komut ara...',
     newTab: 'Yeni Sekme',
@@ -236,25 +206,23 @@ export const tr = {
     toggleSidebar: 'Kenar Çubuğunu Aç/Kapat',
     openSettings: 'Ayarları Aç',
     nextTab: 'Sonraki Sekme',
-    prevTab: 'Önceki Sekme',
-    openSSH: 'SSH Yöneticisini Aç'
+    prevTab: 'Önceki Sekme'
   },
-  
+
   errors: {
     generic: 'Bir hata oluştu',
     terminalCreate: 'Terminal oluşturulamadı',
     configLoad: 'Yapılandırma yüklenemedi',
     profileSave: 'Profil kaydedilemedi',
-    sshConnect: 'SSH bağlantısı başarısız',
     invalidInput: 'Geçersiz giriş'
   },
-  
+
   snippets: {
-    title: 'Snippet\'ler',
+    title: "Snippet'ler",
     addSnippet: 'Snippet Ekle',
     editSnippet: 'Snippet Düzenle',
     deleteSnippet: 'Snippet Sil',
-    deleteConfirm: 'Bu snippet\'i silmek istediğinizden emin misiniz?',
+    deleteConfirm: "Bu snippet'i silmek istediğinizden emin misiniz?",
     name: 'Ad',
     namePlaceholder: 'Snippet adı',
     command: 'Komut',
@@ -268,16 +236,16 @@ export const tr = {
     addSnippetHint: 'Sık kullandığınız komutları snippet olarak kaydedin',
     run: 'Çalıştır',
     usageCount: 'kullanım',
-    export: 'Snippet\'leri Dışa Aktar',
-    import: 'Snippet\'leri İçe Aktar',
-    importSuccess: 'Snippet\'ler başarıyla içe aktarıldı',
-    importError: 'Snippet\'ler içe aktarılamadı',
+    export: "Snippet'leri Dışa Aktar",
+    import: "Snippet'leri İçe Aktar",
+    importSuccess: "Snippet'ler başarıyla içe aktarıldı",
+    importError: "Snippet'ler içe aktarılamadı",
     searchPlaceholder: 'Snippet ara...',
     allCategories: 'Tüm Kategoriler',
     addCategory: 'Kategori Ekle',
     newCategoryPlaceholder: 'Yeni kategori adı'
   },
-  
+
   errorBoundary: {
     title: 'Bir şeyler yanlış gitti',
     message: 'Beklenmeyen bir hata oluştu',
@@ -289,13 +257,17 @@ export const tr = {
     errorDetails: 'Hata Detayları (hata ayıklama için)',
     errorReport: 'VoidTerm Hata Raporu'
   },
-  
-  broadcast: {
-    confirmTitle: 'Broadcast Modunu Etkinleştir?',
-    confirmMessage: 'Yazdığınız her şey bu sekmedeki tüm terminallere gönderilecek. Bu özellik dikkatli kullanılmalıdır.',
-    enable: 'Etkinleştir',
-    cancel: 'İptal',
-    warning: 'Uyarı: Komutlar tüm terminallerde çalışacak!'
+
+  statusBar: {
+    cwd: 'Dizin',
+    shell: 'Kabuk'
+  },
+
+  session: {
+    restoreTitle: 'Oturumu Geri Yükle?',
+    restoreMessage: 'Son oturumunuzda açık sekmeleriniz vardı.',
+    restore: 'Geri Yükle',
+    startFresh: 'Yeni Başla'
   },
 
   toast: {
@@ -303,8 +275,8 @@ export const tr = {
     settingsImported: 'Ayarlar içe aktarıldı',
     profilesExported: 'Profiller dışa aktarıldı',
     profilesImported: 'profil içe aktarıldı',
-    snippetsExported: 'Snippet\'ler dışa aktarıldı',
-    snippetsImported: 'Snippet\'ler içe aktarıldı',
+    snippetsExported: "Snippet'ler dışa aktarıldı",
+    snippetsImported: "Snippet'ler içe aktarıldı",
     settingsReset: 'Ayarlar sıfırlandı',
     copiedToClipboard: 'Panoya kopyalandı',
     terminalCreated: 'Terminal oluşturuldu',

@@ -32,7 +32,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .app-main {
@@ -46,8 +48,43 @@
   padding: 8px;
 }
 
+/* Hide browser caret on xterm's hidden input textarea */
+.xterm .xterm-helper-textarea {
+  caret-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+}
+
 .xterm-viewport {
   background-color: inherit !important;
+}
+
+.xterm-viewport::-webkit-scrollbar {
+  width: 8px;
+}
+
+.xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.xterm-viewport::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.xterm-viewport:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Hide overview ruler decorations */
+.xterm-decoration-overview-ruler {
+  display: none !important;
 }
 
 .xterm-screen {

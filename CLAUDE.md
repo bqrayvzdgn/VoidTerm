@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-VoidTerm is a cross-platform terminal emulator built with Electron 28, React 18, and xterm.js. It uses node-pty for shell process management and Zustand for state management.
+VoidTerm is a cross-platform terminal emulator built with Electron 28, React 18, and xterm.js. It uses node-pty for shell process management and Zustand for state management. Requires Node.js 18+.
 
 ## Commands
 
@@ -17,17 +17,29 @@ npm run lint:fix         # ESLint with auto-fix
 npm run format           # Prettier write
 npm run format:check     # Prettier check (CI)
 npm run typecheck        # Type-check both renderer and electron tsconfigs
+npm run test             # Run unit tests with Vitest
+npm run test:watch       # Run tests in watch mode
+npm run test:coverage    # Run tests with coverage report
+npm run test:e2e         # Run E2E tests with Playwright
 ```
+
+Run a single test file: `npx vitest run src/utils/__tests__/validation.test.ts`
+Run a single test in watch mode: `npx vitest src/utils/__tests__/validation.test.ts`
 
 Platform builds: `npm run build:win`, `build:mac`, `build:linux`.
 
-No test framework is currently configured in the repo.
+## CI Pipeline
+
+CI runs on every push/PR to `main` in this order (each stage depends on the previous):
+1. **Lint** → 2. **Typecheck** → 3. **Test** → 4. **Build** (matrix: ubuntu/windows/macos) → 5. **E2E** (Playwright with xvfb on ubuntu)
+
+CI build step runs `build:electron && vite build` only (no `electron-builder` packaging). Full packaging only happens locally or in release workflows.
 
 ## Architecture
 
 ### Two-Process Model
 
-- **Main process** (`electron/`): Node.js runtime. Manages windows, PTY processes, config persistence, auto-updates, tray, deep links. Compiled to CommonJS in `dist/electron/`.
+- **Main process** (`electron/`): Node.js runtime. Manages windows, PTY processes, config persistence, auto-updates. Compiled to CommonJS in `dist/electron/`.
 - **Renderer process** (`src/`): React app bundled by Vite to `dist/renderer/`. Uses xterm.js with WebGL addon for terminal rendering.
 - **IPC bridge** (`electron/preload.ts`): `contextBridge` exposes `window.electronAPI` — the only communication channel between processes. Context isolation and sandbox are enforced.
 
@@ -46,36 +58,42 @@ The full typed API surface is defined in `src/types/electron.d.ts`. The preload 
 
 ### State Management (Zustand)
 
-Six stores in `src/store/`:
+Seven stores in `src/store/`:
 - **terminalStore**: Tabs, panes, terminal instances, broadcast mode
 - **settingsStore**: User settings, profiles, theme (syncs with electron-store on disk)
 - **workspaceStore**: Workspace management
+- **activePaneStore**: Active pane tracking — uses `useSyncExternalStore` (not Zustand) to avoid re-rendering the entire App tree on pane focus change. Use `useActivePaneId()` in components that need it; `getActivePaneId()` / `setActivePaneId()` for imperative access.
 - **customThemeStore** / **snippetStore** / **toastStore**: Feature-specific state
 
-Stores use `useShallow()` selectors to minimize re-renders. Settings changes sync bidirectionally with `electron-store` via IPC.
+Zustand stores use `useShallow()` selectors to minimize re-renders. Settings changes sync bidirectionally with `electron-store` via IPC.
 
 ### Hooks Composition
 
-`src/hooks/useTerminalManager.ts` is the orchestrator — it composes exactly four hooks: `useTerminalLifecycle`, `usePaneOperations`, `useTabOperations`, and `useBroadcastInput`. This is the primary hook consumed by `App.tsx`.
+`src/hooks/useTerminalManager.ts` is the orchestrator — it composes three hooks: `useTerminalLifecycle`, `usePaneOperations`, and `useTabOperations`. This is the primary hook consumed by `App.tsx`.
 
-Other notable hooks (not composed by useTerminalManager): `useKeyboardShortcuts`, `useMenuEvents`, `useSessionManager`, `useThemeManager`, `useWindowState`, `useViMode`, `useSSHManager`, `useSearchHistory`.
+Other hooks (not composed by useTerminalManager): `useKeyboardShortcuts`, `useMenuEvents` (receives IPC events from main process menu actions), `useSessionManager` (save/restore tabs on close/open), `useThemeManager`, `useWindowState`, `useSearchHistory`.
+
+### Error Boundaries
+
+Three error boundary types provide granular error isolation:
+- **ErrorBoundary**: Top-level catch-all
+- **PanelErrorBoundary**: Wraps non-critical panels (TabBar, Sidebar, Settings, CommandPalette, SnippetManager) with per-panel reset callbacks
+- **TerminalErrorBoundary**: Wraps the active terminal split pane area
+
+### Session Save/Restore
+
+On window close, `useSessionManager` saves the current tab list and active tab/workspace to config. On next launch, if saved tabs exist, a `SessionRestoreDialog` offers to reopen them. The session is persisted via `window.electronAPI.config` (backed by `electron-store`).
 
 ### Terminal Rendering
 
 `src/components/Terminal/TerminalView.tsx` manages xterm.js instances with addons (WebGL, Fit, Search, WebLinks, Ligatures, Image, Serialize, Clipboard). A global `Map<id, Terminal>` in `src/utils/terminalRegistry.ts` tracks all live xterm instances.
 
-### Deep Links
+### Styling
 
-Protocol: `voidterm://`. Registered via `app.setAsDefaultProtocolClient('voidterm')` in `electron/main.ts`. Supported actions:
-- `voidterm://open?cwd=/path/to/dir` — open terminal at directory
-- `voidterm://ssh?host=example.com&user=root` — start SSH session
-- `voidterm://run?cmd=ls+-la` — run command (requires user confirmation)
-
-Single-instance lock ensures deep links from a second instance are forwarded to the first.
-
-### Quake Mode
-
-Toggle with `F12` (show/hide) or `` Ctrl+` `` (toggle mode). Quake window: top of screen, full width, 40% height, always-on-top.
+Modular plain CSS (no Tailwind, no CSS modules). Files organized under `src/styles/`:
+- `base/` — CSS custom properties (`variables.css`), browser reset, layout foundations
+- `components/` — Per-component stylesheets (tabbar, terminal, settings, search, etc.)
+- `index.css` — Master import file that loads fonts, base, then components in order
 
 ### Config Persistence
 
@@ -110,15 +128,27 @@ Output: `dist/renderer/`. Dev server: `localhost:5173` (strict port).
 - **Renderer** (`tsconfig.json`): ES2020, ESNext modules, strict mode, `@/*` path alias maps to `src/*`
 - **Electron** (`electron/tsconfig.json`): ES2020, CommonJS output to `dist/electron/`
 
+## Testing
+
+- **Framework**: Vitest with jsdom environment, `globals: true` — `describe`, `it`, `expect`, `vi` are available without imports
+- **Setup**: `src/test/setup.ts` provides comprehensive `window.electronAPI` mocks — new tests can rely on this
+- **Path alias**: `@/*` maps to `src/*` in both app and test code (configured in `vitest.config.ts`)
+- **Test locations**: Colocated `__tests__/` directories (e.g., `src/utils/__tests__/`, `src/store/__tests__/`, `electron/__tests__/`)
+- **Coverage**: V8 provider covering `src/utils/`, `src/store/`, `electron/`
+- **E2E**: Playwright configured in `playwright.config.ts`, runs with xvfb in CI
+
 ## Key Conventions
 
-- Conventional Commits for commit messages
+- Conventional Commits for commit messages (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `style:`, `perf:`)
+- ESLint uses flat config format (`eslint.config.js`), with separate rule sets for `src/` and `electron/`
 - **Renderer**: `no-console` ESLint rule (only `warn`/`error` allowed) — use `src/utils/logger.ts`
 - **Electron**: `no-console: 'off'` because `electron-log` wraps console — use `electron/logger.ts`
 - `@typescript-eslint/no-explicit-any: 'error'` — avoid `any` types
+- `@typescript-eslint/consistent-type-imports: 'warn'` — use `import type` where possible
 - `eqeqeq: ['error', 'always']` — strict equality required
 - Prettier (inline in package.json): no semicolons, single quotes, no trailing commas, 120-char line width
-- Lazy loading for heavy modals (Settings, CommandPalette, SSHManager) via `React.lazy()`
+- Lazy loading for heavy modals (Settings, CommandPalette, SnippetManager, UpdateDialog) via `React.lazy()` — conditionally rendered with `{isOpen && <Suspense>}`
+- DEV-only `PerfMonitor` component renders when `import.meta.env.DEV` is true
 - i18n strings in `src/i18n/locales/` (English and Turkish)
-- 11 built-in themes defined in `src/themes/index.ts`, default is `catppuccin-mocha`
+- 14 built-in themes defined in `src/themes/index.ts`, default is `catppuccin-mocha`
 - Window: frameless (`frame: false`), Mica material on Windows 11, `titleBarStyle: 'hiddenInset'` on macOS

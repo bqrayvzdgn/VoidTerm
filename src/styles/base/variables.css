@@ -61,7 +61,7 @@
 
   /* Typography */
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+  --font-mono: 'Cascadia Code', monospace;
   --font-size-xs: 11px;
   --font-size-sm: 12px;
   --font-size-base: 13px;

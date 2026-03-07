@@ -5,6 +5,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/bqrayvzdgn/VoidTerm/actions/workflows/ci.yml"><img src="https://github.com/bqrayvzdgn/VoidTerm/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/bqrayvzdgn/VoidTerm/releases/latest"><img src="https://img.shields.io/github/v/release/bqrayvzdgn/VoidTerm?style=flat-square&color=blue" alt="Latest Release"></a>
   <a href="https://github.com/bqrayvzdgn/VoidTerm/blob/main/LICENSE"><img src="https://img.shields.io/github/license/bqrayvzdgn/VoidTerm?style=flat-square" alt="License"></a>
   <a href="https://github.com/bqrayvzdgn/VoidTerm/releases"><img src="https://img.shields.io/github/downloads/bqrayvzdgn/VoidTerm/total?style=flat-square&color=green" alt="Downloads"></a>
@@ -37,7 +38,7 @@
 ### Core Features
 
 - **Fast Performance** - WebGL-based render engine for high-performance terminal experience
-- **Rich Theme Support** - 11 built-in themes + custom theme creation
+- **Rich Theme Support** - 14 built-in themes + custom theme creation
 - **Tabs & Panes** - Multiple tabs and vertical/horizontal split panes
 - **Customizable Profiles** - Separate profile configurations for different shells
 - **Workspace Support** - Group and manage your workspaces
@@ -49,9 +50,11 @@
 - **SSH Connections** - Direct SSH server connections and saved connection management
 - **Snippets** - Save frequently used commands and run with one click
 - **Broadcast Mode** - Send commands to all terminals simultaneously
-- **In-Terminal Search** - Search terminal output with Ctrl+F (with history support)
+- **In-Terminal Search** - Search terminal output with Ctrl+F (regex and case-sensitive modes, with history support)
+- **Status Bar** - Shell info, CWD, broadcast mode, and vi mode indicators
 - **Config Backup** - Backup and restore your settings
 - **Auto-Update** - Automatic update support for new versions
+- **Comprehensive Testing** - 129+ unit tests with Vitest, E2E tests with Playwright
 
 ### Security & Stability
 
@@ -62,7 +65,6 @@
 - **PTY Cleanup** - Orphan process cleanup on renderer crash
 - **Resize Debouncing** - Optimized window resizing
 - **Structured Logging** - Context-aware structured log system for detailed debugging
-- **268 Unit Tests** - Comprehensive test coverage across security and core modules
 
 ## Installation
 
@@ -134,7 +136,7 @@ VoidTerm/
 │   ├── i18n/           # Multi-language support
 │   ├── utils/          # Utility functions (validation, logger)
 │   └── types/          # TypeScript type definitions
-├── e2e/                # End-to-end tests
+├── e2e/                # Playwright E2E tests
 ├── assets/             # Icons and static files
 └── scripts/            # Build and launch scripts
 ```
@@ -167,14 +169,11 @@ npm run build:electron
 # Run unit tests
 npm run test
 
-# Test watch mode
+# Run tests in watch mode
 npm run test:watch
 
 # Run E2E tests
 npm run test:e2e
-
-# Generate icons
-npm run generate-icons
 ```
 
 ## Keyboard Shortcuts
@@ -237,6 +236,9 @@ VoidTerm comes with the following built-in themes:
 - **Solarized Dark** - Eye-friendly, low-contrast theme
 - **Monokai** - Sublime Text inspired classic theme
 - **Material** - Google Material Design theme
+- **Catppuccin Latte** - Warm, pastel-toned light theme
+- **GitHub Light** - GitHub's light theme
+- **Solarized Light** - Eye-friendly, low-contrast light theme
 
 ### Custom Theme Creation
 
@@ -327,9 +329,11 @@ We welcome your contributions! Before submitting a Pull Request:
 - **SSH Bağlantıları** - SSH sunucularına doğrudan bağlantı ve kayıtlı bağlantı yönetimi
 - **Kod Parçacıkları (Snippets)** - Sık kullanılan komutları kaydedin ve tek tıkla çalıştırın
 - **Broadcast Modu** - Aynı anda tüm terminallere komut gönderin
-- **Terminal İçi Arama** - Ctrl+F ile terminal çıktısında arama (geçmiş desteği ile)
+- **Terminal İçi Arama** - Ctrl+F ile terminal çıktısında arama (regex ve büyük/küçük harf duyarlı modlar, geçmiş desteği ile)
+- **Durum Çubuğu** - Kabuk bilgisi, CWD, broadcast modu ve vi modu göstergeleri
 - **Yapılandırma Yedekleme** - Ayarlarınızı yedekleyin ve geri yükleyin
 - **Otomatik Güncelleme** - Yeni sürümler için otomatik güncelleme desteği
+- **Kapsamlı Test** - Vitest ile 129+ birim test, Playwright ile E2E testler
 
 ### Güvenlik ve Stabilite
 
@@ -340,7 +344,6 @@ We welcome your contributions! Before submitting a Pull Request:
 - **PTY Cleanup** - Renderer crash durumunda orphan process temizleme
 - **Resize Debouncing** - Optimize edilmiş pencere boyutlandırma
 - **Structured Logging** - Detaylı hata ayıklama için bağlam farkındalıklı yapılandırılmış log sistemi
-- **268 Birim Test** - Güvenlik ve çekirdek modüller için kapsamlı test kapsamı
 
 ## Kurulum
 
@@ -412,7 +415,7 @@ VoidTerm/
 │   ├── i18n/           # Çoklu dil desteği (tr/en)
 │   ├── utils/          # Yardımcı fonksiyonlar (validation, logger)
 │   └── types/          # TypeScript tip tanımları
-├── e2e/                # End-to-end testler (Playwright)
+├── e2e/                # Playwright E2E testleri
 ├── assets/             # İkonlar ve statik dosyalar
 └── scripts/            # Build ve başlatma scriptleri
 ```
@@ -442,17 +445,14 @@ npm run dev
 # Sadece Electron kodlarını derle
 npm run build:electron
 
-# Unit testleri çalıştır
+# Birim testlerini çalıştır
 npm run test
 
-# Test izleme modu
+# İzleme modunda testler
 npm run test:watch
 
-# E2E testleri çalıştır
+# E2E testlerini çalıştır
 npm run test:e2e
-
-# İkon oluştur
-npm run generate-icons
 ```
 
 ## Klavye Kısayolları
@@ -515,6 +515,9 @@ VoidTerm aşağıdaki yerleşik temalarla birlikte gelir:
 - **Solarized Dark** - Göz yormayan, düşük kontrastlı tema
 - **Monokai** - Sublime Text'ten ilham alan klasik tema
 - **Material** - Google Material Design teması
+- **Catppuccin Latte** - Sıcak, pastel tonlarda aydınlık tema
+- **GitHub Light** - GitHub'ın aydınlık teması
+- **Solarized Light** - Göz yormayan, düşük kontrastlı aydınlık tema
 
 ### Özel Tema Oluşturma
 

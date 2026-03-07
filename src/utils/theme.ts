@@ -3,7 +3,7 @@ import type { ITheme } from '@xterm/xterm'
 import { themes } from '../themes'
 import { useCustomThemeStore } from '../store/customThemeStore'
 
-const DEFAULT_THEME_NAME = 'catppuccin-mocha'
+const DEFAULT_THEME_NAME = 'dark'
 
 /**
  * Resolves a theme name to a Theme object

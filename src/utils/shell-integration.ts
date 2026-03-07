@@ -1,5 +1,15 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { CommandBlock } from '../types'
+
+interface CommandBlock {
+  id: string
+  command: string
+  cwd: string
+  startLine: number
+  endLine: number
+  exitCode: number
+  startTime: number
+  endTime: number
+}
 
 /**
  * OSC 633 shell integration protocol parser (VS Code compatible).
@@ -166,15 +176,4 @@ export function processEvent(
 function decodeCommandLine(raw: string): string {
   // The command line in E sequences may use \x3b for semicolons
   return raw.replace(/\\x3b/g, ';').trim()
-}
-
-/**
- * Format a duration in milliseconds into a human-readable string.
- */
-export function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
-  const minutes = Math.floor(ms / 60000)
-  const seconds = Math.floor((ms % 60000) / 1000)
-  return `${minutes}m ${seconds}s`
 }
