@@ -4,9 +4,7 @@ import os from 'os'
 import fs from 'fs'
 import { PtyManager } from './pty-manager'
 import { configManager, Profile, Settings, Workspace, BackupInfo } from './config-manager'
-import { updater } from './auto-updater'
 import { createLogger } from './logger'
-import { isAllowed, RATE_LIMITS } from './rate-limiter'
 
 const logger = createLogger('Main')
 
@@ -243,26 +241,19 @@ function setupPtyHandlers() {
   ptyManager = new PtyManager()
 
   ipcMain.handle('pty-create', async (_, options: { shell?: string; cwd?: string; env?: Record<string, string> }) => {
-    if (!isAllowed('pty-create', RATE_LIMITS.ptyCreate)) {
-      logger.warn('pty-create rate limited')
-      throw new Error('Rate limit exceeded for pty-create')
-    }
     const id = ptyManager.create(options)
     return id
   })
 
   ipcMain.on('pty-write', (_, { id, data }: { id: string; data: string }) => {
-    if (!isAllowed('pty-write', RATE_LIMITS.ptyWrite)) return
     ptyManager.write(id, data)
   })
 
   ipcMain.on('pty-resize', (_, { id, cols, rows }: { id: string; cols: number; rows: number }) => {
-    if (!isAllowed('pty-resize', RATE_LIMITS.ptyResize)) return
     ptyManager.resize(id, cols, rows)
   })
 
   ipcMain.on('pty-kill', (_, id: string) => {
-    if (!isAllowed('pty-kill', RATE_LIMITS.ptyCreate)) return
     ptyManager.kill(id)
   })
 
@@ -298,10 +289,6 @@ function setupConfigHandlers() {
   })
 
   ipcMain.handle('config-update-settings', (_, updates: Partial<Settings>) => {
-    if (!isAllowed('config', RATE_LIMITS.config)) {
-      logger.warn('config-update-settings rate limited')
-      throw new Error('Rate limit exceeded for config-update-settings')
-    }
     return configManager.updateSettings(updates)
   })
 
@@ -349,18 +336,10 @@ function setupConfigHandlers() {
   })
 
   ipcMain.handle('config-import', (_, jsonString: string) => {
-    if (!isAllowed('config', RATE_LIMITS.config)) {
-      logger.warn('config-import rate limited')
-      throw new Error('Rate limit exceeded for config-import')
-    }
     return configManager.importConfig(jsonString)
   })
 
   ipcMain.handle('config-reset', () => {
-    if (!isAllowed('config', RATE_LIMITS.config)) {
-      logger.warn('config-reset rate limited')
-      throw new Error('Rate limit exceeded for config-reset')
-    }
     return configManager.resetConfig()
   })
 
@@ -485,17 +464,6 @@ app.whenReady().then(() => {
   createMenu()
   setupPtyHandlers()
   setupConfigHandlers()
-
-  // Setup auto-updater (only in production)
-  if (!isDev() && mainWindow) {
-    updater.init()
-    updater.setMainWindow(mainWindow)
-    updater.setupIpcHandlers()
-
-    setTimeout(() => {
-      updater.checkForUpdates()
-    }, 5000)
-  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
