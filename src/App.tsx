@@ -4,13 +4,10 @@ import { WorkspaceSidebar } from './components/WorkspaceSidebar/WorkspaceSidebar
 import { SplitPane } from './components/SplitPane/SplitPane'
 import { CreateDialog } from './components/CreateDialog/CreateDialog'
 import { ToastContainer } from './components/Toast/Toast'
-import { SessionRestoreDialog } from './components/SessionRestoreDialog/SessionRestoreDialog'
-import { PerfMonitor } from './components/DevTools/PerfMonitor'
 import { TerminalErrorBoundary } from './components/ErrorBoundary/TerminalErrorBoundary'
 import { PanelErrorBoundary } from './components/ErrorBoundary/PanelErrorBoundary'
 import { useTerminalTabs, useActiveTabId, useTerminalPanes, useTerminalActions } from './store/terminalStore'
 import { useActiveWorkspaceId, useWorkspaceActions } from './store/workspaceStore'
-import { getActivePaneId } from './store/activePaneStore'
 import {
   useKeyboardShortcuts,
   useMenuEvents,
@@ -25,22 +22,13 @@ const Settings = lazy(() => import('./components/Settings/Settings').then((m) =>
 const CommandPalette = lazy(() =>
   import('./components/CommandPalette/CommandPalette').then((m) => ({ default: m.CommandPalette }))
 )
-const UpdateDialog = lazy(() =>
-  import('./components/UpdateDialog/UpdateDialog').then((m) => ({ default: m.UpdateDialog }))
-)
-const SnippetManager = lazy(() =>
-  import('./components/SnippetManager/SnippetManager').then((m) => ({ default: m.SnippetManager }))
-)
-
 const App: React.FC = () => {
   // UI State
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [createDialog, setCreateDialog] = useState<{ open: boolean; profileId?: string }>({ open: false })
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
-  const [updateDialogOpen, setUpdateDialogOpen] = useState(false)
-  const [snippetManagerOpen, setSnippetManagerOpen] = useState(false)
-
+const [showExitDialog, setShowExitDialog] = useState(false)
   // Stores
   const tabs = useTerminalTabs()
   const activeTabId = useActiveTabId()
@@ -72,7 +60,6 @@ const App: React.FC = () => {
   // Terminal Manager
   const {
     ptyIds,
-    maximizedPaneId,
     handleCreateTab,
     handleCloseTab,
     handleSplit,
@@ -82,13 +69,11 @@ const App: React.FC = () => {
     handleNextTab,
     handlePrevTab,
     handleReopenClosedTab,
-    handleToggleMaximize,
     setActivePaneTerminalId
   } = useTerminalManager()
 
   // Session Manager
-  const { isConfigLoaded, isWorkspacesLoaded, showRestoreDialog, savedTabCount, handleRestore, handleDismiss } =
-    useSessionManager({ handleCreateTab })
+  const { isConfigLoaded, isWorkspacesLoaded } = useSessionManager({ handleCreateTab })
 
   // Dialog handlers
   const openCreateDialog = useCallback((profileId?: string) => {
@@ -120,11 +105,33 @@ const App: React.FC = () => {
     // Tab titles are set from profile name and won't change
   }, [])
 
+  // Wrap close tab — show exit dialog if last tab
+  const handleCloseTabWithExit = useCallback(
+    (tabId: string) => {
+      if (tabs.length <= 1) {
+        setShowExitDialog(true)
+        return
+      }
+      handleCloseTab(tabId)
+    },
+    [tabs.length, handleCloseTab]
+  )
+
+  const handleConfirmExit = useCallback(() => {
+    setShowExitDialog(false)
+    window.electronAPI.config.clearSession()
+    window.electronAPI.windowClose()
+  }, [])
+
+  const handleCancelExit = useCallback(() => {
+    setShowExitDialog(false)
+  }, [])
+
   // Keyboard shortcut handlers
   const keyboardHandlers = useMemo(
     () => ({
       onNewTab: () => openCreateDialog(),
-      onCloseTab: () => activeTabId && handleCloseTab(activeTabId),
+      onCloseTab: () => activeTabId && handleCloseTabWithExit(activeTabId),
       onSplitVertical: () => handleSplit('vertical'),
       onSplitHorizontal: () => handleSplit('horizontal'),
       onToggleSidebar: toggleSidebar,
@@ -134,14 +141,12 @@ const App: React.FC = () => {
       onNavigatePane: handleNavigatePane,
       onClosePane: handleClosePane,
       onCommandPalette: toggleCommandPalette,
-      onReopenClosedTab: handleReopenClosedTab,
-      onToggleMaximize: handleToggleMaximize,
-      onOpenSnippets: () => setSnippetManagerOpen(true)
+      onReopenClosedTab: handleReopenClosedTab
     }),
     [
       openCreateDialog,
       activeTabId,
-      handleCloseTab,
+      handleCloseTabWithExit,
       handleSplit,
       toggleSidebar,
       handleNextTab,
@@ -149,8 +154,7 @@ const App: React.FC = () => {
       handleNavigatePane,
       handleClosePane,
       toggleCommandPalette,
-      handleReopenClosedTab,
-      handleToggleMaximize
+      handleReopenClosedTab
     ]
   )
 
@@ -160,14 +164,14 @@ const App: React.FC = () => {
   const menuHandlers = useMemo(
     () => ({
       onNewTab: () => openCreateDialog(),
-      onCloseTab: () => activeTabId && handleCloseTab(activeTabId),
+      onCloseTab: () => activeTabId && handleCloseTabWithExit(activeTabId),
       onOpenSettings: () => setSettingsOpen(true),
       onSplitVertical: () => handleSplit('vertical'),
       onSplitHorizontal: () => handleSplit('horizontal'),
       onNextTab: handleNextTab,
       onPrevTab: handlePrevTab
     }),
-    [openCreateDialog, activeTabId, handleCloseTab, handleSplit, handleNextTab, handlePrevTab]
+    [openCreateDialog, activeTabId, handleCloseTabWithExit, handleSplit, handleNextTab, handlePrevTab]
   )
 
   useMenuEvents(menuHandlers)
@@ -198,23 +202,6 @@ const App: React.FC = () => {
     }
   }, [tabs, activeTabId])
 
-  // Check for updates after a short delay
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (window.electronAPI?.updates) {
-        try {
-          const result = await window.electronAPI.updates.checkForUpdates()
-          if (result.updateAvailable) {
-            setUpdateDialogOpen(true)
-          }
-        } catch {
-          /* ignore in dev */
-        }
-      }
-    }, 5000)
-    return () => clearTimeout(timer)
-  }, [])
-
   // Only show terminal if active tab belongs to current workspace view
   const activeTab = tabs.find((t) => t.id === activeTabId)
   const activeTabBelongsToView =
@@ -239,7 +226,7 @@ const App: React.FC = () => {
         <TabBar
           onNewTab={openCreateDialog}
           onCreateTab={handleCreateTab}
-          onCloseTab={handleCloseTab}
+          onCloseTab={handleCloseTabWithExit}
           onToggleSidebar={toggleSidebar}
           sidebarExpanded={sidebarExpanded}
           onApplyLayout={handleApplyLayout}
@@ -268,8 +255,6 @@ const App: React.FC = () => {
                   onClosePane={handleClosePane}
                   onNextTab={handleNextTab}
                   onPrevTab={handlePrevTab}
-                  maximizedPaneId={maximizedPaneId}
-                  onToggleMaximize={handleToggleMaximize}
                 />
               </TerminalErrorBoundary>
             ) : (
@@ -311,45 +296,34 @@ const App: React.FC = () => {
               onNewTab={handleCreateTab}
               onSplitVertical={() => handleSplit('vertical')}
               onSplitHorizontal={() => handleSplit('horizontal')}
-              onCloseTab={() => activeTabId && handleCloseTab(activeTabId)}
+              onCloseTab={() => activeTabId && handleCloseTabWithExit(activeTabId)}
               onClosePane={handleClosePane}
               onToggleSidebar={toggleSidebar}
               onOpenSettings={() => setSettingsOpen(true)}
               onNextTab={handleNextTab}
               onPrevTab={handlePrevTab}
-              onOpenSnippets={() => setSnippetManagerOpen(true)}
             />
           </Suspense>
         </PanelErrorBoundary>
       )}
 
-      {snippetManagerOpen && (
-        <PanelErrorBoundary panelName="Snippet Manager" onReset={() => setSnippetManagerOpen(false)}>
-          <Suspense fallback={null}>
-            <SnippetManager
-              isOpen={snippetManagerOpen}
-              onClose={() => setSnippetManagerOpen(false)}
-              activePtyId={ptyIds.get(getActivePaneId() || '')}
-            />
-          </Suspense>
-        </PanelErrorBoundary>
+      {showExitDialog && (
+        <div className="session-restore-overlay" onClick={handleCancelExit}>
+          <div className="session-restore-dialog" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => {
+            if (e.key === 'Enter') handleConfirmExit()
+            else if (e.key === 'Escape') handleCancelExit()
+          }}>
+            <h3>Close VoidTerm?</h3>
+            <p>No terminals are open. The application will close.</p>
+            <div className="session-restore-actions">
+              <button className="session-restore-btn secondary" onClick={handleCancelExit}>Cancel</button>
+              <button className="session-restore-btn primary" onClick={handleConfirmExit} autoFocus>Close</button>
+            </div>
+          </div>
+        </div>
       )}
-
-      {updateDialogOpen && (
-        <Suspense fallback={null}>
-          <UpdateDialog isOpen={updateDialogOpen} onClose={() => setUpdateDialogOpen(false)} />
-        </Suspense>
-      )}
-
-      <SessionRestoreDialog
-        isOpen={showRestoreDialog}
-        tabCount={savedTabCount}
-        onRestore={handleRestore}
-        onDismiss={handleDismiss}
-      />
 
       <ToastContainer />
-      {import.meta.env.DEV && <PerfMonitor />}
     </div>
   )
 }

@@ -30,6 +30,4 @@
 @import './components/dialog.css';
 @import './components/toast.css';
 @import './components/error-boundary.css';
-@import './components/session-restore.css';
-@import './components/update-dialog.css';
-@import './components/snippets.css';
+

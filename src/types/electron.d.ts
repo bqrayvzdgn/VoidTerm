@@ -13,17 +13,15 @@ export interface Session {
   activeWorkspaceId?: string
 }
 
-export interface BackupInfo {
-  filename: string
-  timestamp: number
-  date: string
-  size: number
-}
-
 export interface PtyOptions {
   shell?: string
   cwd?: string
   env?: Record<string, string>
+  sshHost?: string
+  sshPort?: number
+  sshUsername?: string
+  sshAuthMethod?: string
+  sshKeyPath?: string
 }
 
 export interface ConfigAPI {
@@ -52,12 +50,6 @@ export interface ConfigAPI {
   saveSession: (session: Session) => Promise<void>
   clearSession: () => Promise<void>
 
-  backup: {
-    create: () => Promise<string>
-    list: () => Promise<BackupInfo[]>
-    restore: (filename: string) => Promise<boolean>
-    delete: (filename: string) => Promise<boolean>
-  }
   validate: () => Promise<boolean>
 }
 
@@ -68,8 +60,8 @@ export interface ElectronAPI {
   windowClose: () => void
 
   // System paths
-  homedir: () => string
-  pathJoin: (...args: string[]) => string
+  homedir: () => Promise<string>
+  pathJoin: (...args: string[]) => Promise<string>
 
   // PTY operations
   ptyCreate: (options: PtyOptions) => Promise<string>
@@ -108,6 +100,9 @@ export interface ElectronAPI {
     chrome: string
   }
 
+  // Background image
+  selectBackgroundImage: () => Promise<string | null>
+
   // External links
   openExternal: (url: string) => void
 
@@ -128,28 +123,6 @@ export interface ElectronAPI {
   // PTY info
   ptyGetCount: () => Promise<number>
   ptyGetActiveIds: () => Promise<string[]>
-
-  // Auto-update operations
-  updates: {
-    checkForUpdates: () => Promise<{
-      updateAvailable: boolean
-      updateInfo: { version: string; releaseNotes?: string } | null
-    }>
-    downloadUpdate: () => Promise<boolean>
-    installUpdate: () => Promise<void>
-    getStatus: () => Promise<{
-      isUpdateAvailable: boolean
-      updateInfo: { version: string; releaseNotes?: string } | null
-    }>
-    onChecking: (callback: () => void) => () => void
-    onAvailable: (callback: (info: { version: string; releaseNotes?: string }) => void) => () => void
-    onNotAvailable: (callback: (info: { version: string }) => void) => () => void
-    onProgress: (
-      callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void
-    ) => () => void
-    onDownloaded: (callback: (info: { version: string; releaseNotes?: string }) => void) => () => void
-    onError: (callback: (error: { message: string }) => void) => () => void
-  }
 
   // Config operations
   config: ConfigAPI

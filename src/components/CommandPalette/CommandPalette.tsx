@@ -25,7 +25,6 @@ interface CommandPaletteProps {
   onOpenSettings: () => void
   onNextTab: () => void
   onPrevTab: () => void
-  onOpenSnippets?: () => void
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = memo(
@@ -41,7 +40,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = memo(
     onOpenSettings,
     onNextTab,
     onPrevTab,
-    onOpenSnippets
   }) => {
     const [query, setQuery] = useState('')
     const [selectedIndex, setSelectedIndex] = useState(0)
@@ -124,14 +122,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = memo(
           action: () => onOpenSettings(),
           category: 'settings'
         },
-        {
-          id: 'open-snippets',
-          label: 'Snippets',
-          description: 'Manage and run saved snippets',
-          shortcut: 'Ctrl+Shift+N',
-          action: () => onOpenSnippets?.(),
-          category: 'settings'
-        },
         ...profiles.map((profile) => ({
           id: `profile-${profile.id}`,
           label: `New ${profile.name}`,
@@ -151,8 +141,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = memo(
         onNextTab,
         onPrevTab,
         onToggleSidebar,
-        onOpenSettings,
-        onOpenSnippets
+        onOpenSettings
       ]
     )
 

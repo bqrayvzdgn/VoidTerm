@@ -13,13 +13,13 @@ const logger = createLogger('PaneOperations')
 interface UsePaneOperationsProps {
   ptyIds: Map<string, string>
   setPtyIds: React.Dispatch<React.SetStateAction<Map<string, string>>>
-  createTerminal: (profileId: string) => Promise<{ terminalId: string; ptyId: string }>
+  createTerminal: (profileId: string, cwd?: string) => Promise<{ terminalId: string; ptyId: string }>
   handleCloseTab: (tabId: string) => void
   settings: { defaultProfile: string }
 }
 
 /**
- * Pane islemleri icin hook (split, navigate, close)
+ * Pane operations hook (split, navigate, close)
  */
 export const usePaneOperations = ({
   ptyIds,
@@ -50,22 +50,8 @@ export const usePaneOperations = ({
         // Read CWD from the current terminal's shell integration state
         const currentCwd = useTerminalStore.getState().terminalCwds.get(activePaneTerminalId)
 
-        const { terminalId: newTerminalId } = await createTerminal(getActiveTabProfile())
-
-        // If we have a CWD from shell integration, change directory in the new terminal
-        if (currentCwd) {
-          const newPtyId = ptyIds.get(newTerminalId)
-          if (newPtyId) {
-            // Small delay to let the shell initialize before sending cd
-            setTimeout(() => {
-              try {
-                window.electronAPI.ptyWrite(newPtyId, `cd ${JSON.stringify(currentCwd)}\r`)
-              } catch {
-                // Best effort
-              }
-            }, 300)
-          }
-        }
+        // Pass CWD directly to pty-create so the new shell starts in the right directory
+        const { terminalId: newTerminalId } = await createTerminal(getActiveTabProfile(), currentCwd)
 
         const newPane = splitPaneAtTerminal(currentPane, activePaneTerminalId, direction, newTerminalId)
 
@@ -77,7 +63,7 @@ export const usePaneOperations = ({
         logger.error('Failed to split pane:', error)
       }
     },
-    [activeTabId, panes, ptyIds, createTerminal, getActiveTabProfile, setPane]
+    [activeTabId, panes, createTerminal, getActiveTabProfile, setPane]
   )
 
   // Navigate between panes
@@ -127,6 +113,9 @@ export const usePaneOperations = ({
         return newMap
       })
     }
+
+    // Clean up terminal state from the store
+    useTerminalStore.getState().removeTerminal(activePaneTerminalId)
 
     // Remove the pane from the tree
     const newPane = removePaneAtTerminal(currentPane, activePaneTerminalId)
@@ -189,7 +178,7 @@ export const usePaneOperations = ({
       const profile = profileId || getActiveTabProfile()
 
       // Always reset to single pane first
-      resetToSinglePane()
+      if (!resetToSinglePane()) return
 
       if (layout === '1x1') return
 
@@ -213,7 +202,7 @@ export const usePaneOperations = ({
           type: 'split',
           direction: dir,
           children,
-          ...(ratio != null && { ratio })
+          ...(ratio !== null && ratio !== undefined && { ratio })
         })
 
         let newPane: Pane

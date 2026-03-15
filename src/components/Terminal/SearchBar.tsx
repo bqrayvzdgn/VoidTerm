@@ -1,8 +1,7 @@
 import { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import type { SearchAddon } from '@xterm/addon-search'
 import type { Terminal } from '@xterm/xterm'
-import { Clock, X, ChevronUp, ChevronDown } from 'lucide-react'
-import { useSearchHistory } from '../../hooks/useSearchHistory'
+import { X, ChevronUp, ChevronDown } from 'lucide-react'
 
 interface SearchBarProps {
   searchAddon: SearchAddon | null
@@ -13,19 +12,9 @@ interface SearchBarProps {
 export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
   const [searchText, setSearchText] = useState('')
   const [searchMatchInfo, setSearchMatchInfo] = useState<{ current: number; total: number } | null>(null)
-  const [showSearchHistory, setShowSearchHistory] = useState(false)
   const [useRegex, setUseRegex] = useState(false)
   const [caseSensitive, setCaseSensitive] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
-
-  const {
-    history: searchHistory,
-    addToHistory,
-    navigatePrevious,
-    navigateNext,
-    resetIndex,
-    removeFromHistory
-  } = useSearchHistory()
 
   const searchOptions = useMemo(() => ({ caseSensitive, regex: useRegex }), [caseSensitive, useRegex])
 
@@ -118,13 +107,9 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
         setSearchText('')
         setSearchMatchInfo(null)
         searchAddon?.clearDecorations()
-        resetIndex()
         onClose()
       } else if (e.key === 'Enter') {
         if (searchAddon && searchText) {
-          addToHistory(searchText)
-          setShowSearchHistory(false)
-
           if (e.shiftKey) {
             searchAddon.findPrevious(searchText, searchOptions)
             setSearchMatchInfo((prev) =>
@@ -137,30 +122,15 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
             )
           }
         }
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        const prevSearch = navigatePrevious()
-        if (prevSearch !== null) {
-          setSearchText(prevSearch)
-          setShowSearchHistory(false)
-        }
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        const nextSearch = navigateNext()
-        if (nextSearch !== null) {
-          setSearchText(nextSearch)
-          setShowSearchHistory(false)
-        }
       }
     },
-    [searchText, searchAddon, searchOptions, addToHistory, navigatePrevious, navigateNext, resetIndex, onClose]
+    [searchText, searchAddon, searchOptions, onClose]
   )
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const text = e.target.value
       setSearchText(text)
-      resetIndex()
       if (searchAddon) {
         if (text) {
           const found = searchAddon.findNext(text, searchOptions)
@@ -168,43 +138,13 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
           countSearchMatches(text, (total) => {
             setSearchMatchInfo((prev) => (prev ? { ...prev, total } : { current: 0, total }))
           })
-          setShowSearchHistory(false)
         } else {
           searchAddon.clearDecorations()
           setSearchMatchInfo(null)
         }
       }
     },
-    [searchAddon, searchOptions, countSearchMatches, resetIndex]
-  )
-
-  const handleSearchFocus = useCallback(() => {
-    if (searchHistory.length > 0 && !searchText) {
-      setShowSearchHistory(true)
-    }
-  }, [searchHistory.length, searchText])
-
-  const handleSelectFromHistory = useCallback(
-    (term: string) => {
-      setSearchText(term)
-      setShowSearchHistory(false)
-      if (searchAddon) {
-        const found = searchAddon.findNext(term, searchOptions)
-        setSearchMatchInfo(found ? { current: 1, total: -1 } : { current: 0, total: 0 })
-        countSearchMatches(term, (total) => {
-          setSearchMatchInfo((prev) => (prev ? { ...prev, total } : { current: 0, total }))
-        })
-      }
-    },
     [searchAddon, searchOptions, countSearchMatches]
-  )
-
-  const handleRemoveFromHistory = useCallback(
-    (e: React.MouseEvent, term: string) => {
-      e.stopPropagation()
-      removeFromHistory(term)
-    },
-    [removeFromHistory]
   )
 
   const handleFindPrevious = useCallback(() => {
@@ -215,12 +155,11 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
   }, [searchAddon, searchText, searchOptions])
 
   const handleFindNext = useCallback(() => {
-    if (searchText) addToHistory(searchText)
     searchAddon?.findNext(searchText, searchOptions)
     setSearchMatchInfo((prev) =>
       prev && prev.total > 0 ? { ...prev, current: prev.current < prev.total ? prev.current + 1 : 1 } : prev
     )
-  }, [searchAddon, searchText, searchOptions, addToHistory])
+  }, [searchAddon, searchText, searchOptions])
 
   const handleClose = useCallback(() => {
     setSearchText('')
@@ -238,28 +177,9 @@ export function SearchBar({ searchAddon, terminal, onClose }: SearchBarProps) {
           value={searchText}
           onChange={handleSearchChange}
           onKeyDown={handleSearchKeyDown}
-          onFocus={handleSearchFocus}
-          onBlur={() => setTimeout(() => setShowSearchHistory(false), 150)}
-          placeholder="Search... (↑↓ for history)"
+          placeholder="Search..."
           className="terminal-search-input"
         />
-        {showSearchHistory && searchHistory.length > 0 && (
-          <div className="terminal-search-history">
-            {searchHistory.slice(0, 10).map((term, index) => (
-              <div key={index} className="terminal-search-history-item" onClick={() => handleSelectFromHistory(term)}>
-                <Clock size={12} strokeWidth={1.5} />
-                <span className="terminal-search-history-text">{term}</span>
-                <button
-                  className="terminal-search-history-remove"
-                  onClick={(e) => handleRemoveFromHistory(e, term)}
-                  title="Remove from history"
-                >
-                  <X size={10} strokeWidth={1.5} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
       {searchMatchInfo && (
         <span className="terminal-search-count">

@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronRight, Plus, Settings, Terminal, X, Pencil, Trash2 } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/workspaceStore'
-import { useTerminalStore } from '../../store/terminalStore'
+import { useTerminalStore, useTerminalTabs, useActiveTabId } from '../../store/terminalStore'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useShallow } from 'zustand/react/shallow'
 import { TerminalIcon } from '../Icons/TerminalIcons'
 
 interface WorkspaceSidebarProps {
@@ -19,9 +20,25 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   onCreateTerminal,
   onOpenSettings
 }) => {
-  const { workspaces, activeWorkspaceId, setActiveWorkspace, removeWorkspace, updateWorkspace } = useWorkspaceStore()
-  const { tabs, activeTabId, setActiveTab, removeTab, updateTab } = useTerminalStore()
-  const { profiles } = useSettingsStore()
+  const { workspaces, activeWorkspaceId, setActiveWorkspace, removeWorkspace, updateWorkspace } = useWorkspaceStore(
+    useShallow((s) => ({
+      workspaces: s.workspaces,
+      activeWorkspaceId: s.activeWorkspaceId,
+      setActiveWorkspace: s.setActiveWorkspace,
+      removeWorkspace: s.removeWorkspace,
+      updateWorkspace: s.updateWorkspace
+    }))
+  )
+  const tabs = useTerminalTabs()
+  const activeTabId = useActiveTabId()
+  const { setActiveTab, removeTab, updateTab } = useTerminalStore(
+    useShallow((s) => ({
+      setActiveTab: s.setActiveTab,
+      removeTab: s.removeTab,
+      updateTab: s.updateTab
+    }))
+  )
+  const profiles = useSettingsStore(useShallow((s) => s.profiles))
 
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set([activeWorkspaceId || '']))
   const [editingId, setEditingId] = useState<string | null>(null)

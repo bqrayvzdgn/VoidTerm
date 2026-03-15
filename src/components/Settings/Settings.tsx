@@ -1,12 +1,10 @@
 import React, { useState } from 'react'
-import { Palette, Terminal, Keyboard, User, Download, Info, X } from 'lucide-react'
-import { useTranslation } from '../../i18n'
+import { Palette, Terminal, Keyboard, User, Info, X } from 'lucide-react'
 import {
   AppearanceSettings,
   TerminalSettings,
   ShortcutsSettings,
   ProfilesSettings,
-  BackupSettings,
   AboutSettings
 } from './sections'
 
@@ -15,10 +13,9 @@ interface SettingsProps {
   onClose: () => void
 }
 
-type SettingsTab = 'appearance' | 'terminal' | 'shortcuts' | 'profiles' | 'backup' | 'about'
+type SettingsTab = 'appearance' | 'terminal' | 'shortcuts' | 'profiles' | 'about'
 
 export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
-  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<SettingsTab>('appearance')
 
   if (!isOpen) return null
@@ -26,32 +23,27 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
   const tabs: { id: SettingsTab; label: string; icon: JSX.Element }[] = [
     {
       id: 'appearance',
-      label: t.settings.tabs.appearance,
+      label: 'Appearance',
       icon: <Palette size={16} strokeWidth={1.5} />
     },
     {
       id: 'terminal',
-      label: t.settings.tabs.terminal,
+      label: 'Terminal',
       icon: <Terminal size={16} strokeWidth={1.5} />
     },
     {
       id: 'shortcuts',
-      label: t.settings.tabs.shortcuts,
+      label: 'Shortcuts',
       icon: <Keyboard size={16} strokeWidth={1.5} />
     },
     {
       id: 'profiles',
-      label: t.settings.tabs.profiles,
+      label: 'Profiles',
       icon: <User size={16} strokeWidth={1.5} />
     },
     {
-      id: 'backup',
-      label: t.settings.tabs.backup,
-      icon: <Download size={16} strokeWidth={1.5} />
-    },
-    {
       id: 'about',
-      label: t.settings.tabs.about,
+      label: 'About',
       icon: <Info size={16} strokeWidth={1.5} />
     }
   ]
@@ -66,8 +58,6 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
         return <ShortcutsSettings />
       case 'profiles':
         return <ProfilesSettings />
-      case 'backup':
-        return <BackupSettings />
       case 'about':
         return <AboutSettings />
       default:
@@ -80,9 +70,9 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
       <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title" id="settings-title">
-            {t.settings.title}
+            Settings
           </h2>
-          <button className="modal-close" onClick={onClose} aria-label={t.common.close}>
+          <button className="modal-close" onClick={onClose} aria-label="Close">
             <X size={14} strokeWidth={1.5} aria-hidden="true" />
           </button>
         </div>

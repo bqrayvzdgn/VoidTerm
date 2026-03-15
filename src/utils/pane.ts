@@ -16,23 +16,23 @@ export function collectTerminalIds(pane: Pane): string[] {
   return []
 }
 
-/** Pane pozisyon bilgisi - navigasyon icin kullanilir */
+/** Pane position info — used for directional navigation */
 export interface PanePosition {
   terminalId: string
-  /** Yatay pozisyon (0-1 arasi) */
+  /** Horizontal position (0-1) */
   x: number
-  /** Dikey pozisyon (0-1 arasi) */
+  /** Vertical position (0-1) */
   y: number
 }
 
 /**
- * Tum pane'lerin pozisyonlarini toplar (navigasyon icin)
- * @param pane - Taranacak pane agaci
- * @param x - Baslangic X pozisyonu
- * @param y - Baslangic Y pozisyonu
- * @param width - Genislik (0-1)
- * @param height - Yukseklik (0-1)
- * @returns Pane pozisyonlari dizisi
+ * Collects positions of all terminal panes (for navigation)
+ * @param pane - Pane tree to traverse
+ * @param x - Starting X position
+ * @param y - Starting Y position
+ * @param width - Width (0-1)
+ * @param height - Height (0-1)
+ * @returns Array of pane positions
  */
 export function collectPanePositions(pane: Pane, x = 0, y = 0, width = 1, height = 1): PanePosition[] {
   if (pane.type === 'terminal' && pane.terminalId) {
@@ -66,11 +66,11 @@ export function collectPanePositions(pane: Pane, x = 0, y = 0, width = 1, height
 }
 
 /**
- * Belirtilen yonde bir sonraki terminal'i bulur
- * @param pane - Pane agaci
- * @param currentTerminalId - Mevcut terminal ID
- * @param direction - Navigasyon yonu
- * @returns Bulunan terminal ID veya null
+ * Finds the next terminal in the given direction
+ * @param pane - Pane tree
+ * @param currentTerminalId - Current terminal ID
+ * @param direction - Navigation direction
+ * @returns Found terminal ID or null
  */
 export function findNextPane(
   pane: Pane,
@@ -120,10 +120,10 @@ export function findNextPane(
 }
 
 /**
- * Terminal pane'i kaldirir ve agaci basitlestirir
- * @param pane - Pane agaci
- * @param targetTerminalId - Kaldirilacak terminal ID
- * @returns Guncellenmis pane veya null
+ * Removes a terminal pane and simplifies the tree
+ * @param pane - Pane tree
+ * @param targetTerminalId - Terminal ID to remove
+ * @returns Updated pane or null
  */
 export function removePaneAtTerminal(pane: Pane, targetTerminalId: string): Pane | null {
   // If this is the target terminal, return null to remove it
@@ -165,12 +165,12 @@ export function removePaneAtTerminal(pane: Pane, targetTerminalId: string): Pane
 }
 
 /**
- * Terminal pane'i boler ve yeni terminal ekler
- * @param pane - Pane agaci
- * @param targetTerminalId - Bolunecek terminal ID
- * @param direction - Bolme yonu
- * @param newTerminalId - Yeni terminal ID
- * @returns Guncellenmis pane veya null
+ * Splits a terminal pane and adds a new terminal
+ * @param pane - Pane tree
+ * @param targetTerminalId - Terminal ID to split
+ * @param direction - Split direction
+ * @param newTerminalId - New terminal ID
+ * @returns Updated pane or null
  */
 export function splitPaneAtTerminal(
   pane: Pane,

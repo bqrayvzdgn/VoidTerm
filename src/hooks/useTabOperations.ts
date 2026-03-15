@@ -11,7 +11,7 @@ interface UseTabOperationsProps {
 }
 
 /**
- * Tab navigasyonu icin hook (next, prev, reopen)
+ * Tab navigation hook (next, prev, reopen)
  */
 export const useTabOperations = ({ panes, setActivePaneTerminalId, handleCreateTab }: UseTabOperationsProps) => {
   const { tabs, activeTabId, setActiveTab, popClosedTab } = useTerminalStore()

@@ -39,11 +39,6 @@ interface TerminalStore {
   // Pane actions
   setPane: (tabId: string, pane: Pane) => void
 
-  // Tab activity tracking
-  tabActivity: Map<string, boolean>
-  setTabActivity: (tabId: string, hasActivity: boolean) => void
-  clearTabActivity: (tabId: string) => void
-
   // Shell integration actions
   setTerminalCwd: (terminalId: string, cwd: string) => void
   getTerminalCwd: (terminalId: string) => string | undefined
@@ -57,7 +52,6 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   terminals: new Map(),
   panes: new Map(),
   closedTabs: [],
-  tabActivity: new Map(),
   terminalCwds: new Map(),
 
   addTab: (profileId = 'default', title?: string, workspaceId?: string) => {
@@ -98,7 +92,6 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
     const terminals = new Map(state.terminals)
     const panes = new Map(state.panes)
-    const tabActivity = new Map(state.tabActivity)
     const terminalCwds = new Map(state.terminalCwds)
     const pane = state.panes.get(tabId)
     if (pane) {
@@ -109,7 +102,6 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       })
       panes.delete(tabId)
     }
-    tabActivity.delete(tabId)
 
     let newActiveTabId = state.activeTabId
     if (state.activeTabId === tabId) {
@@ -123,7 +115,6 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       closedTabs,
       terminals,
       panes,
-      tabActivity,
       terminalCwds
     })
   },
@@ -209,22 +200,6 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     })
   },
 
-  setTabActivity: (tabId, hasActivity) => {
-    set((state) => {
-      const newActivity = new Map(state.tabActivity)
-      newActivity.set(tabId, hasActivity)
-      return { tabActivity: newActivity }
-    })
-  },
-
-  clearTabActivity: (tabId) => {
-    set((state) => {
-      const newActivity = new Map(state.tabActivity)
-      newActivity.delete(tabId)
-      return { tabActivity: newActivity }
-    })
-  },
-
   popClosedTab: () => {
     const state = get()
     if (state.closedTabs.length === 0) return undefined
@@ -264,8 +239,6 @@ export const useTerminalActions = () =>
       removeTerminal: state.removeTerminal,
       updateTerminalTitle: state.updateTerminalTitle,
       setPane: state.setPane,
-      setTabActivity: state.setTabActivity,
-      clearTabActivity: state.clearTabActivity,
       popClosedTab: state.popClosedTab,
       setTerminalCwd: state.setTerminalCwd,
       getTerminalCwd: state.getTerminalCwd

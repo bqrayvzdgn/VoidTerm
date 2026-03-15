@@ -4,7 +4,7 @@ import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react'
 import { useToastStore, type Toast as ToastType, type ToastType as ToastVariant } from '../../store/toastStore'
 
 /**
- * Toast ikonlarını döndürür
+ * Returns the icon for a toast type
  */
 const ToastIcon: React.FC<{ type: ToastVariant }> = memo(({ type }) => {
   switch (type) {
@@ -59,7 +59,7 @@ const ToastItem: React.FC<{ toast: ToastType }> = memo(({ toast }) => {
 ToastItem.displayName = 'ToastItem'
 
 /**
- * Toast Container - Tüm toastları gösterir
+ * Toast Container - Renders all active toasts
  */
 export const ToastContainer: React.FC = memo(() => {
   const toasts = useToastStore((state) => state.toasts)

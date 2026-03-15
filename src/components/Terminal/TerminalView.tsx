@@ -5,9 +5,7 @@ import { WebglAddon } from '@xterm/addon-webgl'
 import { SearchAddon } from '@xterm/addon-search'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { LigaturesAddon } from '@xterm/addon-ligatures'
-import { ImageAddon } from '@xterm/addon-image'
 import { SerializeAddon } from '@xterm/addon-serialize'
-import { ClipboardAddon } from '@xterm/addon-clipboard'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTerminalStore } from '../../store/terminalStore'
 import { useToastStore } from '../../store/toastStore'
@@ -19,7 +17,6 @@ import { createInitialState, parseOsc633, processEvent } from '../../utils/shell
 import type { ShellIntegrationState } from '../../utils/shell-integration'
 import { SearchBar } from './SearchBar'
 import {
-  COPY_FEEDBACK_DURATION,
   MIN_FONT_SIZE,
   MAX_ZOOM_LEVEL,
   MIN_ZOOM_LEVEL,
@@ -47,6 +44,10 @@ export interface TerminalViewHandle {
   serialize: () => string
 }
 
+// Track which terminal last opened a context menu so broadcast events
+// only affect the correct terminal instance.
+let contextMenuPtyId: string | null = null
+
 export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
   ({ ptyId, terminalId, onTitleChange, onNavigatePane, onNextTab, onPrevTab }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null)
@@ -55,8 +56,6 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
     const searchAddonRef = useRef<SearchAddon | null>(null)
     const serializeAddonRef = useRef<SerializeAddon | null>(null)
     const webglAddonRef = useRef<WebglAddon | null>(null)
-    const imageAddonRef = useRef<ImageAddon | null>(null)
-    const clipboardAddonRef = useRef<ClipboardAddon | null>(null)
     const ligaturesAddonRef = useRef<LigaturesAddon | null>(null)
     const shellIntegrationRef = useRef<ShellIntegrationState>(createInitialState())
     const settings = useSettingsStore((s) => s.settings)
@@ -64,18 +63,8 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
     const setTerminalCwd = useTerminalStore((s) => s.setTerminalCwd)
 
     const [showSearch, setShowSearch] = useState(false)
-    const [zoomLevel, setZoomLevel] = useState(0)
-    const [showCopyFeedback, setShowCopyFeedback] = useState(false)
-    const copyFeedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const zoomLevelRef = useRef(0)
     const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-    const triggerCopyFeedback = useCallback(() => {
-      if (copyFeedbackTimeoutRef.current) {
-        clearTimeout(copyFeedbackTimeoutRef.current)
-      }
-      setShowCopyFeedback(true)
-      copyFeedbackTimeoutRef.current = setTimeout(() => setShowCopyFeedback(false), COPY_FEEDBACK_DURATION)
-    }, [])
 
     useImperativeHandle(
       ref,
@@ -211,32 +200,6 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
         useToastStore.getState().info('WebGL unavailable, using canvas renderer. Performance may be reduced.')
       }
 
-      // Image addon — Sixel support (Phase A)
-      if (settings.enableImages) {
-        try {
-          const imageAddon = new ImageAddon({
-            sixelSupport: true,
-            sixelScrolling: true,
-            sixelPaletteLimit: 4096
-          })
-          terminal.loadAddon(imageAddon)
-          imageAddonRef.current = imageAddon
-        } catch {
-          terminalLogger.warn('Image addon failed to load')
-        }
-      }
-
-      // Clipboard addon — OSC 52 (Phase A)
-      if (settings.enableClipboard) {
-        try {
-          const clipboardAddon = new ClipboardAddon()
-          terminal.loadAddon(clipboardAddon)
-          clipboardAddonRef.current = clipboardAddon
-        } catch {
-          terminalLogger.warn('Clipboard addon failed to load')
-        }
-      }
-
       try {
         const ligaturesAddon = new LigaturesAddon()
         terminal.loadAddon(ligaturesAddon)
@@ -339,31 +302,25 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
 
         if (isCtrl && (e.key === '+' || e.key === '=' || e.key === 'Add')) {
           e.preventDefault()
-          setZoomLevel((prev) => {
-            const newZoom = Math.min(prev + 1, MAX_ZOOM_LEVEL)
-            const newFontSize = settings.fontSize + newZoom * ZOOM_STEP
-            terminal.options.fontSize = newFontSize
-            fitAddonRef.current?.fit()
-            return newZoom
-          })
+          const newZoom = Math.min(zoomLevelRef.current + 1, MAX_ZOOM_LEVEL)
+          zoomLevelRef.current = newZoom
+          terminal.options.fontSize = settings.fontSize + newZoom * ZOOM_STEP
+          fitAddonRef.current?.fit()
           return false
         }
 
         if (isCtrl && (e.key === '-' || e.key === 'Subtract')) {
           e.preventDefault()
-          setZoomLevel((prev) => {
-            const newZoom = Math.max(prev - 1, MIN_ZOOM_LEVEL)
-            const newFontSize = settings.fontSize + newZoom * ZOOM_STEP
-            terminal.options.fontSize = Math.max(MIN_FONT_SIZE, newFontSize)
-            fitAddonRef.current?.fit()
-            return newZoom
-          })
+          const newZoom = Math.max(zoomLevelRef.current - 1, MIN_ZOOM_LEVEL)
+          zoomLevelRef.current = newZoom
+          terminal.options.fontSize = Math.max(MIN_FONT_SIZE, settings.fontSize + newZoom * ZOOM_STEP)
+          fitAddonRef.current?.fit()
           return false
         }
 
         if (isCtrl && (e.key === '0' || e.key === 'Numpad0')) {
           e.preventDefault()
-          setZoomLevel(0)
+          zoomLevelRef.current = 0
           terminal.options.fontSize = settings.fontSize
           fitAddonRef.current?.fit()
           return false
@@ -374,7 +331,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
           return false
         }
         if (isCtrl && e.shiftKey) {
-          const shiftKeys = ['d', 'e', 'b', 'p', 't', 'm', 'w']
+          const shiftKeys = ['d', 'e', 'b', 'p', 't', 'w']
           if (shiftKeys.includes(e.key.toLowerCase())) {
             return false
           }
@@ -396,7 +353,6 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
           const selection = terminal.getSelection()
           if (selection) {
             navigator.clipboard.writeText(selection)
-            triggerCopyFeedback()
           }
         }
       })
@@ -449,7 +405,6 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
         }
 
         if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current)
-        if (copyFeedbackTimeoutRef.current) clearTimeout(copyFeedbackTimeoutRef.current)
 
         // Dispose all addons to prevent memory leaks
         try {
@@ -458,23 +413,11 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
           /* may already be disposed on context loss */
         }
         try {
-          imageAddonRef.current?.dispose()
-        } catch (e) {
-          terminalLogger.warn('Cleanup: imageAddon failed', e)
-        }
-        try {
-          clipboardAddonRef.current?.dispose()
-        } catch (e) {
-          terminalLogger.warn('Cleanup: clipboardAddon failed', e)
-        }
-        try {
           ligaturesAddonRef.current?.dispose()
         } catch (e) {
           terminalLogger.warn('Cleanup: ligaturesAddon failed', e)
         }
         webglAddonRef.current = null
-        imageAddonRef.current = null
-        clipboardAddonRef.current = null
         ligaturesAddonRef.current = null
         serializeAddonRef.current = null
 
@@ -502,9 +445,6 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
       terminalId,
       onTitleChange,
       handleResize,
-      triggerCopyFeedback,
-      settings.enableImages,
-      settings.enableClipboard,
       settings.shellIntegration,
       setTerminalCwd
     ])
@@ -527,24 +467,28 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
 
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
       e.preventDefault()
+      contextMenuPtyId = ptyId
       const selection = terminalRef.current?.getSelection()
       window.electronAPI.showTerminalContextMenu({
         hasSelection: !!selection,
         x: e.clientX,
         y: e.clientY
       })
-    }, [])
+    }, [ptyId])
 
     useEffect(() => {
+      const isTarget = () => contextMenuPtyId === ptyId
+
       const removeCopyListener = window.electronAPI.onTerminalCopy?.(() => {
+        if (!isTarget()) return
         const selection = terminalRef.current?.getSelection()
         if (selection) {
           navigator.clipboard.writeText(selection)
-          triggerCopyFeedback()
         }
       })
 
       const removePasteListener = window.electronAPI.onTerminalPaste?.(() => {
+        if (!isTarget()) return
         navigator.clipboard
           .readText()
           .then((text) => {
@@ -558,18 +502,22 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
       })
 
       const removeClearListener = window.electronAPI.onTerminalClear?.(() => {
+        if (!isTarget()) return
         terminalRef.current?.clear()
       })
 
       const removeSelectAllListener = window.electronAPI.onTerminalSelectAll?.(() => {
+        if (!isTarget()) return
         terminalRef.current?.selectAll()
       })
 
       const removeSearchListener = window.electronAPI.onTerminalSearch?.(() => {
+        if (!isTarget()) return
         setShowSearch((prev) => !prev)
       })
 
       const removeResetListener = window.electronAPI.onTerminalReset?.(() => {
+        if (!isTarget()) return
         terminalRef.current?.reset()
       })
 
@@ -581,7 +529,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
         removeSearchListener?.()
         removeResetListener?.()
       }
-    }, [ptyId, triggerCopyFeedback])
+    }, [ptyId])
 
     const wrapperStyle = useMemo(
       () => ({
@@ -609,15 +557,6 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
         {showSearch && (
           <SearchBar searchAddon={searchAddonRef.current} terminal={terminalRef.current} onClose={handleSearchClose} />
         )}
-
-        {zoomLevel !== 0 && (
-          <div className="terminal-zoom-indicator">
-            {zoomLevel > 0 ? '+' : ''}
-            {zoomLevel * 2}px ({Math.round(((settings.fontSize + zoomLevel * 2) / settings.fontSize) * 100)}%)
-          </div>
-        )}
-
-        {showCopyFeedback && <div className="terminal-copy-feedback">Copied!</div>}
 
         <div
           ref={containerRef}

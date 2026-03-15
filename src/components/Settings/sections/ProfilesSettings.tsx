@@ -1,6 +1,5 @@
 import React, { useState, memo } from 'react'
 import { useSettingsStore } from '../../../store/settingsStore'
-import { useTranslation } from '../../../i18n'
 import { TerminalIcon } from '../../Icons/TerminalIcons'
 import type { Profile } from '../../../types'
 import { v4 as uuidv4 } from 'uuid'
@@ -16,10 +15,15 @@ interface EditingProfile {
   env: string
   startupCommand: string
   isNew?: boolean
+  type: 'local' | 'ssh'
+  sshHost: string
+  sshPort: string
+  sshUsername: string
+  sshAuthMethod: 'password' | 'key' | 'agent'
+  sshKeyPath: string
 }
 
 export const ProfilesSettings: React.FC = memo(() => {
-  const { t } = useTranslation()
   const { profiles, addProfile, updateProfile, removeProfile } = useSettingsStore()
   const [editingProfile, setEditingProfile] = useState<EditingProfile | null>(null)
 
@@ -37,7 +41,13 @@ export const ProfilesSettings: React.FC = memo(() => {
             .map(([k, v]) => `${k}=${v}`)
             .join('\n')
         : '',
-      startupCommand: profile.startupCommand || ''
+      startupCommand: profile.startupCommand || '',
+      type: profile.type || 'local',
+      sshHost: profile.sshHost || '',
+      sshPort: String(profile.sshPort || 22),
+      sshUsername: profile.sshUsername || '',
+      sshAuthMethod: profile.sshAuthMethod || 'agent',
+      sshKeyPath: profile.sshKeyPath || ''
     })
   }
 
@@ -52,7 +62,13 @@ export const ProfilesSettings: React.FC = memo(() => {
       cwd: '',
       env: '',
       startupCommand: '',
-      isNew: true
+      isNew: true,
+      type: 'local',
+      sshHost: '',
+      sshPort: '22',
+      sshUsername: '',
+      sshAuthMethod: 'agent',
+      sshKeyPath: ''
     })
   }
 
@@ -78,7 +94,15 @@ export const ProfilesSettings: React.FC = memo(() => {
       color: editingProfile.color,
       cwd: editingProfile.cwd || undefined,
       env: Object.keys(envObj).length > 0 ? envObj : undefined,
-      startupCommand: editingProfile.startupCommand || undefined
+      startupCommand: editingProfile.startupCommand || undefined,
+      type: editingProfile.type,
+      ...(editingProfile.type === 'ssh' && {
+        sshHost: editingProfile.sshHost,
+        sshPort: parseInt(editingProfile.sshPort) || 22,
+        sshUsername: editingProfile.sshUsername || undefined,
+        sshAuthMethod: editingProfile.sshAuthMethod,
+        sshKeyPath: editingProfile.sshAuthMethod === 'key' ? editingProfile.sshKeyPath : undefined
+      })
     }
 
     if (editingProfile.isNew) {
@@ -92,7 +116,7 @@ export const ProfilesSettings: React.FC = memo(() => {
 
   const handleDeleteProfile = (profileId: string) => {
     if (profiles.length <= 1) {
-      alert(t.settings.profiles.minProfileError)
+      alert('At least one profile is required!')
       return
     }
     removeProfile(profileId)
@@ -105,13 +129,13 @@ export const ProfilesSettings: React.FC = memo(() => {
   return (
     <div className="settings-panel">
       <div className="settings-panel-header">
-        <h3 className="settings-panel-title">{t.settings.profiles.title}</h3>
+        <h3 className="settings-panel-title">Profile Management</h3>
         {!editingProfile && (
           <button className="profile-add-btn" onClick={handleNewProfile}>
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M6 1V11M1 6H11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            {t.settings.profiles.newProfile}
+            New Profile
           </button>
         )}
       </div>
@@ -126,30 +150,30 @@ export const ProfilesSettings: React.FC = memo(() => {
 
           <div className="profile-edit-fields">
             <div className="profile-edit-row">
-              <label>{t.settings.profiles.name}</label>
+              <label>Name</label>
               <input
                 type="text"
                 value={editingProfile.name}
                 onChange={(e) => setEditingProfile({ ...editingProfile, name: e.target.value })}
-                placeholder={t.settings.profiles.namePlaceholder}
+                placeholder="Profile name"
               />
             </div>
 
             <div className="profile-edit-row">
-              <label>{t.settings.profiles.icon}</label>
+              <label>Icon</label>
               <input
                 type="text"
                 value={editingProfile.icon}
                 onChange={(e) =>
                   setEditingProfile({ ...editingProfile, icon: e.target.value.toUpperCase().slice(0, 4) })
                 }
-                placeholder={t.settings.profiles.iconPlaceholder}
+                placeholder="Icon (max 4 chars)"
                 maxLength={4}
               />
             </div>
 
             <div className="profile-edit-row">
-              <label>{t.settings.profiles.color}</label>
+              <label>Color</label>
               <div className="color-input-wrapper">
                 <input
                   type="color"
@@ -166,62 +190,133 @@ export const ProfilesSettings: React.FC = memo(() => {
             </div>
 
             <div className="profile-edit-row">
-              <label>{t.settings.profiles.shell}</label>
-              <input
-                type="text"
-                value={editingProfile.shell}
-                onChange={(e) => setEditingProfile({ ...editingProfile, shell: e.target.value })}
-                placeholder={t.settings.profiles.shellPlaceholder}
-              />
+              <label>Type</label>
+              <select
+                value={editingProfile.type}
+                onChange={(e) => setEditingProfile({ ...editingProfile, type: e.target.value as 'local' | 'ssh' })}
+              >
+                <option value="local">Local</option>
+                <option value="ssh">SSH</option>
+              </select>
             </div>
 
-            <div className="profile-edit-row">
-              <label>{t.settings.profiles.arguments}</label>
-              <input
-                type="text"
-                value={editingProfile.args}
-                onChange={(e) => setEditingProfile({ ...editingProfile, args: e.target.value })}
-                placeholder={t.settings.profiles.argumentsPlaceholder}
-              />
-            </div>
+            {editingProfile.type === 'ssh' ? (
+              <>
+                <div className="profile-edit-row">
+                  <label>Host</label>
+                  <input
+                    type="text"
+                    value={editingProfile.sshHost}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, sshHost: e.target.value })}
+                    placeholder="e.g: 192.168.1.100 or server.example.com"
+                  />
+                </div>
 
-            <div className="profile-edit-row">
-              <label>{t.settings.profiles.workingDirectory}</label>
-              <input
-                type="text"
-                value={editingProfile.cwd}
-                onChange={(e) => setEditingProfile({ ...editingProfile, cwd: e.target.value })}
-                placeholder={t.settings.profiles.workingDirectoryPlaceholder}
-              />
-            </div>
+                <div className="profile-edit-row">
+                  <label>Port</label>
+                  <input
+                    type="number"
+                    value={editingProfile.sshPort}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, sshPort: e.target.value })}
+                    placeholder="22"
+                  />
+                </div>
 
-            <div className="profile-edit-row">
-              <label>{t.settings.profiles.envVariables}</label>
-              <textarea
-                value={editingProfile.env}
-                onChange={(e) => setEditingProfile({ ...editingProfile, env: e.target.value })}
-                placeholder={t.settings.profiles.envVariablesPlaceholder}
-                rows={3}
-              />
-            </div>
+                <div className="profile-edit-row">
+                  <label>Username</label>
+                  <input
+                    type="text"
+                    value={editingProfile.sshUsername}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, sshUsername: e.target.value })}
+                    placeholder="e.g: root"
+                  />
+                </div>
 
-            <div className="profile-edit-row">
-              <label>{t.settings.profiles.startupCommand}</label>
-              <input
-                type="text"
-                value={editingProfile.startupCommand}
-                onChange={(e) => setEditingProfile({ ...editingProfile, startupCommand: e.target.value })}
-                placeholder={t.settings.profiles.startupCommandPlaceholder}
-              />
-            </div>
+                <div className="profile-edit-row">
+                  <label>Auth Method</label>
+                  <select
+                    value={editingProfile.sshAuthMethod}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, sshAuthMethod: e.target.value as 'password' | 'key' | 'agent' })}
+                  >
+                    <option value="agent">SSH Agent</option>
+                    <option value="key">Key File</option>
+                    <option value="password">Password (interactive)</option>
+                  </select>
+                </div>
+
+                {editingProfile.sshAuthMethod === 'key' && (
+                  <div className="profile-edit-row">
+                    <label>Key File Path</label>
+                    <input
+                      type="text"
+                      value={editingProfile.sshKeyPath}
+                      onChange={(e) => setEditingProfile({ ...editingProfile, sshKeyPath: e.target.value })}
+                      placeholder="e.g: ~/.ssh/id_rsa"
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="profile-edit-row">
+                  <label>Shell</label>
+                  <input
+                    type="text"
+                    value={editingProfile.shell}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, shell: e.target.value })}
+                    placeholder="e.g: cmd.exe, powershell.exe"
+                  />
+                </div>
+
+                <div className="profile-edit-row">
+                  <label>Arguments</label>
+                  <input
+                    type="text"
+                    value={editingProfile.args}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, args: e.target.value })}
+                    placeholder="e.g: /k claude"
+                  />
+                </div>
+
+                <div className="profile-edit-row">
+                  <label>Working Directory</label>
+                  <input
+                    type="text"
+                    value={editingProfile.cwd}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, cwd: e.target.value })}
+                    placeholder="e.g: C:\Users\user\projects"
+                  />
+                </div>
+
+                <div className="profile-edit-row">
+                  <label>Environment Variables</label>
+                  <textarea
+                    value={editingProfile.env}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, env: e.target.value })}
+                    placeholder="KEY=value (one per line)"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="profile-edit-row">
+                  <label>Startup Command</label>
+                  <input
+                    type="text"
+                    value={editingProfile.startupCommand}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, startupCommand: e.target.value })}
+                    placeholder="e.g: cls && echo Welcome!"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="profile-edit-actions">
             <button className="btn btn-secondary" onClick={handleCancelEdit}>
-              {t.common.cancel}
+              Cancel
             </button>
             <button className="btn btn-primary" onClick={handleSaveProfile}>
-              {editingProfile.isNew ? t.settings.profiles.addProfile : t.common.save}
+              {editingProfile.isNew ? 'Add Profile' : 'Save'}
             </button>
           </div>
         </div>
@@ -235,11 +330,13 @@ export const ProfilesSettings: React.FC = memo(() => {
               <div className="profile-info">
                 <div className="profile-name">{profile.name}</div>
                 <div className="profile-path">
-                  {profile.shell} {profile.args?.join(' ')}
+                  {profile.type === 'ssh'
+                    ? `SSH → ${profile.sshUsername ? `${profile.sshUsername}@` : ''}${profile.sshHost || '?'}:${profile.sshPort || 22}`
+                    : `${profile.shell} ${profile.args?.join(' ') || ''}`}
                 </div>
               </div>
               <div className="profile-actions">
-                <button className="profile-action-btn" onClick={() => handleEditProfile(profile)} title={t.common.edit}>
+                <button className="profile-action-btn" onClick={() => handleEditProfile(profile)} title="Edit">
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M11.5 1.5l3 3L5 14H2v-3l9.5-9.5z" />
                   </svg>
@@ -247,7 +344,7 @@ export const ProfilesSettings: React.FC = memo(() => {
                 <button
                   className="profile-action-btn delete"
                   onClick={() => handleDeleteProfile(profile.id)}
-                  title={t.common.delete}
+                  title="Delete"
                 >
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M5.5 2V1h5v1h4v1h-1v11H2.5V3h-1V2h4zm1 2v9h1V4h-1zm3 0v9h1V4h-1z" />

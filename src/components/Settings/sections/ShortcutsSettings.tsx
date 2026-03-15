@@ -1,6 +1,5 @@
 import React, { useState, useMemo, memo } from 'react'
 import { useSettingsStore } from '../../../store/settingsStore'
-import { useTranslation } from '../../../i18n'
 import type { KeyboardShortcuts } from '../../../types'
 import { DEFAULT_SHORTCUTS } from '../../../types'
 
@@ -11,16 +10,11 @@ interface ShortcutConfig {
   category: ShortcutCategory
 }
 
-/**
- * Kısayol tuşlarını kategorilere göre gruplar
- */
 const SHORTCUT_CONFIGS: ShortcutConfig[] = [
-  // Sekmeler
   { key: 'newTab', category: 'tabs' },
   { key: 'closeTab', category: 'tabs' },
   { key: 'nextTab', category: 'tabs' },
   { key: 'prevTab', category: 'tabs' },
-  // Paneller
   { key: 'closePane', category: 'panes' },
   { key: 'splitVertical', category: 'panes' },
   { key: 'splitHorizontal', category: 'panes' },
@@ -28,36 +22,54 @@ const SHORTCUT_CONFIGS: ShortcutConfig[] = [
   { key: 'focusRight', category: 'panes' },
   { key: 'focusUp', category: 'panes' },
   { key: 'focusDown', category: 'panes' },
-  // Terminal
   { key: 'toggleSearch', category: 'terminal' },
   { key: 'clearTerminal', category: 'terminal' },
   { key: 'copyText', category: 'terminal' },
   { key: 'pasteText', category: 'terminal' },
-  // Genel
   { key: 'toggleSidebar', category: 'general' },
   { key: 'openSettings', category: 'general' },
-  { key: 'openCommandPalette', category: 'general' },
-  { key: 'openSnippets', category: 'general' }
+  { key: 'openCommandPalette', category: 'general' }
 ]
 
-/**
- * Kısayol tuşunu görsel olarak formatlar
- * Örn: "Ctrl+Shift+D" -> ["Ctrl", "Shift", "D"]
- */
 const formatShortcut = (shortcut: string | undefined): string[] => {
   if (!shortcut) return ['—']
   return shortcut.split('+')
 }
 
+const SHORTCUT_LABELS: Record<keyof KeyboardShortcuts, string> = {
+  newTab: 'New Tab',
+  closeTab: 'Close Tab',
+  closePane: 'Close Pane',
+  splitVertical: 'Split Vertical',
+  splitHorizontal: 'Split Horizontal',
+  toggleSidebar: 'Toggle Sidebar',
+  openSettings: 'Settings',
+  nextTab: 'Next Tab',
+  prevTab: 'Previous Tab',
+  focusLeft: 'Focus Left Pane',
+  focusRight: 'Focus Right Pane',
+  focusUp: 'Focus Up Pane',
+  focusDown: 'Focus Down Pane',
+  toggleSearch: 'Toggle Search',
+  clearTerminal: 'Clear Terminal',
+  copyText: 'Copy',
+  pasteText: 'Paste',
+  openCommandPalette: 'Command Palette'
+}
+
+const CATEGORY_TITLES: Record<ShortcutCategory, string> = {
+  tabs: 'Tabs',
+  panes: 'Panes',
+  navigation: 'Navigation',
+  terminal: 'Terminal',
+  general: 'General'
+}
+
 export const ShortcutsSettings: React.FC = memo(() => {
-  const { t } = useTranslation()
   const { settings, updateSettings } = useSettingsStore()
   const [editingShortcut, setEditingShortcut] = useState<keyof KeyboardShortcuts | null>(null)
   const [conflictKey, setConflictKey] = useState<keyof KeyboardShortcuts | null>(null)
 
-  /**
-   * Kısayol çakışmalarını kontrol eder
-   */
   const findConflict = (newShortcut: string, currentKey: keyof KeyboardShortcuts): keyof KeyboardShortcuts | null => {
     for (const [key, value] of Object.entries(settings.shortcuts)) {
       if (key !== currentKey && value === newShortcut) {
@@ -67,51 +79,6 @@ export const ShortcutsSettings: React.FC = memo(() => {
     return null
   }
 
-  /**
-   * Kısayol label'larını çevirilerden alır
-   */
-  const getShortcutLabel = (key: keyof KeyboardShortcuts): string => {
-    const labels: Record<keyof KeyboardShortcuts, string> = {
-      newTab: t.settings.shortcuts.newTab,
-      closeTab: t.settings.shortcuts.closeTab,
-      closePane: t.settings.shortcuts.closePane,
-      splitVertical: t.settings.shortcuts.splitVertical,
-      splitHorizontal: t.settings.shortcuts.splitHorizontal,
-      toggleSidebar: t.settings.shortcuts.toggleSidebar,
-      openSettings: t.settings.shortcuts.openSettings,
-      nextTab: t.settings.shortcuts.nextTab,
-      prevTab: t.settings.shortcuts.prevTab,
-      focusLeft: t.settings.shortcuts.focusLeft,
-      focusRight: t.settings.shortcuts.focusRight,
-      focusUp: t.settings.shortcuts.focusUp,
-      focusDown: t.settings.shortcuts.focusDown,
-      toggleSearch: t.settings.shortcuts.toggleSearch,
-      clearTerminal: t.settings.shortcuts.clearTerminal,
-      copyText: t.settings.shortcuts.copyText,
-      pasteText: t.settings.shortcuts.pasteText,
-      openCommandPalette: t.settings.shortcuts.openCommandPalette,
-      openSnippets: 'Open Snippets'
-    }
-    return labels[key]
-  }
-
-  /**
-   * Kategori başlıklarını alır
-   */
-  const getCategoryTitle = (category: ShortcutCategory): string => {
-    const titles: Record<ShortcutCategory, string> = {
-      tabs: t.settings.shortcuts.categorySections,
-      panes: t.settings.shortcuts.categoryPanes,
-      navigation: t.settings.shortcuts.categoryNavigation,
-      terminal: t.settings.shortcuts.categoryTerminal,
-      general: t.settings.shortcuts.categoryGeneral
-    }
-    return titles[category]
-  }
-
-  /**
-   * Kısayolları kategorilere göre gruplar
-   */
   const groupedShortcuts = useMemo(() => {
     const groups: Record<ShortcutCategory, ShortcutConfig[]> = {
       tabs: [],
@@ -142,7 +109,6 @@ export const ShortcutsSettings: React.FC = memo(() => {
 
       const newShortcut = parts.join('+')
 
-      // Çakışma kontrolü
       const conflict = findConflict(newShortcut, key)
       if (conflict) {
         setConflictKey(conflict)
@@ -161,7 +127,7 @@ export const ShortcutsSettings: React.FC = memo(() => {
   }
 
   const handleResetShortcuts = () => {
-    if (confirm(t.settings.shortcuts.resetConfirm)) {
+    if (confirm('Keyboard shortcuts will be reset to default. Continue?')) {
       updateSettings({ shortcuts: DEFAULT_SHORTCUTS })
     }
   }
@@ -174,13 +140,13 @@ export const ShortcutsSettings: React.FC = memo(() => {
 
     return (
       <div key={key} className={`settings-item shortcut-item ${isConflict ? 'conflict' : ''}`}>
-        <span className="settings-label">{getShortcutLabel(key)}</span>
+        <span className="settings-label">{SHORTCUT_LABELS[key]}</span>
         <div className="shortcut-input-wrapper">
           {isEditing ? (
             <input
               type="text"
               className="shortcut-input editing"
-              placeholder={t.settings.shortcuts.pressKeys}
+              placeholder="Press keys..."
               onKeyDown={(e) => handleShortcutKeyDown(e, key)}
               onBlur={() => setEditingShortcut(null)}
               autoFocus
@@ -205,41 +171,35 @@ export const ShortcutsSettings: React.FC = memo(() => {
 
   return (
     <div className="settings-panel">
-      <h3 className="settings-panel-title">{t.settings.shortcuts.title}</h3>
+      <h3 className="settings-panel-title">Keyboard Shortcuts</h3>
 
       {conflictKey && (
-        <div className="shortcut-conflict-warning">
-          {t.settings.shortcuts.conflictWarning} {getShortcutLabel(conflictKey)}
-        </div>
+        <div className="shortcut-conflict-warning">This shortcut is already in use: {SHORTCUT_LABELS[conflictKey]}</div>
       )}
 
-      {/* Sekmeler */}
       <div className="settings-category">
-        <h4 className="settings-category-title">{getCategoryTitle('tabs')}</h4>
+        <h4 className="settings-category-title">{CATEGORY_TITLES.tabs}</h4>
         <div className="settings-group">{groupedShortcuts.tabs.map(renderShortcutItem)}</div>
       </div>
 
-      {/* Paneller */}
       <div className="settings-category">
-        <h4 className="settings-category-title">{getCategoryTitle('panes')}</h4>
+        <h4 className="settings-category-title">{CATEGORY_TITLES.panes}</h4>
         <div className="settings-group">{groupedShortcuts.panes.map(renderShortcutItem)}</div>
       </div>
 
-      {/* Terminal */}
       <div className="settings-category">
-        <h4 className="settings-category-title">{getCategoryTitle('terminal')}</h4>
+        <h4 className="settings-category-title">{CATEGORY_TITLES.terminal}</h4>
         <div className="settings-group">{groupedShortcuts.terminal.map(renderShortcutItem)}</div>
       </div>
 
-      {/* Genel */}
       <div className="settings-category">
-        <h4 className="settings-category-title">{getCategoryTitle('general')}</h4>
+        <h4 className="settings-category-title">{CATEGORY_TITLES.general}</h4>
         <div className="settings-group">{groupedShortcuts.general.map(renderShortcutItem)}</div>
       </div>
 
       <div className="settings-actions">
         <button className="btn btn-secondary" onClick={handleResetShortcuts}>
-          {t.settings.shortcuts.resetToDefault}
+          Reset to Default
         </button>
       </div>
     </div>

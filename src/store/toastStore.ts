@@ -37,7 +37,7 @@ export const useToastStore = create<ToastStore>((set, get) => ({
     const duration = toast.duration ?? DEFAULT_DURATION
 
     set((state) => {
-      // En fazla MAX_TOASTS kadar toast göster
+      // Keep at most MAX_TOASTS visible
       const newToasts = [...state.toasts, { ...toast, id, duration }]
       if (newToasts.length > MAX_TOASTS) {
         newToasts.shift()
@@ -71,7 +71,7 @@ export const useToastStore = create<ToastStore>((set, get) => ({
   },
 
   error: (message, duration) => {
-    return get().addToast({ type: 'error', message, duration: duration ?? 6000 })
+    return get().addToast({ type: 'error', message, duration: duration ?? 0 })
   },
 
   warning: (message, duration) => {

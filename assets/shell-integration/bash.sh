@@ -11,6 +11,7 @@ __voidterm_prompt_command() {
   printf '\e]633;D;%s\a' "$exit_code"
   printf '\e]633;P;Cwd=%s\a' "$PWD"
   printf '\e]633;A\a'
+  printf '\e]633;B\a'
 }
 
 __voidterm_preexec() {

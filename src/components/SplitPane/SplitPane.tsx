@@ -4,31 +4,12 @@ import { getActivePaneId, setActivePaneId, subscribeActivePaneId } from '../../s
 import { terminalRegistry } from '../../utils/terminalRegistry'
 import { TerminalView } from '../Terminal/TerminalView'
 
-// Minimum panel boyutu (piksel cinsinden)
+// Minimum panel size (pixels)
 const MIN_PANEL_SIZE = 100
 // Divider width in pixels (must match CSS)
 const DIVIDER_SIZE = 4
-// Resize adımı (keyboard ile)
+// Resize step (keyboard)
 const RESIZE_STEP = 0.05
-
-// Helper to find a terminal pane by ID in the pane tree
-const findTerminalPane = (pane: Pane, terminalId: string): Pane | null => {
-  if (pane.type === 'terminal' && pane.terminalId === terminalId) {
-    return pane
-  }
-  if (pane.type === 'split' && pane.children) {
-    for (const child of pane.children) {
-      const found = findTerminalPane(child, terminalId)
-      if (found) return found
-    }
-  }
-  return null
-}
-
-// Helper to check if a pane tree contains a terminal ID
-const containsTerminal = (pane: Pane, terminalId: string): boolean => {
-  return findTerminalPane(pane, terminalId) !== null
-}
 
 /**
  * Terminal leaf component — subscribes to active pane store directly
@@ -41,8 +22,6 @@ interface TerminalPaneLeafProps {
   onNavigatePane?: (direction: 'up' | 'down' | 'left' | 'right') => void
   onNextTab?: () => void
   onPrevTab?: () => void
-  maximizedPaneId?: string | null
-  onToggleMaximize?: () => void
 }
 
 const TerminalPaneLeaf: React.FC<TerminalPaneLeafProps> = memo(
@@ -52,13 +31,10 @@ const TerminalPaneLeaf: React.FC<TerminalPaneLeafProps> = memo(
     onTerminalTitleChange,
     onNavigatePane,
     onNextTab,
-    onPrevTab,
-    maximizedPaneId,
-    onToggleMaximize
+    onPrevTab
   }) => {
     const wrapperRef = useRef<HTMLDivElement>(null)
     const ptyId = ptyIds.get(pane.terminalId || '')
-    const isMaximized = maximizedPaneId === pane.terminalId
     const terminalId = pane.terminalId
 
     // Handle active pane changes imperatively — no React re-render.
@@ -96,25 +72,12 @@ const TerminalPaneLeaf: React.FC<TerminalPaneLeafProps> = memo(
     return (
       <div
         ref={wrapperRef}
-        className={`terminal-wrapper ${isMaximized ? 'maximized' : ''}`}
+        className="terminal-wrapper"
         onMouseDownCapture={() => terminalId && setActivePaneId(terminalId)}
       >
-        {isMaximized && (
-          <div
-            className="terminal-maximize-indicator"
-            onClick={(e) => {
-              e.stopPropagation()
-              onToggleMaximize?.()
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
-            </svg>
-            <span>MAXIMIZED (Ctrl+Shift+M to restore)</span>
-          </div>
-        )}
         <TerminalView
           ptyId={ptyId}
+          terminalId={terminalId}
           onTitleChange={(title) => terminalId && onTerminalTitleChange?.(terminalId, title)}
           onNavigatePane={onNavigatePane}
           onNextTab={onNextTab}
@@ -135,8 +98,6 @@ interface SplitPaneProps {
   onClosePane?: () => void
   onNextTab?: () => void
   onPrevTab?: () => void
-  maximizedPaneId?: string | null
-  onToggleMaximize?: () => void
 }
 
 export const SplitPane: React.FC<SplitPaneProps> = memo(
@@ -147,9 +108,7 @@ export const SplitPane: React.FC<SplitPaneProps> = memo(
     onNavigatePane,
     onClosePane,
     onNextTab,
-    onPrevTab,
-    maximizedPaneId,
-    onToggleMaximize
+    onPrevTab
   }) => {
     const [ratio, setRatio] = useState(pane.ratio || 0.5)
     const [isDraggingState, setIsDraggingState] = useState(false)
@@ -159,10 +118,10 @@ export const SplitPane: React.FC<SplitPaneProps> = memo(
     // Sync ratio when pane is replaced (new layout applied)
     useEffect(() => {
       setRatio(pane.ratio || 0.5)
-    }, [pane.id])
+    }, [pane.id, pane.ratio])
 
     /**
-     * Minimum boyut kontrolü ile ratio hesaplama
+     * Calculate ratio with minimum size constraint
      */
     const calculateRatio = useCallback(
       (e: MouseEvent): number => {
@@ -172,7 +131,7 @@ export const SplitPane: React.FC<SplitPaneProps> = memo(
         const totalSize = pane.direction === 'vertical' ? rect.width : rect.height
         const position = pane.direction === 'vertical' ? e.clientX - rect.left : e.clientY - rect.top
 
-        // Minimum piksel bazlı sınır (account for divider width)
+        // Minimum pixel-based constraint (account for divider width)
         const usableSize = totalSize - DIVIDER_SIZE
         const minRatio = MIN_PANEL_SIZE / usableSize
         const maxRatio = 1 - minRatio
@@ -195,14 +154,14 @@ export const SplitPane: React.FC<SplitPaneProps> = memo(
     )
 
     /**
-     * Çift tıklayınca oranı sıfırla
+     * Reset ratio on double-click
      */
     const handleDoubleClick = useCallback(() => {
       setRatio(0.5)
     }, [])
 
     /**
-     * Klavye ile boyutlandırma
+     * Keyboard resizing
      */
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent) => {
@@ -264,50 +223,12 @@ export const SplitPane: React.FC<SplitPaneProps> = memo(
           onNavigatePane={onNavigatePane}
           onNextTab={onNextTab}
           onPrevTab={onPrevTab}
-          maximizedPaneId={maximizedPaneId}
-          onToggleMaximize={onToggleMaximize}
         />
       )
     }
 
     if (pane.type === 'split' && pane.children && pane.children.length >= 2) {
       const [first, second] = pane.children
-
-      // If a pane is maximized, find and render only that terminal
-      if (maximizedPaneId) {
-        // Check if maximized terminal is in first child
-        if (containsTerminal(first, maximizedPaneId)) {
-          return (
-            <SplitPane
-              pane={first}
-              onTerminalTitleChange={onTerminalTitleChange}
-              ptyIds={ptyIds}
-              onNavigatePane={onNavigatePane}
-              onClosePane={onClosePane}
-              onNextTab={onNextTab}
-              onPrevTab={onPrevTab}
-              maximizedPaneId={maximizedPaneId}
-              onToggleMaximize={onToggleMaximize}
-            />
-          )
-        }
-        // Check if maximized terminal is in second child
-        if (containsTerminal(second, maximizedPaneId)) {
-          return (
-            <SplitPane
-              pane={second}
-              onTerminalTitleChange={onTerminalTitleChange}
-              ptyIds={ptyIds}
-              onNavigatePane={onNavigatePane}
-              onClosePane={onClosePane}
-              onNextTab={onNextTab}
-              onPrevTab={onPrevTab}
-              maximizedPaneId={maximizedPaneId}
-              onToggleMaximize={onToggleMaximize}
-            />
-          )
-        }
-      }
 
       return (
         <div ref={containerRef} className={`split-pane ${pane.direction}`}>
@@ -325,8 +246,6 @@ export const SplitPane: React.FC<SplitPaneProps> = memo(
               onClosePane={onClosePane}
               onNextTab={onNextTab}
               onPrevTab={onPrevTab}
-              maximizedPaneId={maximizedPaneId}
-              onToggleMaximize={onToggleMaximize}
             />
           </div>
           <div
@@ -354,8 +273,6 @@ export const SplitPane: React.FC<SplitPaneProps> = memo(
               onClosePane={onClosePane}
               onNextTab={onNextTab}
               onPrevTab={onPrevTab}
-              maximizedPaneId={maximizedPaneId}
-              onToggleMaximize={onToggleMaximize}
             />
           </div>
         </div>

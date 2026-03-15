@@ -13,6 +13,7 @@
 .sidebar-toggle-btn {
   -webkit-app-region: no-drag;
   width: 38px;
+  min-width: 38px;
   height: 100%;
   border: none;
   background: transparent;
@@ -22,6 +23,7 @@
   align-items: center;
   justify-content: center;
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .sidebar-toggle-btn:hover {
@@ -33,6 +35,7 @@
 .split-btn {
   -webkit-app-region: no-drag;
   width: 30px;
+  min-width: 30px;
   height: 100%;
   border: none;
   background: transparent;
@@ -42,6 +45,7 @@
   align-items: center;
   justify-content: center;
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .split-btn:hover {
@@ -170,10 +174,12 @@
 
 .tabbar-divider {
   width: 1px;
+  min-width: 1px;
   height: 16px;
   background: var(--border-light);
   margin: 0 4px;
   align-self: center;
+  flex-shrink: 0;
 }
 
 .tabbar-tabs {
@@ -218,6 +224,7 @@
 
 .tabbar-drag-region {
   flex: 1;
+  min-width: 40px;
   height: 100%;
   -webkit-app-region: drag;
 }
@@ -300,6 +307,21 @@
 
 .tab.active .tab-title {
   font-weight: 600;
+}
+
+.tab-pin-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.tab.pinned {
+  min-width: auto;
+  padding-right: 8px;
+}
+
+.tab.pinned .tab-title {
+  max-width: 100px;
 }
 
 .tab-close {

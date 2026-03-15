@@ -127,6 +127,38 @@
   margin: 4px 10px;
 }
 
+.context-menu-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.context-menu-color-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  padding: 8px 14px;
+}
+
+.context-menu-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.context-menu-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.context-menu-color-swatch.active {
+  border-color: white;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
 /* Focus visible styles for form inputs */
 input:focus-visible,
 select:focus-visible,

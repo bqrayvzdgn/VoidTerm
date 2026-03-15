@@ -4,6 +4,11 @@ export interface PtyOptions {
   shell?: string
   cwd?: string
   env?: Record<string, string>
+  sshHost?: string
+  sshPort?: number
+  sshUsername?: string
+  sshAuthMethod?: string
+  sshKeyPath?: string
 }
 
 const electronAPI = {
@@ -97,6 +102,9 @@ const electronAPI = {
     chrome: process.versions.chrome
   },
 
+  // Background image selection
+  selectBackgroundImage: (): Promise<string | null> => ipcRenderer.invoke('select-background-image'),
+
   // External links
   openExternal: (url: string) => ipcRenderer.send('open-external', url),
 
@@ -136,55 +144,6 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('terminal-reset', callback)
   },
 
-  // Auto-update operations
-  updates: {
-    checkForUpdates: (): Promise<{
-      updateAvailable: boolean
-      updateInfo: { version: string; releaseNotes?: string } | null
-    }> => ipcRenderer.invoke('check-for-updates'),
-    downloadUpdate: (): Promise<boolean> => ipcRenderer.invoke('download-update'),
-    installUpdate: (): Promise<void> => ipcRenderer.invoke('install-update'),
-    getStatus: (): Promise<{
-      isUpdateAvailable: boolean
-      updateInfo: { version: string; releaseNotes?: string } | null
-    }> => ipcRenderer.invoke('get-update-status'),
-
-    onChecking: (callback: () => void) => {
-      ipcRenderer.on('update-checking', callback)
-      return () => ipcRenderer.removeListener('update-checking', callback)
-    },
-    onAvailable: (callback: (info: { version: string; releaseNotes?: string }) => void) => {
-      const handler = (_: Electron.IpcRendererEvent, info: { version: string; releaseNotes?: string }) => callback(info)
-      ipcRenderer.on('update-available', handler)
-      return () => ipcRenderer.removeListener('update-available', handler)
-    },
-    onNotAvailable: (callback: (info: { version: string }) => void) => {
-      const handler = (_: Electron.IpcRendererEvent, info: { version: string }) => callback(info)
-      ipcRenderer.on('update-not-available', handler)
-      return () => ipcRenderer.removeListener('update-not-available', handler)
-    },
-    onProgress: (
-      callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void
-    ) => {
-      const handler = (
-        _: Electron.IpcRendererEvent,
-        progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }
-      ) => callback(progress)
-      ipcRenderer.on('update-download-progress', handler)
-      return () => ipcRenderer.removeListener('update-download-progress', handler)
-    },
-    onDownloaded: (callback: (info: { version: string; releaseNotes?: string }) => void) => {
-      const handler = (_: Electron.IpcRendererEvent, info: { version: string; releaseNotes?: string }) => callback(info)
-      ipcRenderer.on('update-downloaded', handler)
-      return () => ipcRenderer.removeListener('update-downloaded', handler)
-    },
-    onError: (callback: (error: { message: string }) => void) => {
-      const handler = (_: Electron.IpcRendererEvent, error: { message: string }) => callback(error)
-      ipcRenderer.on('update-error', handler)
-      return () => ipcRenderer.removeListener('update-error', handler)
-    }
-  },
-
   // Config operations
   config: {
     get: () => ipcRenderer.invoke('config-get'),
@@ -220,14 +179,6 @@ const electronAPI = {
     }) => ipcRenderer.invoke('config-save-session', session),
     clearSession: () => ipcRenderer.invoke('config-clear-session'),
 
-    // Backup operations
-    backup: {
-      create: (): Promise<string> => ipcRenderer.invoke('config-backup-create'),
-      list: (): Promise<Array<{ filename: string; timestamp: number; date: string; size: number }>> =>
-        ipcRenderer.invoke('config-backup-list'),
-      restore: (filename: string): Promise<boolean> => ipcRenderer.invoke('config-backup-restore', filename),
-      delete: (filename: string): Promise<boolean> => ipcRenderer.invoke('config-backup-delete', filename)
-    },
     validate: (): Promise<boolean> => ipcRenderer.invoke('config-validate')
   }
 }

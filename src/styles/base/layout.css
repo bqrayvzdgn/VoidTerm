@@ -6,6 +6,11 @@
   flex-direction: column;
   background: var(--bg-base);
   overflow: hidden;
+  border-radius: 8px;
+}
+
+.app-container.maximized {
+  border-radius: 0;
 }
 
 .app-container.loading {

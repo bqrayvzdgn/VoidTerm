@@ -43,23 +43,17 @@
 - **Customizable Profiles** - Separate profile configurations for different shells
 - **Workspace Support** - Group and manage your workspaces
 - **Cross-Platform** - Windows, macOS, and Linux support
-- **Multi-Language** - Turkish and English interface support
 
 ### Advanced Features
 
 - **SSH Connections** - Direct SSH server connections and saved connection management
-- **Snippets** - Save frequently used commands and run with one click
-- **Broadcast Mode** - Send commands to all terminals simultaneously
 - **In-Terminal Search** - Search terminal output with Ctrl+F (regex and case-sensitive modes, with history support)
-- **Status Bar** - Shell info, CWD, broadcast mode, and vi mode indicators
-- **Config Backup** - Backup and restore your settings
+- **Status Bar** - Shell info, CWD, and vi mode indicators
 - **Auto-Update** - Automatic update support for new versions
-- **Comprehensive Testing** - 129+ unit tests with Vitest, E2E tests with Playwright
 
 ### Security & Stability
 
 - **Environment Whitelist** - Only safe environment variables are passed to terminal processes
-- **IPC Rate Limiting** - Token-bucket rate limiter to prevent PTY operation abuse
 - **SSH Input Validation** - Connection parameters are sanitized before saving
 - **Error Boundaries** - Granular error isolation for terminal and panel components
 - **PTY Cleanup** - Orphan process cleanup on renderer crash
@@ -123,9 +117,8 @@ VoidTerm/
 ├── electron/           # Electron main process
 │   ├── main.ts         # Window and IPC management
 │   ├── pty-manager.ts  # Terminal process management (env whitelist)
-│   ├── config-manager.ts # Config and backup management
+│   ├── config-manager.ts # Config management
 │   ├── auto-updater.ts # Auto-update with lazy loading
-│   ├── rate-limiter.ts # IPC rate limiting (token-bucket)
 │   ├── logger.ts       # Structured logging
 │   └── preload.ts      # Renderer API bridge
 ├── src/                # React renderer process
@@ -133,7 +126,6 @@ VoidTerm/
 │   ├── store/          # Zustand state management
 │   ├── themes/         # Terminal themes
 │   ├── hooks/          # Custom React hooks
-│   ├── i18n/           # Multi-language support
 │   ├── utils/          # Utility functions (validation, logger)
 │   └── types/          # TypeScript type definitions
 ├── e2e/                # Playwright E2E tests
@@ -153,7 +145,6 @@ VoidTerm/
 | State | Zustand |
 | Config | electron-store |
 | Logging | electron-log |
-| i18n | Custom implementation |
 | Testing | Vitest + Playwright |
 | Language | TypeScript 5 |
 
@@ -217,7 +208,6 @@ npm run test:e2e
 | `Ctrl+,` / `Cmd+,` | Settings |
 | `Ctrl+Shift+P` | Command palette |
 | `Ctrl+Shift+S` | SSH manager |
-| `Ctrl+Shift+B` | Broadcast mode |
 
 > All keyboard shortcuts can be customized from Settings > Shortcuts.
 
@@ -263,14 +253,6 @@ The following settings can be configured for each profile:
 - Environment variables
 - Startup command
 - Icon and color
-
-### Backup & Restore
-
-From Settings > Backup:
-
-- Create manual backups
-- View and restore previous backups
-- Import/export configuration
 
 ## License
 
@@ -322,23 +304,17 @@ We welcome your contributions! Before submitting a Pull Request:
 - **Özelleştirilebilir Profiller** - Farklı shell'ler için ayrı profil yapılandırmaları
 - **Workspace Desteği** - Çalışma alanlarınızı gruplandırın ve yönetin
 - **Çapraz Platform** - Windows, macOS ve Linux desteği
-- **Çoklu Dil** - Türkçe ve İngilizce arayüz desteği
 
 ### Gelişmiş Özellikler
 
 - **SSH Bağlantıları** - SSH sunucularına doğrudan bağlantı ve kayıtlı bağlantı yönetimi
-- **Kod Parçacıkları (Snippets)** - Sık kullanılan komutları kaydedin ve tek tıkla çalıştırın
-- **Broadcast Modu** - Aynı anda tüm terminallere komut gönderin
 - **Terminal İçi Arama** - Ctrl+F ile terminal çıktısında arama (regex ve büyük/küçük harf duyarlı modlar, geçmiş desteği ile)
-- **Durum Çubuğu** - Kabuk bilgisi, CWD, broadcast modu ve vi modu göstergeleri
-- **Yapılandırma Yedekleme** - Ayarlarınızı yedekleyin ve geri yükleyin
+- **Durum Çubuğu** - Kabuk bilgisi, CWD ve vi modu göstergeleri
 - **Otomatik Güncelleme** - Yeni sürümler için otomatik güncelleme desteği
-- **Kapsamlı Test** - Vitest ile 129+ birim test, Playwright ile E2E testler
 
 ### Güvenlik ve Stabilite
 
 - **Ortam Değişkeni Beyaz Listesi** - Terminal süreçlerine sadece güvenli ortam değişkenleri aktarılır
-- **IPC Hız Sınırlama** - PTY işlem suistimalini önlemek için token-bucket hız sınırlayıcı
 - **SSH Giriş Doğrulama** - Bağlantı parametreleri kaydedilmeden önce temizlenir
 - **Hata Sınırları** - Terminal ve panel bileşenleri için ayrıntılı hata izolasyonu
 - **PTY Cleanup** - Renderer crash durumunda orphan process temizleme
@@ -402,9 +378,8 @@ VoidTerm/
 ├── electron/           # Electron ana süreç kodları
 │   ├── main.ts         # Pencere ve IPC yönetimi
 │   ├── pty-manager.ts  # Terminal süreç yönetimi (ortam beyaz listesi)
-│   ├── config-manager.ts # Yapılandırma ve yedekleme yönetimi
+│   ├── config-manager.ts # Yapılandırma yönetimi
 │   ├── auto-updater.ts # Lazy loading ile otomatik güncelleme
-│   ├── rate-limiter.ts # IPC hız sınırlama (token-bucket)
 │   ├── logger.ts       # Structured logging (electron-log)
 │   └── preload.ts      # Renderer API köprüsü
 ├── src/                # React renderer süreci
@@ -412,7 +387,6 @@ VoidTerm/
 │   ├── store/          # Zustand state yönetimi
 │   ├── themes/         # Terminal temaları
 │   ├── hooks/          # Custom React hooks
-│   ├── i18n/           # Çoklu dil desteği (tr/en)
 │   ├── utils/          # Yardımcı fonksiyonlar (validation, logger)
 │   └── types/          # TypeScript tip tanımları
 ├── e2e/                # Playwright E2E testleri
@@ -432,7 +406,6 @@ VoidTerm/
 | State | Zustand |
 | Config | electron-store |
 | Logging | electron-log |
-| i18n | Custom implementation |
 | Testing | Vitest + Playwright |
 | Language | TypeScript 5 |
 
@@ -496,7 +469,6 @@ npm run test:e2e
 | `Ctrl+,` / `Cmd+,` | Ayarlar |
 | `Ctrl+Shift+P` | Komut paleti |
 | `Ctrl+Shift+S` | SSH yöneticisi |
-| `Ctrl+Shift+B` | Broadcast modu |
 
 > **Not:** Tüm klavye kısayolları Ayarlar > Kısayollar bölümünden özelleştirilebilir.
 
@@ -542,16 +514,6 @@ Her profil için aşağıdaki ayarlar yapılandırılabilir:
 - Ortam değişkenleri
 - Başlangıç komutu
 - İkon ve renk
-
-### Yedekleme ve Geri Yükleme
-
-Ayarlar > Yedekleme bölümünden:
-
-- Manuel yedek oluşturabilirsiniz
-- Önceki yedekleri görüntüleyebilir ve geri yükleyebilirsiniz
-- Yapılandırmayı dışa/içe aktarabilirsiniz
-
-> **Not:** Sistem otomatik olarak geri yükleme öncesinde mevcut yapılandırmanın yedeğini alır.
 
 ## Lisans
 

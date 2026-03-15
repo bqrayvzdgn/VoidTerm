@@ -1,7 +1,6 @@
 import type { ErrorInfo, ReactNode } from 'react'
 import { Component } from 'react'
 import { AlertTriangle } from 'lucide-react'
-import { useI18n, type TranslationKeys } from '../../i18n'
 
 interface Props {
   children: ReactNode
@@ -14,12 +13,6 @@ interface State {
   errorInfo: ErrorInfo | null
 }
 
-/**
- * Uygulama genelinde hataları yakalayan ve kullanıcıya anlamlı
- * mesajlar gösteren Error Boundary bileşeni.
- *
- * i18n desteği ile çoklu dil destekler.
- */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
@@ -37,13 +30,6 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo)
     this.setState({ errorInfo })
-  }
-
-  /**
-   * Zustand store'dan çevirileri al (class component için)
-   */
-  private getTranslations(): TranslationKeys {
-    return useI18n.getState().t
   }
 
   handleReload = () => {
@@ -71,9 +57,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   handleCopyError = () => {
-    const t = this.getTranslations()
     const errorText = `
-${t.errorBoundary.errorReport}
+VoidTerm Error Report
 =====================
 Error: ${this.state.error?.message}
 Stack: ${this.state.error?.stack}
@@ -84,7 +69,7 @@ Timestamp: ${new Date().toISOString()}
     navigator.clipboard
       .writeText(errorText)
       .then(() => {
-        alert(t.errorBoundary.errorCopied)
+        alert('Error details copied to clipboard')
       })
       .catch(console.error)
   }
@@ -95,33 +80,31 @@ Timestamp: ${new Date().toISOString()}
         return this.props.fallback
       }
 
-      const t = this.getTranslations()
-
       return (
         <div className="error-boundary">
           <div className="error-boundary-content">
             <AlertTriangle size={48} strokeWidth={1.5} className="error-boundary-icon" />
-            <h2 className="error-boundary-title">{t.errorBoundary.title}</h2>
-            <p className="error-boundary-message">{this.state.error?.message || t.errorBoundary.message}</p>
+            <h2 className="error-boundary-title">Something went wrong</h2>
+            <p className="error-boundary-message">{this.state.error?.message || 'An unexpected error occurred'}</p>
             <div className="error-boundary-actions">
               <button className="error-boundary-btn primary" onClick={this.handleReload}>
-                {t.errorBoundary.reload}
+                Reload Application
               </button>
               <button className="error-boundary-btn secondary" onClick={this.handleReset}>
-                {t.errorBoundary.tryAgain}
+                Try Again
               </button>
             </div>
             <div className="error-boundary-secondary-actions">
               <button className="error-boundary-btn-link" onClick={this.handleResetConfig}>
-                {t.errorBoundary.resetConfig}
+                Reset Configuration
               </button>
               <button className="error-boundary-btn-link" onClick={this.handleCopyError}>
-                {t.errorBoundary.copyError}
+                Copy Error Details
               </button>
             </div>
             {this.state.errorInfo && (
               <details className="error-boundary-details">
-                <summary>{t.errorBoundary.errorDetails}</summary>
+                <summary>Error Details (for debugging)</summary>
                 <pre>{this.state.error?.stack}</pre>
                 <pre>{this.state.errorInfo.componentStack}</pre>
               </details>

@@ -1,14 +1,13 @@
-// Terminal gecikmeleri (ms)
-export const COPY_FEEDBACK_DURATION = 1500
+// Terminal delays (ms)
 export const RESIZE_DEBOUNCE_DELAY = 150
 
-// Terminal varsayilanlari
+// Terminal defaults
 export const MIN_FONT_SIZE = 8
 export const MAX_ZOOM_LEVEL = 10
 export const MIN_ZOOM_LEVEL = -5
 export const ZOOM_STEP = 2
 
-// Workspace renkleri
+// Workspace colors
 export const WORKSPACE_COLORS = [
   '#89b4fa',
   '#f38ba8',

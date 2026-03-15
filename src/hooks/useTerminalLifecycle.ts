@@ -9,7 +9,7 @@ import { createLogger } from '../utils/logger'
 const logger = createLogger('TerminalLifecycle')
 
 /**
- * Terminal yaşam döngüsü hook'u - terminal ve tab oluşturma/silme işlemleri
+ * Terminal lifecycle hook - terminal and tab creation/deletion
  */
 export const useTerminalLifecycle = () => {
   const [ptyIds, setPtyIds] = useState<Map<string, string>>(new Map())
@@ -20,15 +20,26 @@ export const useTerminalLifecycle = () => {
 
   // Create a new terminal process
   const createTerminal = useCallback(
-    async (profileId: string) => {
+    async (profileId: string, cwd?: string) => {
       const profile = profiles.find((p) => p.id === profileId) || profiles[0]
 
       try {
-        const ptyId = await window.electronAPI.ptyCreate({
+        const ptyOptions: Record<string, unknown> = {
           shell: profile.shell,
-          cwd: profile.cwd,
+          cwd: cwd || profile.cwd,
           env: profile.env
-        })
+        }
+
+        // Pass SSH options for SSH profiles
+        if (profile.type === 'ssh' && profile.sshHost) {
+          ptyOptions.sshHost = profile.sshHost
+          ptyOptions.sshPort = profile.sshPort
+          ptyOptions.sshUsername = profile.sshUsername
+          ptyOptions.sshAuthMethod = profile.sshAuthMethod
+          ptyOptions.sshKeyPath = profile.sshKeyPath
+        }
+
+        const ptyId = await window.electronAPI.ptyCreate(ptyOptions as Parameters<typeof window.electronAPI.ptyCreate>[0])
 
         const terminalId = uuidv4()
 
@@ -44,12 +55,17 @@ export const useTerminalLifecycle = () => {
           const removeListener = window.electronAPI.onPtyData((id, _data) => {
             if (id === ptyId) {
               removeListener()
+              clearTimeout(startupTimeout)
               // Small delay after first output to ensure prompt is ready
               setTimeout(() => {
                 window.electronAPI.ptyWrite(ptyId, startupCmd + '\r')
               }, 100)
             }
           })
+          // Clean up listener if PTY never sends data (e.g. process dies immediately)
+          const startupTimeout = setTimeout(() => {
+            removeListener()
+          }, 10000)
         }
 
         return { terminalId, ptyId }

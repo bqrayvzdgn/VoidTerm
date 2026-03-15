@@ -1,31 +1,19 @@
 import type { Theme } from '../types'
 import type { ITheme } from '@xterm/xterm'
 import { themes } from '../themes'
-import { useCustomThemeStore } from '../store/customThemeStore'
 
 const DEFAULT_THEME_NAME = 'dark'
 
 /**
  * Resolves a theme name to a Theme object
- * Checks built-in themes first, then custom themes
  * Falls back to default theme if not found
  */
 export function resolveTheme(themeName: string): Theme {
-  // Check built-in themes first
-  let theme: Theme | undefined = themes[themeName]
-
-  // If not found, check custom themes
-  if (!theme) {
-    theme = useCustomThemeStore.getState().getTheme(themeName)
-  }
-
-  // Fall back to default theme
-  return theme || themes[DEFAULT_THEME_NAME]
+  return themes[themeName] || themes[DEFAULT_THEME_NAME]
 }
 
 /**
- * Theme nesnesini xterm ITheme formatina donusturur
- * Bu fonksiyon TerminalView'da tema tekrarini onler
+ * Converts a Theme object to xterm ITheme format
  */
 export function mapThemeToXterm(theme: Theme): ITheme {
   return {
@@ -54,7 +42,7 @@ export function mapThemeToXterm(theme: Theme): ITheme {
 }
 
 /**
- * Tema renklerinden CSS degiskenleri olusturur
+ * Generates CSS custom properties from theme colors
  */
 export function getThemeCSSVariables(theme: Theme): Record<string, string> {
   return {

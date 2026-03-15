@@ -35,6 +35,13 @@ export interface Profile {
   icon?: string
   color?: string
   startupCommand?: string
+  // SSH profile fields
+  type?: 'local' | 'ssh'
+  sshHost?: string
+  sshPort?: number
+  sshUsername?: string
+  sshAuthMethod?: 'password' | 'key' | 'agent'
+  sshKeyPath?: string
 }
 
 export interface Tab {
@@ -44,17 +51,8 @@ export interface Tab {
   ptyId?: string
   isActive: boolean
   workspaceId?: string
-}
-
-export interface Snippet {
-  id: string
-  name: string
-  command: string
-  description?: string
-  category?: string
-  shortcut?: string
-  createdAt: number
-  usageCount: number
+  color?: string
+  pinned?: boolean
 }
 
 export interface Pane {
@@ -100,7 +98,6 @@ export interface KeyboardShortcuts {
   copyText: string
   pasteText: string
   openCommandPalette: string
-  openSnippets: string
 }
 
 export interface Settings {
@@ -119,13 +116,20 @@ export interface Settings {
   blur: boolean
 
   // Terminal
+  terminalPadding: number
   copyOnSelect: boolean
   scrollback: number
   bellSound: boolean
 
-  // Addons
-  enableImages: boolean
-  enableClipboard: boolean
+  // Quake Mode
+  quakeMode: boolean
+  quakeShortcut: string
+  quakeHeight: number
+
+  // Background Image
+  backgroundImage: string
+  backgroundOpacity: number
+  backgroundBlur: number
 
   // Shell Integration
   shellIntegration: boolean
@@ -152,14 +156,13 @@ export const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
   clearTerminal: 'Ctrl+L',
   copyText: 'Ctrl+Shift+C',
   pasteText: 'Ctrl+Shift+V',
-  openCommandPalette: 'Ctrl+Shift+P',
-  openSnippets: 'Ctrl+Shift+N'
+  openCommandPalette: 'Ctrl+Shift+P'
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  defaultProfile: 'cmd',
+  defaultProfile: 'powershell',
   fontSize: 14,
-  fontFamily: 'Cascadia Code, monospace',
+  fontFamily: "'Cascadia Code', monospace",
   lineHeight: 1.2,
   letterSpacing: 0,
   cursorStyle: 'block',
@@ -167,11 +170,16 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',
   opacity: 1,
   blur: false,
-  copyOnSelect: true,
-  scrollback: 50000,
+  terminalPadding: 8,
+  copyOnSelect: false,
+  scrollback: 10000,
   bellSound: false,
-  enableImages: true,
-  enableClipboard: true,
+  quakeMode: false,
+  quakeShortcut: 'Ctrl+`',
+  quakeHeight: 50,
+  backgroundImage: '',
+  backgroundOpacity: 0.15,
+  backgroundBlur: 0,
   shellIntegration: true,
   shortcuts: DEFAULT_SHORTCUTS
 }

@@ -13,8 +13,6 @@ interface KeyboardShortcutHandlers {
   onClosePane?: () => void
   onCommandPalette?: () => void
   onReopenClosedTab?: () => void
-  onToggleMaximize?: () => void
-  onOpenSnippets?: () => void
 }
 
 export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
@@ -48,12 +46,6 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
         } else if (e.key === 'T' || e.key === 't') {
           e.preventDefault()
           h.onReopenClosedTab?.()
-        } else if (e.key === 'M' || e.key === 'm') {
-          e.preventDefault()
-          h.onToggleMaximize?.()
-        } else if (e.key === 'N' || e.key === 'n') {
-          e.preventDefault()
-          h.onOpenSnippets?.()
         }
       } else if (isCtrl) {
         if (e.key === 't') {

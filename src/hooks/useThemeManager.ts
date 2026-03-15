@@ -111,5 +111,23 @@ export const useThemeManager = () => {
     document.body.style.backgroundColor = bg
   }, [currentTheme])
 
+  // Apply terminal padding
+  useEffect(() => {
+    document.documentElement.style.setProperty('--terminal-padding', `${settings.terminalPadding}px`)
+  }, [settings.terminalPadding])
+
+  // Apply background image settings
+  useEffect(() => {
+    const root = document.documentElement
+    if (settings.backgroundImage) {
+      root.style.setProperty('--bg-image', `url(${settings.backgroundImage})`)
+      root.style.setProperty('--bg-image-opacity', String(settings.backgroundOpacity))
+      root.style.setProperty('--bg-image-blur', `${settings.backgroundBlur}px`)
+    } else {
+      root.style.setProperty('--bg-image', 'none')
+      root.style.setProperty('--bg-image-opacity', '0')
+    }
+  }, [settings.backgroundImage, settings.backgroundOpacity, settings.backgroundBlur])
+
   return { currentTheme }
 }

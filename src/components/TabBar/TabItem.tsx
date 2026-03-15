@@ -1,5 +1,5 @@
 import React from 'react'
-import { X } from 'lucide-react'
+import { X, Pin } from 'lucide-react'
 import { TerminalIcon } from '../Icons/TerminalIcons'
 import type { Tab, Profile } from '../../types'
 
@@ -15,7 +15,6 @@ interface TabItemProps {
   isActive: boolean
   isDragging: boolean
   isDragOver: boolean
-  hasActivity?: boolean
   cwd?: string
   dataTabId?: string
   onSelect: () => void
@@ -34,7 +33,6 @@ export const TabItem: React.FC<TabItemProps> = ({
   isActive,
   isDragging,
   isDragOver,
-  hasActivity,
   cwd,
   dataTabId,
   onSelect,
@@ -78,9 +76,9 @@ export const TabItem: React.FC<TabItemProps> = ({
       aria-selected={isActive}
       aria-label={`${tab.title} terminal tab`}
       data-tab-id={dataTabId}
-      className={`tab ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isDragOver ? 'drag-over' : ''}`}
+      className={`tab ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isDragOver ? 'drag-over' : ''} ${tab.pinned ? 'pinned' : ''}`}
       style={{
-        borderBottom: profile.color ? `2px solid ${profile.color}` : undefined
+        borderBottom: (tab.color || profile.color) ? `2px solid ${tab.color || profile.color}` : undefined
       }}
       onClick={onSelect}
       onKeyDown={handleKeyDown}
@@ -104,17 +102,23 @@ export const TabItem: React.FC<TabItemProps> = ({
           </span>
         )}
       </span>
-      {hasActivity && !isActive && <span className="tab-activity-badge" aria-label="New activity" />}
-      <span
-        role="button"
-        tabIndex={0}
-        className="tab-close"
-        onClick={handleCloseClick}
-        onKeyDown={handleCloseKeyDown}
-        title="Close tab"
-      >
-        <X size={12} strokeWidth={1.5} />
-      </span>
+      {tab.pinned && (
+        <span className="tab-pin-icon">
+          <Pin size={10} strokeWidth={1.5} />
+        </span>
+      )}
+      {!tab.pinned && (
+        <span
+          role="button"
+          tabIndex={0}
+          className="tab-close"
+          onClick={handleCloseClick}
+          onKeyDown={handleCloseKeyDown}
+          title="Close tab"
+        >
+          <X size={12} strokeWidth={1.5} />
+        </span>
+      )}
     </div>
   )
 }

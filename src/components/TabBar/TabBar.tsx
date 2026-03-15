@@ -145,6 +145,32 @@ const TabBarComponent: React.FC<TabBarProps> = ({
     [tabContextMenu, updateTab]
   )
 
+  const handleSetTabColor = useCallback(
+    (color: string | undefined) => {
+      if (tabContextMenu) {
+        updateTab(tabContextMenu.tabId, { color })
+      }
+    },
+    [tabContextMenu, updateTab]
+  )
+
+  const handleTogglePin = useCallback(
+    (tabId: string) => {
+      const tab = tabs.find((t) => t.id === tabId)
+      if (tab) {
+        updateTab(tabId, { pinned: !tab.pinned })
+      }
+    },
+    [tabs, updateTab]
+  )
+
+  // Sort tabs: pinned first, then unpinned in original order
+  const sortedFilteredTabs = useMemo(() => {
+    const pinned = filteredTabs.filter((t) => t.pinned)
+    const unpinned = filteredTabs.filter((t) => !t.pinned)
+    return [...pinned, ...unpinned]
+  }, [filteredTabs])
+
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId)
 
   return (
@@ -263,7 +289,7 @@ const TabBarComponent: React.FC<TabBarProps> = ({
         role="tablist"
         aria-label="Terminal tabs"
       >
-        {filteredTabs.map((tab) => (
+        {sortedFilteredTabs.map((tab) => (
           <TabItem
             key={tab.id}
             tab={tab}
@@ -347,9 +373,13 @@ const TabBarComponent: React.FC<TabBarProps> = ({
           x={tabContextMenu.x}
           y={tabContextMenu.y}
           tabId={tabContextMenu.tabId}
+          currentColor={tabs.find((t) => t.id === tabContextMenu.tabId)?.color}
+          isPinned={tabs.find((t) => t.id === tabContextMenu.tabId)?.pinned}
           workspaces={workspaces}
           onClose={() => setTabContextMenu(null)}
+          onTogglePin={handleTogglePin}
           onMoveToWorkspace={handleMoveToWorkspace}
+          onSetColor={handleSetTabColor}
         />
       )}
     </div>

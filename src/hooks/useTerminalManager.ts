@@ -1,12 +1,12 @@
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import { useTerminalStore } from '../store/terminalStore'
-import { getActivePaneId, setActivePaneId } from '../store/activePaneStore'
+import { setActivePaneId } from '../store/activePaneStore'
 import { useTerminalLifecycle } from './useTerminalLifecycle'
 import { usePaneOperations } from './usePaneOperations'
 import { useTabOperations } from './useTabOperations'
 
 /**
- * Terminal Manager - Tüm terminal işlemlerini yöneten ana hook
+ * Terminal Manager - Main hook orchestrating all terminal operations
  *
  * NOTE: This hook does NOT subscribe to activePaneId to avoid re-rendering
  * the entire App tree on pane focus change. Components that need the active
@@ -14,7 +14,6 @@ import { useTabOperations } from './useTabOperations'
  */
 export const useTerminalManager = () => {
   const setActivePaneTerminalId = setActivePaneId
-  const [maximizedPaneId, setMaximizedPaneId] = useState<string | null>(null)
 
   const { panes } = useTerminalStore()
 
@@ -54,19 +53,8 @@ export const useTerminalManager = () => {
     handleCreateTab
   })
 
-  // Toggle maximize pane
-  const handleToggleMaximize = useCallback(() => {
-    if (maximizedPaneId) {
-      setMaximizedPaneId(null)
-    } else {
-      const activeId = getActivePaneId()
-      if (activeId) setMaximizedPaneId(activeId)
-    }
-  }, [maximizedPaneId])
-
   return {
     ptyIds,
-    maximizedPaneId,
     createTerminal,
     handleCreateTab,
     handleCloseTab,
@@ -77,7 +65,6 @@ export const useTerminalManager = () => {
     handleNextTab,
     handlePrevTab,
     handleReopenClosedTab,
-    handleToggleMaximize,
     setActivePaneTerminalId,
     setPtyIds
   }

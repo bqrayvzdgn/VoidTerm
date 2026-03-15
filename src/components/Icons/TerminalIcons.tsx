@@ -248,8 +248,8 @@ interface TerminalIconProps extends IconProps {
 }
 
 /**
- * Terminal profili için ikon bileşeni.
- * React.memo ile sarılarak gereksiz render'lar önlenir.
+ * Terminal profile icon component.
+ * Wrapped with React.memo to prevent unnecessary re-renders.
  */
 export const TerminalIcon: React.FC<TerminalIconProps> = React.memo(({ icon = 'DEF', size = 16, className }) => {
   const IconComponent = iconMap[icon] || iconMap[icon.toLowerCase()] || DefaultTerminalIcon
